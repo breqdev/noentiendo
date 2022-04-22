@@ -1,7 +1,5 @@
-use crate::memory::Memory;
-
 pub struct Registers {
-  accumulator: u8,
+  pub accumulator: u8,
   x_index: u8,
   y_index: u8,
   stack_pointer: u8,
@@ -9,7 +7,7 @@ pub struct Registers {
   status_register: u8,
 }
 
-mod flags {
+pub mod flags {
   pub const CARRY: u8 = 0b00000001;
   pub const ZERO: u8 = 0b00000010;
   pub const INTERRUPT: u8 = 0b00000100;
@@ -20,73 +18,43 @@ mod flags {
   pub const NEGATIVE: u8 = 0b10000000;
 }
 
-mod vectors {
-  pub const RESET: u16 = 0xFFFC;
-  pub const NMI: u16 = 0xFFFA;
-  pub const IRQ: u16 = 0xFFFE;
+pub trait StackPointer {
+  fn stack_push(&mut self);
+  fn stack_pop(&mut self);
+  fn stack_address(&self) -> u16;
 }
 
-trait Stack {
-  fn push(&mut self, value: u8, memory: &mut dyn Memory);
-  fn pop(&mut self, memory: &mut dyn Memory) -> u8;
-}
-
-impl Stack for Registers {
-  fn push(&mut self, value: u8, memory: &mut dyn Memory) {
+impl StackPointer for Registers {
+  fn stack_push(&mut self) {
     self.stack_pointer -= 1;
-    memory
-      .write(0x0100 + self.stack_pointer as u16, value)
-      .unwrap();
   }
 
-  fn pop(&mut self, memory: &mut dyn Memory) -> u8 {
-    let value = memory.read(0x0100 + self.stack_pointer as u16).unwrap();
+  fn stack_pop(&mut self) {
     self.stack_pointer += 1;
-    value
+  }
+
+  fn stack_address(&self) -> u16 {
+    0x0100 + self.stack_pointer as u16
   }
 }
 
-pub trait Fetch {
-  fn fetch(&mut self, memory: &mut dyn Memory) -> Result<u8, ()>;
-  fn fetch_word(&mut self, memory: &mut dyn Memory) -> Result<u16, ()>;
+pub trait ProgramCounter {
+  fn pc_address(&self) -> u16;
+  fn pc_increment(&mut self);
+  fn pc_load(&mut self, address: u16);
 }
 
-impl Fetch for Registers {
-  fn fetch(&mut self, memory: &mut dyn Memory) -> Result<u8, ()> {
-    let result = memory.read(self.program_counter);
+impl ProgramCounter for Registers {
+  fn pc_address(&self) -> u16 {
+    self.program_counter
+  }
+
+  fn pc_increment(&mut self) {
     self.program_counter += 1;
-    result
   }
 
-  fn fetch_word(&mut self, memory: &mut dyn Memory) -> Result<u16, ()> {
-    let lo = self.fetch(memory)?;
-    let hi = self.fetch(memory)?;
-    Ok((hi as u16) << 8 | lo as u16)
-  }
-}
-
-pub trait Execute {
-  fn execute(&mut self, opcode: u8, memory: &mut dyn Memory) -> Result<(), ()>;
-}
-
-impl Execute for Registers {
-  fn execute(&mut self, opcode: u8, memory: &mut dyn Memory) -> Result<(), ()> {
-    match opcode {
-      0xA9 => {
-        let value = self.fetch(memory)?;
-        self.accumulator = value;
-        Ok(())
-      }
-      0x8D => {
-        let address = self.fetch_word(memory)?;
-        memory.write(address, self.accumulator)?;
-        Ok(())
-      }
-      _ => {
-        println!("Unimplemented opcode: {:02X}", opcode);
-        Err(())
-      }
-    }
+  fn pc_load(&mut self, address: u16) {
+    self.program_counter = address;
   }
 }
 
@@ -102,19 +70,12 @@ impl Registers {
     }
   }
 
-  pub fn reset(&mut self, memory: &mut dyn Memory) {
+  pub fn reset(&mut self) {
     self.accumulator = 0;
     self.x_index = 0;
     self.y_index = 0;
     self.stack_pointer = 0xFF;
     self.program_counter = 0x0000;
     self.status_register = 0;
-
-    let pc_low = memory.read(vectors::RESET).unwrap();
-    let pc_high = memory.read(vectors::RESET + 1).unwrap();
-
-    self.program_counter = (pc_high as u16) << 8 | pc_low as u16;
-
-    println!("pc = {:04X}", self.program_counter);
   }
 }
