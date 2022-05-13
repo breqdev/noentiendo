@@ -94,6 +94,30 @@ impl StatusRegister for Registers {
   }
 }
 
+pub trait ALU {
+  fn alu_add(&mut self, value: u8);
+  fn alu_subtract(&mut self, value: u8);
+}
+
+impl ALU for Registers {
+  fn alu_add(&mut self, value: u8) {
+    let sum = self.accumulator as u16 + value as u16 + self.status_read(flags::CARRY) as u16;
+
+    self.status_write(flags::CARRY, sum > 0xFF);
+    self.status_write(
+      flags::OVERFLOW,
+      !(self.accumulator ^ value) & (self.accumulator ^ sum as u8) & 0x80 != 0,
+    );
+
+    self.accumulator = sum as u8;
+    self.status_set_nz(self.accumulator);
+  }
+
+  fn alu_subtract(&mut self, value: u8) {
+    self.alu_add(!value);
+  }
+}
+
 impl Registers {
   pub fn new() -> Registers {
     Registers {

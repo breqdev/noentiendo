@@ -1,4 +1,4 @@
-use crate::registers::{flags, ProgramCounter, StatusRegister};
+use crate::registers::{flags, ProgramCounter, StatusRegister, ALU};
 use crate::system::{Fetch, System};
 
 pub trait Execute {
@@ -273,21 +273,7 @@ impl Execute for System {
       0x69 => {
         // ADC immediate
         let value = self.fetch()?;
-
-        let sum = self.registers.accumulator as u16
-          + value as u16
-          + self.registers.status_read(flags::CARRY) as u16;
-
-        self.registers.status_write(flags::CARRY, sum > 0xFF);
-        self.registers.status_write(
-          flags::OVERFLOW,
-          !(self.registers.accumulator ^ value) & (self.registers.accumulator ^ sum as u8) & 0x80
-            != 0,
-        );
-
-        self.registers.accumulator = sum as u8;
-        self.registers.status_set_nz(self.registers.accumulator);
-
+        self.registers.alu_add(value);
         Ok(())
       }
       0x6A => {
@@ -634,23 +620,8 @@ impl Execute for System {
       }
       0xE9 => {
         // SBC immediate
-        // Bit invert trick from https://stackoverflow.com/a/29224684
-        let value = 0xFF ^ self.fetch()?;
-
-        let sum = self.registers.accumulator as u16
-          + value as u16
-          + self.registers.status_read(flags::CARRY) as u16;
-
-        self.registers.status_write(flags::CARRY, sum > 0xFF);
-        self.registers.status_write(
-          flags::OVERFLOW,
-          !(self.registers.accumulator ^ value) & (self.registers.accumulator ^ sum as u8) & 0x80
-            != 0,
-        );
-
-        self.registers.accumulator = sum as u8;
-        self.registers.status_set_nz(self.registers.accumulator);
-
+        let value = self.fetch()?;
+        self.registers.alu_subtract(value);
         Ok(())
       }
       0xEA => {
