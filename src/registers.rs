@@ -2,9 +2,9 @@ pub struct Registers {
   pub accumulator: u8,
   pub x_index: u8,
   pub y_index: u8,
-  stack_pointer: u8,
-  program_counter: u16,
-  status_register: u8,
+  pub stack_pointer: u8,
+  pub program_counter: u16,
+  pub status_register: u8,
 }
 
 pub mod flags {
@@ -97,6 +97,7 @@ impl StatusRegister for Registers {
 pub trait ALU {
   fn alu_add(&mut self, value: u8);
   fn alu_subtract(&mut self, value: u8);
+  fn alu_compare(&mut self, register: u8, value: u8);
 }
 
 impl ALU for Registers {
@@ -115,6 +116,12 @@ impl ALU for Registers {
 
   fn alu_subtract(&mut self, value: u8) {
     self.alu_add(!value);
+  }
+
+  fn alu_compare(&mut self, register: u8, value: u8) {
+    self.status_write(flags::CARRY, register >= value);
+    self.status_write(flags::ZERO, register == value);
+    self.status_write(flags::NEGATIVE, register - value & 0x80 != 0);
   }
 }
 
