@@ -1,3 +1,4 @@
+use crate::execute::Execute;
 use crate::memory::Memory;
 use crate::registers::{ProgramCounter, Registers, StackPointer};
 
@@ -8,8 +9,8 @@ mod vectors {
 }
 
 pub struct System {
-  registers: Registers,
-  memory: Box<dyn Memory>,
+  pub registers: Registers,
+  pub memory: Box<dyn Memory>,
 }
 
 trait Stack {
@@ -30,7 +31,7 @@ impl Stack for System {
   }
 }
 
-trait Fetch {
+pub trait Fetch {
   fn fetch(&mut self) -> Result<u8, ()>;
   fn fetch_word(&mut self) -> Result<u16, ()>;
 }
@@ -46,36 +47,6 @@ impl Fetch for System {
     let lo = self.fetch()?;
     let hi = self.fetch()?;
     Ok((hi as u16) << 8 | lo as u16)
-  }
-}
-
-trait Execute {
-  fn execute(&mut self, opcode: u8) -> Result<(), ()>;
-}
-
-impl Execute for System {
-  fn execute(&mut self, opcode: u8) -> Result<(), ()> {
-    match opcode {
-      0xA9 => {
-        let value = self.fetch()?;
-        self.registers.accumulator = value;
-        Ok(())
-      }
-      0x8D => {
-        let address = self.fetch_word()?;
-        self.memory.write(address, self.registers.accumulator)?;
-        Ok(())
-      }
-      0x4C => {
-        let address = self.fetch_word()?;
-        self.registers.pc_load(address);
-        Ok(())
-      }
-      _ => {
-        println!("Unimplemented opcode: {:02X}", opcode);
-        Err(())
-      }
-    }
   }
 }
 

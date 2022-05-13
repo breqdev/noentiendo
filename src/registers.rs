@@ -1,7 +1,7 @@
 pub struct Registers {
   pub accumulator: u8,
-  x_index: u8,
-  y_index: u8,
+  pub x_index: u8,
+  pub y_index: u8,
   stack_pointer: u8,
   program_counter: u16,
   status_register: u8,
@@ -55,6 +55,42 @@ impl ProgramCounter for Registers {
 
   fn pc_load(&mut self, address: u16) {
     self.program_counter = address;
+  }
+}
+
+pub trait StatusRegister {
+  fn status_write(&mut self, flag: u8, value: bool);
+  fn status_set(&mut self, flag: u8);
+  fn status_clear(&mut self, flag: u8);
+  fn status_read(&self, flag: u8) -> bool;
+
+  fn status_set_nz(&mut self, value: u8);
+}
+
+impl StatusRegister for Registers {
+  fn status_write(&mut self, flag: u8, value: bool) {
+    if value {
+      self.status_set(flag);
+    } else {
+      self.status_clear(flag);
+    }
+  }
+
+  fn status_set(&mut self, flag: u8) {
+    self.status_register |= flag;
+  }
+
+  fn status_clear(&mut self, flag: u8) {
+    self.status_register &= !flag;
+  }
+
+  fn status_read(&self, flag: u8) -> bool {
+    self.status_register & flag != 0
+  }
+
+  fn status_set_nz(&mut self, value: u8) {
+    self.status_write(flags::NEGATIVE, value & 0x80 != 0);
+    self.status_write(flags::ZERO, value != 0);
   }
 }
 
