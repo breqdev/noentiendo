@@ -95,7 +95,7 @@ impl StatusRegister for Registers {
 
   fn status_set_nz(&mut self, value: u8) {
     self.status_write(flags::NEGATIVE, value & 0x80 != 0);
-    self.status_write(flags::ZERO, value != 0);
+    self.status_write(flags::ZERO, value == 0);
   }
 }
 
@@ -138,7 +138,7 @@ impl Registers {
       y_index: 0,
       stack_pointer: 0xFF,
       program_counter: 0x0000,
-      status_register: 0,
+      status_register: 0b00110000,
     }
   }
 
@@ -148,6 +148,6 @@ impl Registers {
     self.y_index = 0;
     self.stack_pointer = 0xFF;
     self.program_counter = 0x0000;
-    self.status_register = 0;
+    self.status_register = 0b00110000;
   }
 }

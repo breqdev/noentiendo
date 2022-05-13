@@ -13,17 +13,11 @@ fn main() {
 
   // 6502 machine code
   let program = vec![
-    /* 0x8000 */ 0xA9, 0x42, // LDA #$42
-    /* 0x8002 */ 0x8D, 0x00, 0x02, // STA $0200
-    /* 0x8005 */ 0x18, // CLC
-    /* 0x8006 */ 0x69, 0x10, // ADC #$10
-    /* 0x8008 */ 0x8D, 0x01, 0x02, // STA $0201
-    /* 0x800B */ 0x38, // SEC
-    /* 0x800C */ 0xE9, 0x0D, // SBC #$0D
-    /* 0x800E */ 0x8D, 0x02, 0x02, // STA $0202
-    /* 0x8011 */ 0xA9, 0x51, // LDA #$51
-    /* 0x8013 */ 0x8D, 0x03, 0x02, // STA $0203
-    /* 0x8016 */ 0x4C, 0x16, 0x80, // JMP $8016
+    /* 0x8000 */ 0xA9, 0xC0, // LDA #$C0
+    /* 0x8002 */ 0xAA, // TAX
+    /* 0x8003 */ 0xE8, // INX
+    /* 0x8004 */ 0x69, 0xC4, // ADC #$C4
+    /* 0x8006 */ 0x4C, 0x06, 0x80, // JMP $8006
   ];
 
   // Load program into memory at 0x8000
@@ -39,9 +33,8 @@ fn main() {
     system.tick();
   }
 
-  // Dump contents of memory from 0x0200 to 0x0204
-  for i in 0x0200..0x0204 {
-    print!("{}", system.read(i).unwrap() as char);
-  }
+  println!("A: {:02X}", system.registers.accumulator);
+  println!("X: {:02X}", system.registers.x_index);
+  println!("SR: {:08b}", system.registers.status_register);
   println!();
 }
