@@ -42,6 +42,7 @@ pub trait ProgramCounter {
   fn pc_address(&self) -> u16;
   fn pc_increment(&mut self);
   fn pc_load(&mut self, address: u16);
+  fn pc_offset(&mut self, offset: i8);
 }
 
 impl ProgramCounter for Registers {
@@ -55,6 +56,10 @@ impl ProgramCounter for Registers {
 
   fn pc_load(&mut self, address: u16) {
     self.program_counter = address;
+  }
+
+  fn pc_offset(&mut self, offset: i8) {
+    self.program_counter = self.program_counter.wrapping_add(offset as u16);
   }
 }
 

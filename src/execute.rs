@@ -234,7 +234,12 @@ impl Execute for System {
       }
       0x0A => {
         // ASL accumulator
-        Err(())
+        self
+          .registers
+          .status_write(flags::CARRY, self.registers.accumulator & 0x80 != 0);
+        self.registers.accumulator = self.registers.accumulator << 1;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x0E => {
         // ASL absolute
@@ -256,7 +261,12 @@ impl Execute for System {
       }
       0x4A => {
         // LSR accumulator
-        Err(())
+        self
+          .registers
+          .status_write(flags::CARRY, self.registers.accumulator & 0x01 != 0);
+        self.registers.accumulator = self.registers.accumulator >> 1;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x4E => {
         // LSR absolute
@@ -278,7 +288,14 @@ impl Execute for System {
       }
       0x2A => {
         // ROL accumulator
-        Err(())
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self
+          .registers
+          .status_write(flags::CARRY, self.registers.accumulator & 0x80 != 0);
+        self.registers.accumulator = self.registers.accumulator << 1;
+        self.registers.accumulator |= carry;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x2E => {
         // ROL absolute
@@ -300,7 +317,14 @@ impl Execute for System {
       }
       0x6A => {
         // ROR accumulator
-        Err(())
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self
+          .registers
+          .status_write(flags::CARRY, self.registers.accumulator & 0x01 != 0);
+        self.registers.accumulator = self.registers.accumulator >> 1;
+        self.registers.accumulator |= carry << 7;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x6E => {
         // ROR absolute
@@ -606,13 +630,17 @@ impl Execute for System {
       // DEX
       0xCA => {
         // DEX
-        Err(())
+        self.registers.x_index -= 1;
+        self.registers.status_set_nz(self.registers.x_index);
+        Ok(())
       }
 
       // DEY
       0x88 => {
         // DEY
-        Err(())
+        self.registers.y_index -= 1;
+        self.registers.status_set_nz(self.registers.y_index);
+        Ok(())
       }
 
       // INC
@@ -636,13 +664,17 @@ impl Execute for System {
       // INX
       0xE8 => {
         // INX
-        Err(())
+        self.registers.x_index += 1;
+        self.registers.status_set_nz(self.registers.x_index);
+        Ok(())
       }
 
       // INY
       0xC8 => {
         // INY
-        Err(())
+        self.registers.y_index += 1;
+        self.registers.status_set_nz(self.registers.y_index);
+        Ok(())
       }
 
       // === CONTROL ===
@@ -670,41 +702,81 @@ impl Execute for System {
       }
       0x60 => {
         // RTS
+        self.registers.stack_pop();
+        let pc_low = self.read(self.registers.stack_address())?;
+        self.registers.stack_pop();
+        let pc_high = self.read(self.registers.stack_address())?;
+
+        self
+          .registers
+          .pc_load((pc_high as u16 | (pc_low as u16) << 8) + 1);
         Err(())
       }
 
       // === BRANCH ===
       0x90 => {
         // BCC
-        Err(())
+        let offset = self.fetch()? as i8;
+        if !self.registers.status_read(flags::CARRY) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
       0xB0 => {
         // BCS
-        Err(())
+        let offset = self.fetch()? as i8;
+        if self.registers.status_read(flags::CARRY) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
       0xF0 => {
         // BEQ
-        Err(())
+        let offset = self.fetch()? as i8;
+        if self.registers.status_read(flags::ZERO) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
       0x30 => {
         // BMI
-        Err(())
+        let offset = self.fetch()? as i8;
+        if self.registers.status_read(flags::NEGATIVE) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
       0xD0 => {
         // BNE
-        Err(())
+        let offset = self.fetch()? as i8;
+        if !self.registers.status_read(flags::ZERO) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
       0x10 => {
         // BPL
-        Err(())
+        let offset = self.fetch()? as i8;
+        if !self.registers.status_read(flags::NEGATIVE) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
       0x50 => {
         // BVC
-        Err(())
+        let offset = self.fetch()? as i8;
+        if !self.registers.status_read(flags::OVERFLOW) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
       0x70 => {
         // BVS
-        Err(())
+        let offset = self.fetch()? as i8;
+        if self.registers.status_read(flags::OVERFLOW) {
+          self.registers.pc_offset(offset);
+        }
+        Ok(())
       }
 
       // === FLAGS ===
@@ -747,7 +819,7 @@ impl Execute for System {
       // === NOP ===
       0xEA => {
         // NOP
-        Err(())
+        Ok(())
       }
 
       _ => {
