@@ -7,18 +7,18 @@ mod system;
 use crate::system::MemoryIO;
 
 fn main() {
-  let ram = Box::new(memory::BlockMemory::new(0x4000));
+  let ram = Box::new(memory::BlockMemory::new(14));
   let io = Box::new(memory::MappedIO::new());
-  let rom = Box::new(memory::BlockMemory::new(0x8000));
+  let rom = Box::new(memory::BlockMemory::new(15));
 
-  let low = Box::new(memory::BranchMemory::new(ram, io, 0x4000));
-  let memory = Box::new(memory::BranchMemory::new(low, rom, 0x8000));
+  let low = Box::new(memory::BranchMemory::new(ram, io, 15));
+  let memory = Box::new(memory::BranchMemory::new(low, rom, 16));
 
   let mut system = system::System::new(memory);
 
   // Set reset vector (0xFFFC) to program start (0x8000)
-  system.write(0xFFFC, 0x00).unwrap();
-  system.write(0xFFFD, 0x80).unwrap();
+  system.write(0xFFFC, 0x00);
+  system.write(0xFFFD, 0x80);
 
   // 6502 machine code
   let program = vec![
@@ -36,7 +36,7 @@ fn main() {
 
   // Load program into memory at 0x8000
   for (i, &byte) in program.iter().enumerate() {
-    system.write(0x8000 + i as u16, byte).unwrap();
+    system.write(0x8000 + i as u16, byte);
   }
 
   // Reset system (set PC to reset vector)
