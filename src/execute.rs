@@ -1,5 +1,5 @@
 use crate::registers::{flags, ProgramCounter, StackPointer, StatusRegister, ALU};
-use crate::system::{Fetch, System};
+use crate::system::{Fetch, MemoryIO, System};
 
 pub trait Execute {
   fn execute(&mut self, opcode: u8) -> Result<(), ()>;
@@ -17,7 +17,10 @@ impl Execute for System {
       }
       0xA5 => {
         // LDA zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.accumulator = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xA9 => {
         // LDA immediate
@@ -28,7 +31,10 @@ impl Execute for System {
       }
       0xAD => {
         // LDA absolute
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.accumulator = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xB1 => {
         // LDA (indirect),Y
@@ -36,15 +42,24 @@ impl Execute for System {
       }
       0xB5 => {
         // LDA zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self.registers.accumulator = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xB9 => {
         // LDA absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self.registers.accumulator = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xBD => {
         // LDA absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self.registers.accumulator = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
 
       // LDX
@@ -53,23 +68,35 @@ impl Execute for System {
         let value = self.fetch()?;
         self.registers.x_index = value;
         self.registers.status_set_nz(value);
-        Err(())
+        Ok(())
       }
       0xA6 => {
         // LDX zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.x_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xAE => {
         // LDX absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.x_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xB6 => {
         // LDX zero page,Y
-        Err(())
+        let value = self.fetch_zero_page_y()?;
+        self.registers.x_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xBE => {
         // LDX absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self.registers.x_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
 
       // LDY
@@ -82,19 +109,31 @@ impl Execute for System {
       }
       0xA4 => {
         // LDY zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.y_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xAC => {
         // LDY absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.y_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xB4 => {
         // LDY zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self.registers.y_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xBC => {
         // LDY absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self.registers.y_index = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
 
       // === STORE ===
@@ -106,12 +145,16 @@ impl Execute for System {
       }
       0x85 => {
         // STA zero page
-        Err(())
+        let address = self.fetch()?;
+        self
+          .memory
+          .write(address as u16, self.registers.accumulator)?;
+        Ok(())
       }
       0x8D => {
         // STA absolute
         let address = self.fetch_word()?;
-        self.memory.write(address, self.registers.accumulator)?;
+        self.write(address, self.registers.accumulator)?;
         Ok(())
       }
       0x91 => {
@@ -120,43 +163,66 @@ impl Execute for System {
       }
       0x95 => {
         // STA zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        self.write(address as u16, self.registers.accumulator)?;
+        Ok(())
       }
       0x99 => {
         // STA absolute,Y
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.y_index as u16);
+        self.write(address, self.registers.accumulator)?;
+        Ok(())
       }
       0x9D => {
         // STA absolute,X
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.x_index as u16);
+        self.write(address, self.registers.accumulator)?;
+        Ok(())
       }
 
       // STX
       0x86 => {
         // STX zero page
-        Err(())
+        let address = self.fetch()?;
+        self.write(address as u16, self.registers.x_index)?;
+        Ok(())
       }
       0x8E => {
         // STX absolute
-        Err(())
+        let address = self.fetch_word()?;
+        self.write(address, self.registers.x_index)?;
+        Ok(())
       }
       0x96 => {
         // STX zero page,Y
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.y_index;
+        self.write(address as u16, self.registers.x_index)?;
+        Ok(())
       }
 
       // STY
       0x84 => {
         // STY zero page
-        Err(())
+        let address = self.fetch()?;
+        self.write(address as u16, self.registers.y_index)?;
+        Ok(())
       }
       0x8C => {
         // STY absolute
-        Err(())
+        let address = self.fetch_word()?;
+        self.write(address, self.registers.y_index)?;
+        Ok(())
       }
       0x94 => {
         // STY zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        self.write(address as u16, self.registers.y_index)?;
+        Ok(())
       }
 
       // === TRANSFER ===
@@ -230,7 +296,13 @@ impl Execute for System {
       // ASL
       0x06 => {
         // ASL zero page
-        Err(())
+        let address = self.fetch()?;
+        let value = self.read(address as u16)?;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x0A => {
         // ASL accumulator
@@ -243,21 +315,47 @@ impl Execute for System {
       }
       0x0E => {
         // ASL absolute
-        Err(())
+        let address = self.fetch_word()?;
+        let value = self.read(address)?;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
       0x16 => {
         // ASL zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        let value = self.read(address as u16)?;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x1E => {
         // ASL absolute,X
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.x_index as u16);
+        let value = self.read(address)?;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
 
       // LSR
       0x46 => {
         // LSR zero page
-        Err(())
+        let address = self.fetch()?;
+        let value = self.read(address as u16)?;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x4A => {
         // LSR accumulator
@@ -270,21 +368,48 @@ impl Execute for System {
       }
       0x4E => {
         // LSR absolute
-        Err(())
+        let address = self.fetch_word()?;
+        let value = self.read(address)?;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
       0x56 => {
         // LSR zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        let value = self.read(address as u16)?;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x5E => {
         // LSR absolute,X
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.x_index as u16);
+        let value = self.read(address)?;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
 
       // ROL
       0x26 => {
         // ROL zero page
-        Err(())
+        let address = self.fetch()?;
+        let value = self.read(address as u16)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1 | carry;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x2A => {
         // ROL accumulator
@@ -299,21 +424,51 @@ impl Execute for System {
       }
       0x2E => {
         // ROL absolute
-        Err(())
+        let address = self.fetch_word()?;
+        let value = self.read(address)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1 | carry;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
       0x36 => {
         // ROL zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        let value = self.read(address as u16)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1 | carry;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x3E => {
         // ROL absolute,X
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.x_index as u16);
+        let value = self.read(address)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        let result = value << 1 | carry;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
 
       // ROR
       0x66 => {
         // ROR zero page
-        Err(())
+        let address = self.fetch()?;
+        let value = self.read(address as u16)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1 | carry << 7;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x6A => {
         // ROR accumulator
@@ -328,15 +483,38 @@ impl Execute for System {
       }
       0x6E => {
         // ROR absolute
-        Err(())
+        let address = self.fetch_word()?;
+        let value = self.read(address)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1 | carry << 7;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
       0x76 => {
         // ROR zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        let value = self.read(address as u16)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1 | carry << 7;
+        self.registers.status_set_nz(result);
+        self.write(address as u16, result)?;
+        Ok(())
       }
       0x7E => {
         // ROR absolute,X
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.x_index as u16);
+        let value = self.read(address)?;
+        let carry = self.registers.status_read(flags::CARRY) as u8;
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        let result = value >> 1 | carry << 7;
+        self.registers.status_set_nz(result);
+        self.write(address, result)?;
+        Ok(())
       }
 
       // === LOGIC ===
@@ -348,7 +526,10 @@ impl Execute for System {
       }
       0x25 => {
         // AND zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.accumulator &= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x29 => {
         // AND immediate
@@ -359,7 +540,10 @@ impl Execute for System {
       }
       0x2D => {
         // AND absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.accumulator &= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x31 => {
         // AND (indirect),Y
@@ -367,25 +551,54 @@ impl Execute for System {
       }
       0x35 => {
         // AND zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self.registers.accumulator &= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x39 => {
         // AND absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self.registers.accumulator &= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x3D => {
         // AND absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self.registers.accumulator &= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
 
       // BIT
       0x24 => {
         // BIT zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self
+          .registers
+          .status_write(flags::NEGATIVE, value & 0x80 != 0);
+        self
+          .registers
+          .status_write(flags::OVERFLOW, value & 0x40 != 0);
+        self
+          .registers
+          .status_write(flags::ZERO, value & self.registers.accumulator == 0);
+        Ok(())
       }
       0x2C => {
         // BIT absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self
+          .registers
+          .status_write(flags::NEGATIVE, value & 0x80 != 0);
+        self
+          .registers
+          .status_write(flags::OVERFLOW, value & 0x40 != 0);
+        self
+          .registers
+          .status_write(flags::ZERO, value & self.registers.accumulator == 0);
+        Ok(())
       }
 
       // EOR
@@ -395,7 +608,10 @@ impl Execute for System {
       }
       0x45 => {
         // EOR zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.accumulator ^= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x49 => {
         // EOR immediate
@@ -406,7 +622,10 @@ impl Execute for System {
       }
       0x4D => {
         // EOR absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.accumulator ^= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x51 => {
         // EOR (indirect),Y
@@ -414,15 +633,24 @@ impl Execute for System {
       }
       0x55 => {
         // EOR zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self.registers.accumulator ^= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x59 => {
         // EOR absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self.registers.accumulator ^= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x5D => {
         // EOR absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self.registers.accumulator ^= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
 
       // ORA
@@ -432,7 +660,10 @@ impl Execute for System {
       }
       0x05 => {
         // ORA zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.accumulator |= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x09 => {
         // ORA immediate
@@ -443,7 +674,10 @@ impl Execute for System {
       }
       0x0D => {
         // ORA absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.accumulator |= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x11 => {
         // ORA (indirect),Y
@@ -451,15 +685,24 @@ impl Execute for System {
       }
       0x15 => {
         // ORA zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self.registers.accumulator |= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x19 => {
         // ORA absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self.registers.accumulator |= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x1D => {
         // ORA absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self.registers.accumulator |= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
 
       // === ARITHMETIC ===
@@ -471,7 +714,9 @@ impl Execute for System {
       }
       0x65 => {
         // ADC zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.alu_add(value);
+        Ok(())
       }
       0x69 => {
         // ADC immediate
@@ -481,7 +726,9 @@ impl Execute for System {
       }
       0x6D => {
         // ADC absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.alu_add(value);
+        Ok(())
       }
       0x71 => {
         // ADC (indirect),Y
@@ -489,16 +736,22 @@ impl Execute for System {
       }
       0x75 => {
         // ADC zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self.registers.alu_add(value);
+        Ok(())
       }
 
       0x79 => {
         // ADC absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self.registers.alu_add(value);
+        Ok(())
       }
       0x7D => {
         // ADC absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self.registers.alu_add(value);
+        Ok(())
       }
 
       // CMP
@@ -508,7 +761,11 @@ impl Execute for System {
       }
       0xC5 => {
         // CMP zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self
+          .registers
+          .alu_compare(self.registers.accumulator, value);
+        Ok(())
       }
       0xC9 => {
         // CMP immediate
@@ -520,7 +777,11 @@ impl Execute for System {
       }
       0xCD => {
         // CMP absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self
+          .registers
+          .alu_compare(self.registers.accumulator, value);
+        Ok(())
       }
       0xD1 => {
         // CMP (indirect),Y
@@ -528,15 +789,27 @@ impl Execute for System {
       }
       0xD5 => {
         // CMP zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self
+          .registers
+          .alu_compare(self.registers.accumulator, value);
+        Ok(())
       }
       0xD9 => {
         // CMP absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self
+          .registers
+          .alu_compare(self.registers.accumulator, value);
+        Ok(())
       }
       0xDD => {
         // CMP absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self
+          .registers
+          .alu_compare(self.registers.accumulator, value);
+        Ok(())
       }
 
       // CPX
@@ -548,11 +821,15 @@ impl Execute for System {
       }
       0xE4 => {
         // CPX zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.alu_compare(self.registers.x_index, value);
+        Ok(())
       }
       0xEC => {
         // CPX absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.alu_compare(self.registers.x_index, value);
+        Ok(())
       }
 
       // CPY
@@ -564,11 +841,15 @@ impl Execute for System {
       }
       0xC4 => {
         // CPY zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.alu_compare(self.registers.y_index, value);
+        Ok(())
       }
       0xCC => {
         // CPY absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.alu_compare(self.registers.y_index, value);
+        Ok(())
       }
 
       // SBC
@@ -578,7 +859,9 @@ impl Execute for System {
       }
       0xE5 => {
         // SBC zero page
-        Err(())
+        let value = self.fetch_zero_page()?;
+        self.registers.alu_subtract(value);
+        Ok(())
       }
       0xE9 => {
         // SBC immediate
@@ -588,7 +871,9 @@ impl Execute for System {
       }
       0xED => {
         // SBC absolute
-        Err(())
+        let value = self.fetch_absolute()?;
+        self.registers.alu_subtract(value);
+        Ok(())
       }
       0xF1 => {
         // SBC (indirect),Y
@@ -596,15 +881,21 @@ impl Execute for System {
       }
       0xF5 => {
         // SBC zero page,X
-        Err(())
+        let value = self.fetch_zero_page_x()?;
+        self.registers.alu_subtract(value);
+        Ok(())
       }
       0xF9 => {
         // SBC absolute,Y
-        Err(())
+        let value = self.fetch_absolute_y()?;
+        self.registers.alu_subtract(value);
+        Ok(())
       }
       0xFD => {
         // SBC absolute,X
-        Err(())
+        let value = self.fetch_absolute_x()?;
+        self.registers.alu_subtract(value);
+        Ok(())
       }
 
       // === INCREMENT ===
@@ -612,19 +903,37 @@ impl Execute for System {
       // DEC
       0xC6 => {
         // DEC zero page
-        Err(())
+        let address = self.fetch()?;
+        let value = self.read(address as u16)?;
+        self.registers.status_set_nz(value - 1);
+        self.write(address as u16, value - 1)?;
+        Ok(())
       }
       0xCE => {
         // DEC absolute
-        Err(())
+        let address = self.fetch_word()?;
+        let value = self.read(address)?;
+        self.registers.status_set_nz(value - 1);
+        self.write(address as u16, value - 1)?;
+        Ok(())
       }
       0xD6 => {
         // DEC zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        let value = self.read(address as u16)?;
+        self.registers.status_set_nz(value - 1);
+        self.write(address as u16, value - 1)?;
+        Ok(())
       }
       0xDE => {
         // DEC absolute,X
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.x_index as u16);
+        let value = self.read(address)?;
+        self.registers.status_set_nz(value - 1);
+        self.write(address as u16, value - 1)?;
+        Ok(())
       }
 
       // DEX
@@ -646,19 +955,37 @@ impl Execute for System {
       // INC
       0xE6 => {
         // INC zero page
-        Err(())
+        let address = self.fetch()?;
+        let value = self.read(address as u16)?;
+        self.registers.status_set_nz(value + 1);
+        self.write(address as u16, value + 1)?;
+        Ok(())
       }
       0xEE => {
         // INC absolute
-        Err(())
+        let address = self.fetch_word()?;
+        let value = self.read(address)?;
+        self.registers.status_set_nz(value + 1);
+        self.write(address as u16, value + 1)?;
+        Ok(())
       }
       0xF6 => {
         // INC zero page,X
-        Err(())
+        let base = self.fetch()?;
+        let address = base + self.registers.x_index;
+        let value = self.read(address as u16)?;
+        self.registers.status_set_nz(value + 1);
+        self.write(address as u16, value + 1)?;
+        Ok(())
       }
       0xFE => {
         // INC absolute,X
-        Err(())
+        let base = self.fetch_word()?;
+        let address = base + (self.registers.x_index as u16);
+        let value = self.read(address)?;
+        self.registers.status_set_nz(value + 1);
+        self.write(address as u16, value + 1)?;
+        Ok(())
       }
 
       // INX
@@ -690,11 +1017,24 @@ impl Execute for System {
       }
       0x6C => {
         // JMP (indirect)
-        Err(())
+        let indirect = self.fetch_word()?;
+        let address = self.read_word(indirect)?;
+        self.registers.pc_load(address);
+        Ok(())
       }
       0x20 => {
         // JSR absolute
-        Err(())
+        let address = self.fetch_word()?;
+        let return_to = self.registers.pc_address() + 1;
+        self.write(
+          self.registers.stack_address(),
+          (return_to & 0xFF >> 8) as u8,
+        )?;
+        self.registers.stack_push();
+        self.write(self.registers.stack_address(), (return_to & 0xFF) as u8)?;
+        self.registers.stack_push();
+        self.registers.pc_load(address);
+        Ok(())
       }
       0x40 => {
         // RTI

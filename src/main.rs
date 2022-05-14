@@ -3,6 +3,8 @@ mod memory;
 mod registers;
 mod system;
 
+use crate::system::MemoryIO;
+
 fn main() {
   let memory = Box::new(memory::BlockMemory::new());
   let mut system = system::System::new(memory);
