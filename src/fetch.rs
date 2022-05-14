@@ -28,7 +28,7 @@ pub trait Fetch {
   fn fetch_operand_value(&mut self, opcode: u8) -> u8;
 
   // Fetch operand address based on the opcode
-  fn fetch_operand_address(&mut self, opcode: u8) -> Option<u16>;
+  fn fetch_operand_address(&mut self, opcode: u8) -> u16;
 }
 
 impl Fetch for System {
@@ -110,18 +110,17 @@ impl Fetch for System {
     }
   }
 
-  fn fetch_operand_address(&mut self, opcode: u8) -> Option<u16> {
+  fn fetch_operand_address(&mut self, opcode: u8) -> u16 {
     match opcode & 0x1F {
-      0x06 => Some(self.fetch() as u16),
-      0x0A => None,
-      0x0E => Some(self.fetch_word()),
+      0x06 => self.fetch() as u16,
+      0x0E => self.fetch_word(),
       0x16 => {
         let base = self.fetch();
-        Some((base + self.registers.x_index) as u16)
+        (base + self.registers.x_index) as u16
       }
       0x1E => {
         let base = self.fetch_word();
-        Some(base + self.registers.x_index as u16)
+        base + self.registers.x_index as u16
       }
       _ => unreachable!(),
     }

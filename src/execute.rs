@@ -186,86 +186,89 @@ impl Execute for System {
       }
 
       // === SHIFT ===
-      0x06 | 0x0A | 0x0E | 0x16 | 0x1E => {
+      0x0A => {
+        // ASL accumulator
+        let value = self.registers.accumulator;
+        self.registers.accumulator = value << 1;
+
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
+      }
+      0x06 | 0x0E | 0x16 | 0x1E => {
         // ASL
         let address = self.fetch_operand_address(opcode);
-
-        let value = match address {
-          Some(address) => self.read(address),
-          None => self.registers.accumulator,
-        };
-
+        let value = self.read(address);
         let result = value << 1;
 
         self.registers.status_write(flags::CARRY, value & 0x80 != 0);
         self.registers.status_set_nz(result);
-        match address {
-          Some(address) => self.write(address, result),
-          None => self.registers.accumulator = result,
-        };
+        self.write(address, result);
         Ok(())
       }
 
-      0x46 | 0x4A | 0x4E | 0x56 | 0x5E => {
+      0x4A => {
+        // LSR accumulator
+        let value = self.registers.accumulator;
+        self.registers.accumulator = value >> 1;
+
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
+      }
+      0x46 | 0x4E | 0x56 | 0x5E => {
         // LSR
         let address = self.fetch_operand_address(opcode);
-
-        let value = match address {
-          Some(address) => self.read(address),
-          None => self.registers.accumulator,
-        };
-
+        let value = self.read(address);
         let result = value >> 1;
 
         self.registers.status_write(flags::CARRY, value & 0x01 != 0);
         self.registers.status_set_nz(result);
-        match address {
-          Some(address) => self.write(address, result),
-          None => self.registers.accumulator = result,
-        };
+        self.write(address, result);
         Ok(())
       }
 
-      0x26 | 0x2A | 0x2E | 0x36 | 0x3E => {
-        // ROL
-        let address = self.fetch_operand_address(opcode);
-
-        let value = match address {
-          Some(address) => self.read(address),
-          None => self.registers.accumulator,
-        };
-
+      0x2A => {
+        // ROL accumulator
+        let value = self.registers.accumulator;
         let result = (value << 1) | (self.registers.status_read(flags::CARRY) as u8);
 
         self.registers.status_write(flags::CARRY, value & 0x80 != 0);
         self.registers.status_set_nz(result);
-        match address {
-          Some(address) => self.write(address, result),
-          None => self.registers.accumulator = result,
-        };
+        self.registers.accumulator = result;
+        Ok(())
+      }
+      0x26 | 0x2E | 0x36 | 0x3E => {
+        // ROL
+        let address = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = (value << 1) | (self.registers.status_read(flags::CARRY) as u8);
+
+        self.registers.status_write(flags::CARRY, value & 0x80 != 0);
+        self.registers.status_set_nz(result);
+        self.write(address, result);
         Ok(())
       }
 
-      0x66 | 0x6A | 0x6E | 0x76 | 0x7E => {
-        // ROR
-        let address = self.fetch_operand_address(opcode);
-
-        let value = match address {
-          Some(address) => self.read(address),
-          None => self.registers.accumulator,
-        };
-
-        let carry = self.registers.status_read(flags::CARRY) as u8;
-        let result = value >> 1 | carry << 7;
+      0x6A => {
+        // ROR accumulator
+        let value = self.registers.accumulator;
+        let result = (value >> 1) | (self.registers.status_read(flags::CARRY) as u8) << 7;
 
         self.registers.status_write(flags::CARRY, value & 0x01 != 0);
         self.registers.status_set_nz(result);
+        self.registers.accumulator = result;
+        Ok(())
+      }
+      0x66 | 0x6E | 0x76 | 0x7E => {
+        // ROR
+        let address = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value >> 1 | (self.registers.status_read(flags::CARRY) as u8) << 7;
 
-        match address {
-          Some(address) => self.write(address, result),
-          None => self.registers.accumulator = result,
-        };
-
+        self.registers.status_write(flags::CARRY, value & 0x01 != 0);
+        self.registers.status_set_nz(result);
+        self.write(address, result);
         Ok(())
       }
 
@@ -358,7 +361,7 @@ impl Execute for System {
       // === INCREMENT ===
       0xC6 | 0xCE | 0xD6 | 0xDE => {
         // DEC
-        let address = self.fetch_operand_address(opcode).unwrap();
+        let address = self.fetch_operand_address(opcode);
 
         let value = self.read(address);
         self.registers.status_set_nz(value - 1);
@@ -382,7 +385,7 @@ impl Execute for System {
 
       0xE6 | 0xEE | 0xF6 | 0xFE => {
         // INC
-        let address = self.fetch_operand_address(opcode).unwrap();
+        let address = self.fetch_operand_address(opcode);
 
         let value = self.read(address);
         self.registers.status_set_nz(value + 1);
