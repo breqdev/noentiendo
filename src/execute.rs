@@ -349,9 +349,9 @@ impl Execute for System {
       0x20 => {
         // JSR absolute
         let address = self.fetch_word();
-        let return_to = self.registers.pc_address() + 1;
-        self.push((return_to & 0xFF >> 8) as u8);
+        let return_to = self.registers.pc_address() - 1;
         self.push((return_to & 0xFF) as u8);
+        self.push((return_to >> 8) as u8);
         self.registers.pc_load(address);
         Ok(())
       }
