@@ -7,7 +7,13 @@ mod system;
 use crate::system::MemoryIO;
 
 fn main() {
-  let memory = Box::new(memory::BlockMemory::new());
+  let ram = Box::new(memory::BlockMemory::new(0x4000));
+  let io = Box::new(memory::MappedIO::new());
+  let rom = Box::new(memory::BlockMemory::new(0x8000));
+
+  let low = Box::new(memory::BranchMemory::new(ram, io, 0x4000));
+  let memory = Box::new(memory::BranchMemory::new(low, rom, 0x8000));
+
   let mut system = system::System::new(memory);
 
   // Set reset vector (0xFFFC) to program start (0x8000)
@@ -23,7 +29,7 @@ fn main() {
     /* 0x8008 */ 0xA6, 0x01, // LDA $01
     /* 0x800A */ 0x65, 0x00, // ADC $00
     /* 0x800C */ 0x85, 0x01, // STA $01
-    /* 0x800E */ 0x8D, 0x00, 0x02, // STA $0200
+    /* 0x800E */ 0x8D, 0x00, 0x40, // STA $4000
     /* 0x800E */ 0x86, 0x00, // STX $00
     /* 0x8010 */ 0x4C, 0x08, 0x80, // JMP $8008
   ];
@@ -37,9 +43,7 @@ fn main() {
   system.reset();
 
   // Run program for a while (contains an infinite loop)
-  for _ in 0..100 {
+  for _ in 0..50 {
     system.tick();
   }
-
-  println!("{}", system.read(0x0200).unwrap());
 }
