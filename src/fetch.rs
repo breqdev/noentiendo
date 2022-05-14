@@ -94,14 +94,15 @@ impl Fetch for System {
 
   fn fetch_operand_value(&mut self, opcode: u8) -> u8 {
     match opcode & 0x1F {
+      0x00 | 0x02 | 0x09 => self.fetch(),
       0x01 => self.fetch_indirect_x(),
-      0x05 => self.fetch_zero_page(),
-      0x09 => self.fetch(),
-      0x0D => self.fetch_absolute(),
+      0x04 | 0x05 | 0x06 => self.fetch_zero_page(),
+      0x0C | 0x0D | 0x0E => self.fetch_absolute(),
       0x11 => self.fetch_indirect_y(),
-      0x15 => self.fetch_zero_page_x(),
-      0x19 => self.fetch_absolute_y(),
-      0x1D => self.fetch_absolute_x(),
+      0x14 | 0x15 => self.fetch_zero_page_x(),
+      0x16 => self.fetch_zero_page_y(),
+      0x19 | 0x1E => self.fetch_absolute_y(),
+      0x1C | 0x1D => self.fetch_absolute_x(),
       _ => unreachable!(),
     }
   }
