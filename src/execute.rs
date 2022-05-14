@@ -12,17 +12,7 @@ impl Execute for System {
       // === LOAD ===
       0xA1 | 0xA5 | 0xA9 | 0xAD | 0xB1 | 0xB5 | 0xB9 | 0xBD => {
         // LDA
-        let value = match opcode {
-          0xA1 => self.fetch_indirect_x(),
-          0xA5 => self.fetch_zero_page(),
-          0xA9 => self.fetch(),
-          0xAD => self.fetch_absolute(),
-          0xB1 => self.fetch_indirect_y(),
-          0xB5 => self.fetch_zero_page_x(),
-          0xB9 => self.fetch_absolute_y(),
-          0xBD => self.fetch_absolute_x(),
-          _ => unreachable!(),
-        };
+        let value = self.fetch_operand_value(opcode);
 
         self.registers.accumulator = value;
         self.registers.status_set_nz(value);
@@ -395,17 +385,7 @@ impl Execute for System {
       // === LOGIC ===
       0x21 | 0x25 | 0x29 | 0x2D | 0x31 | 0x35 | 0x39 | 0x3D => {
         // AND
-        let value = match opcode {
-          0x21 => self.fetch_indirect_x(),
-          0x25 => self.fetch_zero_page(),
-          0x29 => self.fetch(),
-          0x2D => self.fetch_absolute(),
-          0x31 => self.fetch_indirect_y(),
-          0x35 => self.fetch_zero_page_x(),
-          0x39 => self.fetch_absolute_y(),
-          0x3D => self.fetch_absolute_x(),
-          _ => unreachable!(),
-        };
+        let value = self.fetch_operand_value(opcode);
 
         self.registers.accumulator &= value;
         self.registers.status_set_nz(self.registers.accumulator);
@@ -434,17 +414,7 @@ impl Execute for System {
 
       0x41 | 0x45 | 0x49 | 0x4D | 0x51 | 0x55 | 0x59 | 0x5D => {
         // EOR
-        let value = match opcode {
-          0x41 => self.fetch_indirect_x(),
-          0x45 => self.fetch_zero_page(),
-          0x49 => self.fetch(),
-          0x4D => self.fetch_absolute(),
-          0x51 => self.fetch_indirect_y(),
-          0x55 => self.fetch_zero_page_x(),
-          0x59 => self.fetch_absolute_y(),
-          0x5D => self.fetch_absolute_x(),
-          _ => unreachable!(),
-        };
+        let value = self.fetch_operand_value(opcode);
 
         self.registers.accumulator ^= value;
         self.registers.status_set_nz(self.registers.accumulator);
@@ -453,17 +423,7 @@ impl Execute for System {
 
       0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => {
         // ORA
-        let value = match opcode {
-          0x01 => self.fetch_indirect_x(),
-          0x05 => self.fetch_zero_page(),
-          0x09 => self.fetch(),
-          0x0D => self.fetch_absolute(),
-          0x11 => self.fetch_indirect_y(),
-          0x15 => self.fetch_zero_page_x(),
-          0x19 => self.fetch_absolute_y(),
-          0x1D => self.fetch_absolute_x(),
-          _ => unreachable!(),
-        };
+        let value = self.fetch_operand_value(opcode);
 
         self.registers.accumulator |= value;
         self.registers.status_set_nz(self.registers.accumulator);
@@ -473,17 +433,7 @@ impl Execute for System {
       // === ARITHMETIC ===
       0x61 | 0x65 | 0x69 | 0x6D | 0x71 | 0x75 | 0x79 | 0x7D => {
         // ADC
-        let value = match opcode {
-          0x61 => self.fetch_indirect_x(),
-          0x65 => self.fetch_zero_page(),
-          0x69 => self.fetch(),
-          0x6D => self.fetch_absolute(),
-          0x71 => self.fetch_indirect_y(),
-          0x75 => self.fetch_zero_page_x(),
-          0x79 => self.fetch_absolute_y(),
-          0x7D => self.fetch_absolute_x(),
-          _ => unreachable!(),
-        };
+        let value = self.fetch_operand_value(opcode);
 
         self.registers.alu_add(value);
         Ok(())
@@ -491,17 +441,7 @@ impl Execute for System {
 
       0xC1 | 0xC5 | 0xC9 | 0xCD | 0xD1 | 0xD5 | 0xD9 | 0xDD => {
         // CMP
-        let value = match opcode {
-          0xC1 => self.fetch_indirect_x(),
-          0xC5 => self.fetch_zero_page(),
-          0xC9 => self.fetch(),
-          0xCD => self.fetch_absolute(),
-          0xD1 => self.fetch_indirect_y(),
-          0xD5 => self.fetch_zero_page_x(),
-          0xD9 => self.fetch_absolute_y(),
-          0xDD => self.fetch_absolute_x(),
-          _ => unreachable!(),
-        };
+        let value = self.fetch_operand_value(opcode);
 
         self
           .registers
@@ -537,17 +477,7 @@ impl Execute for System {
 
       0xE1 | 0xE5 | 0xE9 | 0xED | 0xF1 | 0xF5 | 0xF9 | 0xFD => {
         // SBC
-        let value = match opcode {
-          0xE1 => self.fetch_indirect_x(),
-          0xE5 => self.fetch_zero_page(),
-          0xE9 => self.fetch(),
-          0xED => self.fetch_absolute(),
-          0xF1 => self.fetch_indirect_y(),
-          0xF5 => self.fetch_zero_page_x(),
-          0xF9 => self.fetch_absolute_y(),
-          0xFD => self.fetch_absolute_x(),
-          _ => unreachable!(),
-        };
+        let value = self.fetch_operand_value(opcode);
 
         self.registers.alu_subtract(value);
         Ok(())

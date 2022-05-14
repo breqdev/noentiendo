@@ -23,6 +23,9 @@ pub trait Fetch {
   // Fetch a 16-bit pointer, add the Y register to it, and return the value at
   // that address
   fn fetch_indirect_y(&mut self) -> u8;
+
+  // Fetch operand value based on the opcode
+  fn fetch_operand_value(&mut self, opcode: u8) -> u8;
 }
 
 impl Fetch for System {
@@ -87,5 +90,19 @@ impl Fetch for System {
     let address = self.read_word(base as u16);
     let result = self.read(address + self.registers.y_index as u16);
     result
+  }
+
+  fn fetch_operand_value(&mut self, opcode: u8) -> u8 {
+    match opcode & 0x1F {
+      0x01 => self.fetch_indirect_x(),
+      0x05 => self.fetch_zero_page(),
+      0x09 => self.fetch(),
+      0x0D => self.fetch_absolute(),
+      0x11 => self.fetch_indirect_y(),
+      0x15 => self.fetch_zero_page_x(),
+      0x19 => self.fetch_absolute_y(),
+      0x1D => self.fetch_absolute_x(),
+      _ => unreachable!(),
+    }
   }
 }
