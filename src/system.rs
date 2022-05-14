@@ -10,7 +10,7 @@ mod vectors {
 
 pub struct System {
   pub registers: Registers,
-  pub memory: Box<dyn Memory>,
+  memory: Box<dyn Memory>,
 }
 
 pub trait MemoryIO {
@@ -41,7 +41,7 @@ impl MemoryIO for System {
   }
 }
 
-trait Stack {
+pub trait Stack {
   fn push(&mut self, value: u8) -> Result<(), ()>;
   fn pop(&mut self) -> Result<u8, ()>;
 }
@@ -73,6 +73,14 @@ pub trait Fetch {
   fn fetch_absolute(&mut self) -> Result<u8, ()>;
   fn fetch_absolute_x(&mut self) -> Result<u8, ()>;
   fn fetch_absolute_y(&mut self) -> Result<u8, ()>;
+
+  // Fetch a 16-bit pointer by adding the X register to the instruction argument
+  // and return the value at that address
+  fn fetch_indirect_x(&mut self) -> Result<u8, ()>;
+
+  // Fetch a 16-bit pointer, add the Y register to it, and return the value at
+  // that address
+  fn fetch_indirect_y(&mut self) -> Result<u8, ()>;
 }
 
 impl Fetch for System {
@@ -120,6 +128,21 @@ impl Fetch for System {
 
   fn fetch_absolute_y(&mut self) -> Result<u8, ()> {
     let address = self.fetch_word()?;
+    let result = self.read(address + self.registers.y_index as u16);
+    result
+  }
+
+  fn fetch_indirect_x(&mut self) -> Result<u8, ()> {
+    let base = self.fetch()?;
+    let address = (base + self.registers.x_index) as u16;
+    let pointer = self.read_word(address)?;
+    let result = self.read(pointer);
+    result
+  }
+
+  fn fetch_indirect_y(&mut self) -> Result<u8, ()> {
+    let base = self.fetch()?;
+    let address = self.read_word(base as u16)?;
     let result = self.read(address + self.registers.y_index as u16);
     result
   }

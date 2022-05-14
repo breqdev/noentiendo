@@ -1,5 +1,5 @@
-use crate::registers::{flags, ProgramCounter, StackPointer, StatusRegister, ALU};
-use crate::system::{Fetch, MemoryIO, System};
+use crate::registers::{flags, ProgramCounter, StatusRegister, ALU};
+use crate::system::{Fetch, MemoryIO, Stack, System};
 
 pub trait Execute {
   fn execute(&mut self, opcode: u8) -> Result<(), ()>;
@@ -13,7 +13,10 @@ impl Execute for System {
       // LDA
       0xA1 => {
         // LDA (indirect,X)
-        Err(())
+        let value = self.fetch_indirect_x()?;
+        self.registers.accumulator = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xA5 => {
         // LDA zero page
@@ -38,7 +41,10 @@ impl Execute for System {
       }
       0xB1 => {
         // LDA (indirect),Y
-        Err(())
+        let value = self.fetch_indirect_y()?;
+        self.registers.accumulator = value;
+        self.registers.status_set_nz(value);
+        Ok(())
       }
       0xB5 => {
         // LDA zero page,X
@@ -141,14 +147,16 @@ impl Execute for System {
       // STA
       0x81 => {
         // STA (indirect,X)
-        Err(())
+        let base = self.fetch()?;
+        let address = (base + self.registers.x_index) as u16;
+        let pointer = self.read_word(address)?;
+        self.write(pointer, self.registers.accumulator)?;
+        Ok(())
       }
       0x85 => {
         // STA zero page
         let address = self.fetch()?;
-        self
-          .memory
-          .write(address as u16, self.registers.accumulator)?;
+        self.write(address as u16, self.registers.accumulator)?;
         Ok(())
       }
       0x8D => {
@@ -159,7 +167,11 @@ impl Execute for System {
       }
       0x91 => {
         // STA (indirect),Y
-        Err(())
+        let base = self.fetch()?;
+        let address = self.read_word(base as u16)?;
+        let pointer = address + self.registers.y_index as u16;
+        self.write(pointer, self.registers.accumulator)?;
+        Ok(())
       }
       0x95 => {
         // STA zero page,X
@@ -265,29 +277,22 @@ impl Execute for System {
       // === STACK ===
       0x48 => {
         // PHA
-        self.write(self.registers.stack_address(), self.registers.accumulator)?;
-        self.registers.stack_push();
+        self.push(self.registers.accumulator)?;
         Ok(())
       }
       0x08 => {
         // PHP
-        self.write(
-          self.registers.stack_address(),
-          self.registers.status_register,
-        )?;
-        self.registers.stack_push();
+        self.push(self.registers.status_register)?;
         Ok(())
       }
       0x68 => {
         // PLA
-        self.registers.stack_pop();
-        self.registers.accumulator = self.read(self.registers.stack_address())?;
+        self.registers.accumulator = self.pop()?;
         Ok(())
       }
       0x28 => {
         // PLP
-        self.registers.stack_pop();
-        self.registers.status_register = self.read(self.registers.stack_address())?;
+        self.registers.status_register = self.pop()?;
         Ok(())
       }
 
@@ -522,7 +527,10 @@ impl Execute for System {
       // AND
       0x21 => {
         // AND (indirect,X)
-        Err(())
+        let value = self.fetch_indirect_x()?;
+        self.registers.accumulator &= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x25 => {
         // AND zero page
@@ -547,7 +555,10 @@ impl Execute for System {
       }
       0x31 => {
         // AND (indirect),Y
-        Err(())
+        let value = self.fetch_indirect_y()?;
+        self.registers.accumulator &= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x35 => {
         // AND zero page,X
@@ -604,7 +615,10 @@ impl Execute for System {
       // EOR
       0x41 => {
         // EOR (indirect,X)
-        Err(())
+        let value = self.fetch_indirect_x()?;
+        self.registers.accumulator ^= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x45 => {
         // EOR zero page
@@ -629,7 +643,10 @@ impl Execute for System {
       }
       0x51 => {
         // EOR (indirect),Y
-        Err(())
+        let value = self.fetch_indirect_y()?;
+        self.registers.accumulator ^= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x55 => {
         // EOR zero page,X
@@ -656,7 +673,10 @@ impl Execute for System {
       // ORA
       0x01 => {
         // ORA (indirect,X)
-        Err(())
+        let value = self.fetch_indirect_x()?;
+        self.registers.accumulator |= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x05 => {
         // ORA zero page
@@ -681,7 +701,10 @@ impl Execute for System {
       }
       0x11 => {
         // ORA (indirect),Y
-        Err(())
+        let value = self.fetch_indirect_y()?;
+        self.registers.accumulator |= value;
+        self.registers.status_set_nz(self.registers.accumulator);
+        Ok(())
       }
       0x15 => {
         // ORA zero page,X
@@ -710,7 +733,9 @@ impl Execute for System {
       // ADC
       0x61 => {
         // ADC (indirect,X)
-        Err(())
+        let value = self.fetch_indirect_x()?;
+        self.registers.alu_add(value);
+        Ok(())
       }
       0x65 => {
         // ADC zero page
@@ -732,7 +757,9 @@ impl Execute for System {
       }
       0x71 => {
         // ADC (indirect),Y
-        Err(())
+        let value = self.fetch_indirect_y()?;
+        self.registers.alu_add(value);
+        Ok(())
       }
       0x75 => {
         // ADC zero page,X
@@ -757,7 +784,11 @@ impl Execute for System {
       // CMP
       0xC1 => {
         // CMP (indirect,X)
-        Err(())
+        let value = self.fetch_indirect_x()?;
+        self
+          .registers
+          .alu_compare(self.registers.accumulator, value);
+        Ok(())
       }
       0xC5 => {
         // CMP zero page
@@ -785,7 +816,11 @@ impl Execute for System {
       }
       0xD1 => {
         // CMP (indirect),Y
-        Err(())
+        let value = self.fetch_indirect_y()?;
+        self
+          .registers
+          .alu_compare(self.registers.accumulator, value);
+        Ok(())
       }
       0xD5 => {
         // CMP zero page,X
@@ -855,7 +890,9 @@ impl Execute for System {
       // SBC
       0xE1 => {
         // SBC (indirect,X)
-        Err(())
+        let value = self.fetch_indirect_x()?;
+        self.registers.alu_subtract(value);
+        Ok(())
       }
       0xE5 => {
         // SBC zero page
@@ -877,7 +914,9 @@ impl Execute for System {
       }
       0xF1 => {
         // SBC (indirect),Y
-        Err(())
+        let value = self.fetch_indirect_y()?;
+        self.registers.alu_subtract(value);
+        Ok(())
       }
       0xF5 => {
         // SBC zero page,X
@@ -1026,13 +1065,8 @@ impl Execute for System {
         // JSR absolute
         let address = self.fetch_word()?;
         let return_to = self.registers.pc_address() + 1;
-        self.write(
-          self.registers.stack_address(),
-          (return_to & 0xFF >> 8) as u8,
-        )?;
-        self.registers.stack_push();
-        self.write(self.registers.stack_address(), (return_to & 0xFF) as u8)?;
-        self.registers.stack_push();
+        self.push((return_to & 0xFF >> 8) as u8)?;
+        self.push((return_to & 0xFF) as u8)?;
         self.registers.pc_load(address);
         Ok(())
       }
@@ -1042,15 +1076,13 @@ impl Execute for System {
       }
       0x60 => {
         // RTS
-        self.registers.stack_pop();
-        let pc_low = self.read(self.registers.stack_address())?;
-        self.registers.stack_pop();
-        let pc_high = self.read(self.registers.stack_address())?;
+        let pc_low = self.pop()?;
+        let pc_high = self.pop()?;
 
         self
           .registers
           .pc_load((pc_high as u16 | (pc_low as u16) << 8) + 1);
-        Err(())
+        Ok(())
       }
 
       // === BRANCH ===
