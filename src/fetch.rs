@@ -112,11 +112,41 @@ impl Fetch for System {
 
   fn fetch_operand_address(&mut self, opcode: u8) -> u16 {
     match opcode & 0x1F {
+      0x01 => {
+        let base = self.fetch();
+        let pointer = (base + self.registers.x_index) as u16;
+        self.read_word(pointer)
+      }
+      0x04 => self.fetch() as u16,
+      0x05 => self.fetch() as u16,
       0x06 => self.fetch() as u16,
+      0x0C => self.fetch_word(),
+      0x0D => self.fetch_word(),
       0x0E => self.fetch_word(),
+      0x11 => {
+        let base = self.fetch();
+        let pointer = self.read_word(base as u16);
+        pointer + self.registers.y_index as u16
+      }
+      0x14 => {
+        let base = self.fetch();
+        (base + self.registers.x_index) as u16
+      }
+      0x15 => {
+        let base = self.fetch();
+        (base + self.registers.x_index) as u16
+      }
       0x16 => {
         let base = self.fetch();
         (base + self.registers.x_index) as u16
+      }
+      0x19 => {
+        let base = self.fetch_word();
+        base + self.registers.y_index as u16
+      }
+      0x1D => {
+        let base = self.fetch_word();
+        base + self.registers.x_index as u16
       }
       0x1E => {
         let base = self.fetch_word();

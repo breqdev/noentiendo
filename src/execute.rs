@@ -37,91 +37,21 @@ impl Execute for System {
       // === STORE ===
       0x81 | 0x85 | 0x8D | 0x91 | 0x95 | 0x99 | 0x9D => {
         // STA
-        let address = match opcode {
-          0x81 => {
-            // STA (indirect, x)
-            let base = self.fetch();
-            let pointer = (base + self.registers.x_index) as u16;
-            self.read_word(pointer)
-          }
-          0x85 => {
-            // STA zero page
-            self.fetch() as u16
-          }
-          0x8D => {
-            // STA absolute
-            self.fetch_word()
-          }
-          0x91 => {
-            // STA (indirect), y
-            let base = self.fetch();
-            let pointer = self.read_word(base as u16);
-            pointer + self.registers.y_index as u16
-          }
-          0x95 => {
-            // STA zero page, x
-            let base = self.fetch();
-            (base + self.registers.x_index) as u16
-          }
-          0x99 => {
-            // STA absolute, y
-            let base = self.fetch_word();
-            base + self.registers.y_index as u16
-          }
-          0x9D => {
-            // STA absolute, x
-            let base = self.fetch_word();
-            base + self.registers.x_index as u16
-          }
-          _ => unreachable!(),
-        };
-
+        let address = self.fetch_operand_address(opcode);
         self.write(address, self.registers.accumulator);
         Ok(())
       }
 
       // STX
       0x86 | 0x8E | 0x96 => {
-        let address = match opcode {
-          0x86 => {
-            // STX zero page
-            self.fetch() as u16
-          }
-          0x8E => {
-            // STX absolute
-            self.fetch_word()
-          }
-          0x96 => {
-            // STX zero page, y
-            let base = self.fetch();
-            (base + self.registers.y_index) as u16
-          }
-          _ => unreachable!(),
-        };
-
+        let address = self.fetch_operand_address(opcode);
         self.write(address, self.registers.x_index);
         Ok(())
       }
 
       // STY
       0x84 | 0x8C | 0x94 => {
-        let address = match opcode {
-          0x84 => {
-            // STY zero page
-            self.fetch() as u16
-          }
-          0x8C => {
-            // STY absolute
-            self.fetch_word()
-          }
-          0x94 => {
-            // STY zero page, x
-            let base = self.fetch();
-            (base + self.registers.x_index) as u16
-          }
-          _ => unreachable!(),
-        };
-
+        let address = self.fetch_operand_address(opcode);
         self.write(address, self.registers.y_index);
         Ok(())
       }
@@ -276,7 +206,6 @@ impl Execute for System {
       0x21 | 0x25 | 0x29 | 0x2D | 0x31 | 0x35 | 0x39 | 0x3D => {
         // AND
         let value = self.fetch_operand_value(opcode);
-
         self.registers.accumulator &= value;
         self.registers.status_set_nz(self.registers.accumulator);
         Ok(())
@@ -284,12 +213,7 @@ impl Execute for System {
 
       0x24 | 0x2C => {
         // BIT
-        let value = match opcode {
-          0x24 => self.fetch_zero_page(),
-          0x2C => self.fetch_absolute(),
-          _ => unreachable!(),
-        };
-
+        let value = self.fetch_operand_value(opcode);
         self
           .registers
           .status_write(flags::NEGATIVE, value & 0x80 != 0);
@@ -305,7 +229,6 @@ impl Execute for System {
       0x41 | 0x45 | 0x49 | 0x4D | 0x51 | 0x55 | 0x59 | 0x5D => {
         // EOR
         let value = self.fetch_operand_value(opcode);
-
         self.registers.accumulator ^= value;
         self.registers.status_set_nz(self.registers.accumulator);
         Ok(())
@@ -314,7 +237,6 @@ impl Execute for System {
       0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => {
         // ORA
         let value = self.fetch_operand_value(opcode);
-
         self.registers.accumulator |= value;
         self.registers.status_set_nz(self.registers.accumulator);
         Ok(())
@@ -362,7 +284,6 @@ impl Execute for System {
       0xC6 | 0xCE | 0xD6 | 0xDE => {
         // DEC
         let address = self.fetch_operand_address(opcode);
-
         let value = self.read(address);
         self.registers.status_set_nz(value - 1);
         self.write(address, value - 1);
@@ -386,7 +307,6 @@ impl Execute for System {
       0xE6 | 0xEE | 0xF6 | 0xFE => {
         // INC
         let address = self.fetch_operand_address(opcode);
-
         let value = self.read(address);
         self.registers.status_set_nz(value + 1);
         self.write(address, value + 1);
