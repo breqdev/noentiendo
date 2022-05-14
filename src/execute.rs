@@ -188,31 +188,7 @@ impl Execute for System {
       // === SHIFT ===
       0x06 | 0x0A | 0x0E | 0x16 | 0x1E => {
         // ASL
-        let address = match opcode {
-          0x06 => {
-            // ASL zero page
-            Some(self.fetch() as u16)
-          }
-          0x0A => {
-            // ASL accumulator
-            None
-          }
-          0x0E => {
-            // ASL absolute
-            Some(self.fetch_word())
-          }
-          0x16 => {
-            // ASL zero page, x
-            let base = self.fetch();
-            Some((base + self.registers.x_index) as u16)
-          }
-          0x1E => {
-            // ASL absolute, x
-            let base = self.fetch_word();
-            Some(base + self.registers.x_index as u16)
-          }
-          _ => unreachable!(),
-        };
+        let address = self.fetch_operand_address(opcode);
 
         let value = match address {
           Some(address) => self.read(address),
@@ -232,31 +208,7 @@ impl Execute for System {
 
       0x46 | 0x4A | 0x4E | 0x56 | 0x5E => {
         // LSR
-        let address = match opcode {
-          0x46 => {
-            // LSR zero page
-            Some(self.fetch() as u16)
-          }
-          0x4A => {
-            // LSR accumulator
-            None
-          }
-          0x4E => {
-            // LSR absolute
-            Some(self.fetch_word())
-          }
-          0x56 => {
-            // LSR zero page, x
-            let base = self.fetch();
-            Some((base + self.registers.x_index) as u16)
-          }
-          0x5E => {
-            // LSR absolute, x
-            let base = self.fetch_word();
-            Some(base + self.registers.x_index as u16)
-          }
-          _ => unreachable!(),
-        };
+        let address = self.fetch_operand_address(opcode);
 
         let value = match address {
           Some(address) => self.read(address),
@@ -276,31 +228,7 @@ impl Execute for System {
 
       0x26 | 0x2A | 0x2E | 0x36 | 0x3E => {
         // ROL
-        let address = match opcode {
-          0x26 => {
-            // ROL zero page
-            Some(self.fetch() as u16)
-          }
-          0x2A => {
-            // ROL accumulator
-            None
-          }
-          0x2E => {
-            // ROL absolute
-            Some(self.fetch_word())
-          }
-          0x36 => {
-            // ROL zero page, x
-            let base = self.fetch();
-            Some((base + self.registers.x_index) as u16)
-          }
-          0x3E => {
-            // ROL absolute, x
-            let base = self.fetch_word();
-            Some(base + self.registers.x_index as u16)
-          }
-          _ => unreachable!(),
-        };
+        let address = self.fetch_operand_address(opcode);
 
         let value = match address {
           Some(address) => self.read(address),
@@ -320,31 +248,7 @@ impl Execute for System {
 
       0x66 | 0x6A | 0x6E | 0x76 | 0x7E => {
         // ROR
-        let address = match opcode {
-          0x66 => {
-            // ROR zero page
-            Some(self.fetch() as u16)
-          }
-          0x6A => {
-            // ROR accumulator
-            None
-          }
-          0x6E => {
-            // ROR absolute
-            Some(self.fetch_word())
-          }
-          0x76 => {
-            // ROR zero page, x
-            let base = self.fetch();
-            Some((base + self.registers.x_index) as u16)
-          }
-          0x7E => {
-            // ROR absolute, x
-            let base = self.fetch_word();
-            Some(base + self.registers.x_index as u16)
-          }
-          _ => unreachable!(),
-        };
+        let address = self.fetch_operand_address(opcode);
 
         let value = match address {
           Some(address) => self.read(address),
@@ -454,27 +358,7 @@ impl Execute for System {
       // === INCREMENT ===
       0xC6 | 0xCE | 0xD6 | 0xDE => {
         // DEC
-        let address = match opcode {
-          0xC6 => {
-            // DEC zero page
-            self.fetch() as u16
-          }
-          0xCE => {
-            // DEC absolute
-            self.fetch_word()
-          }
-          0xD6 => {
-            // DEC zero page, X
-            let base = self.fetch();
-            (base + self.registers.x_index) as u16
-          }
-          0xDE => {
-            // DEC absolute, X
-            let base = self.fetch_word();
-            base + self.registers.x_index as u16
-          }
-          _ => unreachable!(),
-        };
+        let address = self.fetch_operand_address(opcode).unwrap();
 
         let value = self.read(address);
         self.registers.status_set_nz(value - 1);
@@ -498,27 +382,7 @@ impl Execute for System {
 
       0xE6 | 0xEE | 0xF6 | 0xFE => {
         // INC
-        let address = match opcode {
-          0xE6 => {
-            // INC zero page
-            self.fetch() as u16
-          }
-          0xEE => {
-            // INC absolute
-            self.fetch_word()
-          }
-          0xF6 => {
-            // INC zero page, X
-            let base = self.fetch();
-            (base + self.registers.x_index) as u16
-          }
-          0xFE => {
-            // INC absolute, X
-            let base = self.fetch_word();
-            base + self.registers.x_index as u16
-          }
-          _ => unreachable!(),
-        };
+        let address = self.fetch_operand_address(opcode).unwrap();
 
         let value = self.read(address);
         self.registers.status_set_nz(value + 1);
