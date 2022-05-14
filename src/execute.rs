@@ -1,5 +1,6 @@
+use crate::fetch::Fetch;
 use crate::registers::{flags, ProgramCounter, StatusRegister, ALU};
-use crate::system::{Fetch, MemoryIO, Stack, System};
+use crate::system::{MemoryIO, Stack, System};
 
 pub trait Execute {
   fn execute(&mut self, opcode: u8) -> Result<(), ()>;

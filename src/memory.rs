@@ -21,6 +21,7 @@ impl Memory for BlockMemory {
     if (address as usize) < SIZE {
       Ok(self.data[address as usize])
     } else {
+      println!("invalid read! {:x}", address);
       Err(())
     }
   }
@@ -30,6 +31,7 @@ impl Memory for BlockMemory {
       self.data[address as usize] = value;
       Ok(())
     } else {
+      println!("invalid write! {:x}", address);
       Err(())
     }
   }

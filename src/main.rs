@@ -1,4 +1,5 @@
 mod execute;
+mod fetch;
 mod memory;
 mod registers;
 mod system;
@@ -15,11 +16,16 @@ fn main() {
 
   // 6502 machine code
   let program = vec![
-    /* 0x8000 */ 0xA9, 0xC0, // LDA #$C0
-    /* 0x8002 */ 0xAA, // TAX
-    /* 0x8003 */ 0xE8, // INX
-    /* 0x8004 */ 0x69, 0xC4, // ADC #$C4
-    /* 0x8006 */ 0x4C, 0x06, 0x80, // JMP $8006
+    /* 0x8000 */ 0xA2, 0x01, // LDX #$01
+    /* 0x8002 */ 0x86, 0x00, // STX $00
+    /* 0x8004 */ 0xA9, 0x02, // LDA #$02
+    /* 0x8006 */ 0x85, 0x01, // STA $01
+    /* 0x8008 */ 0xA6, 0x01, // LDA $01
+    /* 0x800A */ 0x65, 0x00, // ADC $00
+    /* 0x800C */ 0x85, 0x01, // STA $01
+    /* 0x800E */ 0x8D, 0x00, 0x02, // STA $0200
+    /* 0x800E */ 0x86, 0x00, // STX $00
+    /* 0x8010 */ 0x4C, 0x08, 0x80, // JMP $8008
   ];
 
   // Load program into memory at 0x8000
@@ -35,8 +41,5 @@ fn main() {
     system.tick();
   }
 
-  println!("A: {:02X}", system.registers.accumulator);
-  println!("X: {:02X}", system.registers.x_index);
-  println!("SR: {:08b}", system.registers.status_register);
-  println!();
+  println!("{}", system.read(0x0200).unwrap());
 }
