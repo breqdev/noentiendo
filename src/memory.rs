@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::Read;
+
 pub trait Memory {
   fn read(&self, address: u16) -> u8;
   fn write(&mut self, address: u16, value: u8);
@@ -15,6 +18,14 @@ impl BlockMemory {
       bits,
       data: vec![0; (1 << bits) as usize],
     }
+  }
+
+  pub fn from_file(bits: u8, path: &str) -> Self {
+    let mut file = File::open(path).unwrap();
+    let mut data = Vec::new();
+    file.read_to_end(&mut data).unwrap();
+
+    Self { bits, data }
   }
 }
 
@@ -37,12 +48,12 @@ impl Memory for BlockMemory {
 pub struct MappedIO {}
 
 impl Memory for MappedIO {
-  fn read(&self, address: u16) -> u8 {
+  fn read(&self, _address: u16) -> u8 {
     // TODO: keyboard input?
     0
   }
 
-  fn write(&mut self, address: u16, value: u8) {
+  fn write(&mut self, _address: u16, value: u8) {
     println!("{}", value);
   }
 

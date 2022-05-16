@@ -4,8 +4,8 @@ use crate::memory::Memory;
 use crate::registers::Registers;
 
 pub mod vectors {
-  pub const RESET: u16 = 0xFFFC;
   pub const NMI: u16 = 0xFFFA;
+  pub const RESET: u16 = 0xFFFC;
   pub const IRQ: u16 = 0xFFFE;
 }
 
@@ -90,7 +90,6 @@ impl System {
 
   pub fn tick(&mut self) {
     let opcode = self.fetch();
-
     self.execute(opcode).expect("Failed to execute instruction");
   }
 }
