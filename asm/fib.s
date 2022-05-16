@@ -1,16 +1,19 @@
+NUM_A = $00
+NUM_B = $01
+
   .org $8000
 
 reset:
   LDX #$01
-  STX $00
+  STX NUM_A
   LDA #$02
-  STA $01
+  STA NUM_B
 loop:
-  LDX $01
-  ADC $00
-  STA $01
+  LDX NUM_B
+  ADC NUM_A
+  STA NUM_B
   JSR print
-  STX $00
+  STX NUM_A
   JMP loop
 
 print:
