@@ -1,4 +1,3 @@
-use crate::registers::ProgramCounter;
 use crate::system::{MemoryIO, System};
 
 pub trait Fetch {
@@ -15,8 +14,8 @@ pub trait Fetch {
 
 impl Fetch for System {
   fn fetch(&mut self) -> u8 {
-    let result = self.read(self.registers.pc_address());
-    self.registers.pc_increment();
+    let result = self.read(self.registers.pc.address());
+    self.registers.pc.increment();
     result
   }
 
@@ -31,7 +30,7 @@ impl Fetch for System {
       0x00 | 0x02 | 0x09 | 0x0B => self.fetch(), // Immediate
       0x08 | 0x18 | 0x1A => panic!("Implied operand has no value"),
       0x12 => panic!("Invalid opcode"),
-      0x0A => self.registers.accumulator,
+      0x0A => self.registers.a,
       _ => {
         let address = self.fetch_operand_address(opcode);
         self.read(address)
@@ -45,7 +44,7 @@ impl Fetch for System {
       0x01 | 0x03 => {
         // (Indirect,X)
         let base = self.fetch();
-        let pointer = (base + self.registers.x_index) as u16;
+        let pointer = (base + self.registers.x) as u16;
         self.read_word(pointer)
       }
       0x04 | 0x05 | 0x06 | 0x07 => self.fetch() as u16, // Zero page
@@ -56,40 +55,40 @@ impl Fetch for System {
         // (Indirect),Y
         let base = self.fetch();
         let pointer = self.read_word(base as u16);
-        pointer + self.registers.y_index as u16
+        pointer + self.registers.y as u16
       }
       0x12 => panic!("Invalid opcode"),
       0x14 | 0x15 => {
         // Zero page,X
         let base = self.fetch();
-        (base + self.registers.x_index) as u16
+        (base + self.registers.x) as u16
       }
       0x16 | 0x17 => {
         // Zero page,X or Zero page,Y
         let base = self.fetch();
         if opcode & 0xC0 == 0x80 {
-          (base + self.registers.y_index) as u16
+          (base + self.registers.y) as u16
         } else {
-          (base + self.registers.x_index) as u16
+          (base + self.registers.x) as u16
         }
       }
       0x19 | 0x1B => {
         // Absolute,Y
         let base = self.fetch_word();
-        base + self.registers.y_index as u16
+        base + self.registers.y as u16
       }
       0x1C | 0x1D => {
         // Absolute,X
         let base = self.fetch_word();
-        base + self.registers.x_index as u16
+        base + self.registers.x as u16
       }
       0x1E | 0x1F => {
         // Absolute,X or Absolute,Y
         let base = self.fetch_word();
         if opcode & 0xC0 == 0x80 {
-          base + self.registers.y_index as u16
+          base + self.registers.y as u16
         } else {
-          base + self.registers.x_index as u16
+          base + self.registers.x as u16
         }
       }
       _ => unreachable!(),

@@ -1,7 +1,7 @@
 use crate::execute::Execute;
 use crate::fetch::Fetch;
 use crate::memory::Memory;
-use crate::registers::{ProgramCounter, Registers, StackPointer};
+use crate::registers::Registers;
 
 pub mod vectors {
   pub const RESET: u16 = 0xFFFC;
@@ -52,13 +52,13 @@ pub trait Stack {
 
 impl Stack for System {
   fn push(&mut self, value: u8) {
-    self.registers.stack_push();
-    self.write(self.registers.stack_address(), value)
+    self.registers.sp.push();
+    self.write(self.registers.sp.address(), value)
   }
 
   fn pop(&mut self) -> u8 {
-    let value = self.read(self.registers.stack_address());
-    self.registers.stack_pop();
+    let value = self.read(self.registers.sp.address());
+    self.registers.sp.pop();
     value
   }
 
@@ -85,7 +85,7 @@ impl System {
   pub fn reset(&mut self) {
     self.registers.reset();
     let dest = self.read_word(vectors::RESET);
-    self.registers.pc_load(dest);
+    self.registers.pc.load(dest);
   }
 
   pub fn tick(&mut self) {
