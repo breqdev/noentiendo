@@ -281,21 +281,22 @@ impl Execute for System {
         // DEC
         let address = self.fetch_operand_address(opcode);
         let value = self.read(address);
-        self.registers.sr.set_nz(value - 1);
-        self.write(address, value - 1);
+        let result = value.wrapping_sub(1);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
         Ok(())
       }
 
       0xCA => {
         // DEX
-        self.registers.x -= 1;
+        self.registers.x = self.registers.x.wrapping_sub(1);
         self.registers.sr.set_nz(self.registers.x);
         Ok(())
       }
 
       0x88 => {
         // DEY
-        self.registers.y -= 1;
+        self.registers.y = self.registers.y.wrapping_sub(1);
         self.registers.sr.set_nz(self.registers.y);
         Ok(())
       }
@@ -304,21 +305,22 @@ impl Execute for System {
         // INC
         let address = self.fetch_operand_address(opcode);
         let value = self.read(address);
-        self.registers.sr.set_nz(value + 1);
-        self.write(address, value + 1);
+        let result = value.wrapping_add(1);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
         Ok(())
       }
 
       0xE8 => {
         // INX
-        self.registers.x += 1;
+        self.registers.x = self.registers.x.wrapping_add(1);
         self.registers.sr.set_nz(self.registers.x);
         Ok(())
       }
 
       0xC8 => {
         // INY
-        self.registers.y += 1;
+        self.registers.y = self.registers.y.wrapping_add(1);
         self.registers.sr.set_nz(self.registers.y);
         Ok(())
       }
@@ -327,7 +329,7 @@ impl Execute for System {
       0x00 => {
         // BRK
         self.registers.sr.set(flags::INTERRUPT);
-        self.push_word(self.registers.pc.address() + 1);
+        self.push_word(self.registers.pc.address().wrapping_add(1));
         self.push(self.registers.sr.get());
         self.registers.pc.load(self.read_word(vectors::IRQ));
         Ok(())
@@ -349,7 +351,7 @@ impl Execute for System {
       0x20 => {
         // JSR absolute
         let address = self.fetch_word();
-        self.push_word(self.registers.pc.address() - 1);
+        self.push_word(self.registers.pc.address().wrapping_sub(1));
         self.registers.pc.load(address);
         Ok(())
       }
@@ -363,7 +365,7 @@ impl Execute for System {
       }
       0x60 => {
         // RTS
-        let dest = self.pop_word() + 1;
+        let dest = self.pop_word().wrapping_add(1);
         self.registers.pc.load(dest);
         Ok(())
       }

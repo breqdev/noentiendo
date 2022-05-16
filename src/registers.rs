@@ -12,8 +12,8 @@ pub mod flags {
   pub const ZERO: u8 = 0b00000010;
   pub const INTERRUPT: u8 = 0b00000100;
   pub const DECIMAL: u8 = 0b00001000;
-  pub const BREAK: u8 = 0b00010000;
-  pub const UNUSED: u8 = 0b00100000;
+  pub const _BREAK: u8 = 0b00010000;
+  pub const _UNUSED: u8 = 0b00100000;
   pub const OVERFLOW: u8 = 0b01000000;
   pub const NEGATIVE: u8 = 0b10000000;
 }
@@ -125,7 +125,9 @@ pub trait ALU {
 
 impl ALU for Registers {
   fn alu_add(&mut self, value: u8) {
-    let sum = self.a as u16 + value as u16 + self.sr.read(flags::CARRY) as u16;
+    let sum = (self.a as u16)
+      .wrapping_add(value as u16)
+      .wrapping_add(self.sr.read(flags::CARRY) as u16);
 
     self.sr.write(flags::CARRY, sum > 0xFF);
     self.sr.write(
@@ -144,7 +146,8 @@ impl ALU for Registers {
   fn alu_compare(&mut self, register: u8, value: u8) {
     self.sr.write(flags::CARRY, register >= value);
     self.sr.write(flags::ZERO, register == value);
-    self.sr.write(flags::NEGATIVE, register - value & 0x80 != 0);
+    let negative = register.wrapping_sub(value) & 0x80 != 0;
+    self.sr.write(flags::NEGATIVE, negative);
   }
 }
 

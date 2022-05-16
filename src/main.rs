@@ -7,7 +7,7 @@ mod system;
 fn main() {
   let ram = Box::new(memory::BlockMemory::new(14));
   let io = Box::new(memory::MappedIO::new());
-  let rom = Box::new(memory::BlockMemory::from_file(15, "bin/fib.bin"));
+  let rom = Box::new(memory::BlockMemory::from_file(15, "bin/multiply.bin"));
 
   let low = Box::new(memory::BranchMemory::new(ram, io, 15));
   let memory = Box::new(memory::BranchMemory::new(low, rom, 16));
@@ -17,7 +17,7 @@ fn main() {
   system.reset();
 
   // Run program for a while (contains an infinite loop)
-  for _ in 0..70 {
+  for _ in 0..200 {
     system.tick();
   }
 }
