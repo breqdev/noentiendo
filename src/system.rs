@@ -84,13 +84,8 @@ impl System {
 
   pub fn reset(&mut self) {
     self.registers.reset();
-
-    let pc_low = self.read(vectors::RESET);
-    let pc_high = self.read(vectors::RESET + 1);
-
-    self
-      .registers
-      .pc_load((pc_high as u16) << 8 | pc_low as u16);
+    let dest = self.read_word(vectors::RESET);
+    self.registers.pc_load(dest);
   }
 
   pub fn tick(&mut self) {
