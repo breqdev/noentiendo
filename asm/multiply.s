@@ -13,16 +13,15 @@ reset:
   LDX #$04; X register used to count the iteration
 
 .loop:
-  LDA #$01
-  BIT FIRST
-  BEQ .no_add
+  LSR FIRST; Shifts the first factor to the right, putting the LSB in the carry flag so we can test it
+  BCC .no_add
 
+  CLC; Clear the carry flag (since we know it's set)
   LDA RESULT
-  ADC SECOND
+  ADC SECOND; Add the second factor to the result
   STA RESULT
 
 .no_add:
-  LSR FIRST
   ASL SECOND
   DEX
   BNE .loop; While X is not 0
