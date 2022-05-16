@@ -1,5 +1,5 @@
 use crate::fetch::Fetch;
-use crate::registers::{flags, ProgramCounter, StatusRegister, ALU};
+use crate::registers::{flags, ProgramCounter, StackPointer, StatusRegister, ALU};
 use crate::system::{vectors, MemoryIO, Stack, System};
 
 pub trait Execute {
@@ -71,8 +71,10 @@ impl Execute for System {
       }
       0xBA => {
         // TSX
-        self.registers.x_index = self.registers.stack_pointer;
-        self.registers.status_set_nz(self.registers.stack_pointer);
+        self.registers.x_index = self.registers.stack_pointer_value();
+        self
+          .registers
+          .status_set_nz(self.registers.stack_pointer_value());
         Ok(())
       }
       0x8A => {
@@ -83,7 +85,7 @@ impl Execute for System {
       }
       0x9A => {
         // TXS
-        self.registers.stack_pointer = self.registers.x_index;
+        self.registers.stack_pointer_set(self.registers.x_index);
         Ok(())
       }
       0x98 => {
@@ -101,7 +103,7 @@ impl Execute for System {
       }
       0x08 => {
         // PHP
-        self.push(self.registers.status_register);
+        self.push(self.registers.status_value());
         Ok(())
       }
       0x68 => {
@@ -111,7 +113,8 @@ impl Execute for System {
       }
       0x28 => {
         // PLP
-        self.registers.status_register = self.pop();
+        let status = self.pop();
+        self.registers.status_load(status);
         Ok(())
       }
 
@@ -332,7 +335,7 @@ impl Execute for System {
         // BRK
         self.registers.status_set(flags::INTERRUPT);
         self.push_word(self.registers.pc_address() + 1);
-        self.push(self.registers.status_register);
+        self.push(self.registers.status_value());
         self.registers.pc_load(self.read_word(vectors::IRQ));
         Ok(())
       }
@@ -359,7 +362,8 @@ impl Execute for System {
       }
       0x40 => {
         // RTI
-        self.registers.status_register = self.pop();
+        let status = self.pop();
+        self.registers.status_load(status);
         let dest = self.pop_word();
         self.registers.pc_load(dest);
         Ok(())

@@ -2,9 +2,9 @@ pub struct Registers {
   pub accumulator: u8,
   pub x_index: u8,
   pub y_index: u8,
-  pub stack_pointer: u8,
-  pub program_counter: u16,
-  pub status_register: u8,
+  stack_pointer: u8,
+  program_counter: u16,
+  status_register: u8,
 }
 
 pub mod flags {
@@ -21,6 +21,8 @@ pub mod flags {
 pub trait StackPointer {
   fn stack_push(&mut self);
   fn stack_pop(&mut self);
+  fn stack_pointer_value(&self) -> u8;
+  fn stack_pointer_set(&mut self, value: u8);
   fn stack_address(&self) -> u16;
 }
 
@@ -31,6 +33,14 @@ impl StackPointer for Registers {
 
   fn stack_pop(&mut self) {
     self.stack_pointer += 1;
+  }
+
+  fn stack_pointer_value(&self) -> u8 {
+    self.stack_pointer
+  }
+
+  fn stack_pointer_set(&mut self, value: u8) {
+    self.stack_pointer = value;
   }
 
   fn stack_address(&self) -> u16 {
@@ -68,6 +78,8 @@ pub trait StatusRegister {
   fn status_set(&mut self, flag: u8);
   fn status_clear(&mut self, flag: u8);
   fn status_read(&self, flag: u8) -> bool;
+  fn status_load(&mut self, value: u8);
+  fn status_value(&self) -> u8;
 
   fn status_set_nz(&mut self, value: u8);
 }
@@ -91,6 +103,14 @@ impl StatusRegister for Registers {
 
   fn status_read(&self, flag: u8) -> bool {
     self.status_register & flag != 0
+  }
+
+  fn status_load(&mut self, value: u8) {
+    self.status_register = value;
+  }
+
+  fn status_value(&self) -> u8 {
+    self.status_register
   }
 
   fn status_set_nz(&mut self, value: u8) {
