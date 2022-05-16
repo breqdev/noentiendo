@@ -3,7 +3,7 @@ use crate::fetch::Fetch;
 use crate::memory::Memory;
 use crate::registers::{ProgramCounter, Registers, StackPointer};
 
-mod vectors {
+pub mod vectors {
   pub const RESET: u16 = 0xFFFC;
   pub const NMI: u16 = 0xFFFA;
   pub const IRQ: u16 = 0xFFFE;
@@ -45,6 +45,9 @@ impl MemoryIO for System {
 pub trait Stack {
   fn push(&mut self, value: u8);
   fn pop(&mut self) -> u8;
+
+  fn push_word(&mut self, value: u16);
+  fn pop_word(&mut self) -> u16;
 }
 
 impl Stack for System {
@@ -57,6 +60,17 @@ impl Stack for System {
     let value = self.read(self.registers.stack_address());
     self.registers.stack_pop();
     value
+  }
+
+  fn push_word(&mut self, value: u16) {
+    self.push((value & 0xFF) as u8);
+    self.push((value >> 8) as u8);
+  }
+
+  fn pop_word(&mut self) -> u16 {
+    let hi = self.pop();
+    let lo = self.pop();
+    (hi as u16) << 8 | lo as u16
   }
 }
 

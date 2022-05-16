@@ -1,6 +1,6 @@
 use crate::fetch::Fetch;
 use crate::registers::{flags, ProgramCounter, StatusRegister, ALU};
-use crate::system::{MemoryIO, Stack, System};
+use crate::system::{vectors, MemoryIO, Stack, System};
 
 pub trait Execute {
   fn execute(&mut self, opcode: u8) -> Result<(), ()>;
@@ -330,7 +330,11 @@ impl Execute for System {
       // === CONTROL ===
       0x00 => {
         // BRK
-        Err(())
+        self.registers.status_set(flags::INTERRUPT);
+        self.push_word(self.registers.pc_address() + 1);
+        self.push(self.registers.status_register);
+        self.registers.pc_load(self.read_word(vectors::IRQ));
+        Ok(())
       }
       0x4C | 0x6C => {
         // JMP
@@ -349,24 +353,21 @@ impl Execute for System {
       0x20 => {
         // JSR absolute
         let address = self.fetch_word();
-        let return_to = self.registers.pc_address() - 1;
-        self.push((return_to & 0xFF) as u8);
-        self.push((return_to >> 8) as u8);
+        self.push_word(self.registers.pc_address() - 1);
         self.registers.pc_load(address);
         Ok(())
       }
       0x40 => {
         // RTI
-        Err(())
+        self.registers.status_register = self.pop();
+        let dest = self.pop_word();
+        self.registers.pc_load(dest);
+        Ok(())
       }
       0x60 => {
         // RTS
-        let pc_low = self.pop();
-        let pc_high = self.pop();
-
-        self
-          .registers
-          .pc_load((pc_high as u16 | (pc_low as u16) << 8) + 1);
+        let dest = self.pop_word() + 1;
+        self.registers.pc_load(dest);
         Ok(())
       }
 
