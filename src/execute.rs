@@ -1,6 +1,6 @@
 use crate::fetch::Fetch;
 use crate::registers::{flags, ALU};
-use crate::system::{vectors, MemoryIO, Stack, System};
+use crate::system::{Interrupt, InterruptHandler, MemoryIO, Stack, System};
 
 pub trait Execute {
   fn execute(&mut self, opcode: u8) -> Result<(), ()>;
@@ -331,7 +331,7 @@ impl Execute for System {
         self.registers.sr.set(flags::INTERRUPT);
         self.push_word(self.registers.pc.address().wrapping_add(1));
         self.push(self.registers.sr.get());
-        self.registers.pc.load(self.read_word(vectors::IRQ));
+        self.trigger(Interrupt::IRQ);
         Ok(())
       }
       0x4C | 0x6C => {

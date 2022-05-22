@@ -3,12 +3,6 @@ use crate::fetch::Fetch;
 use crate::memory::Memory;
 use crate::registers::Registers;
 
-pub mod vectors {
-  pub const NMI: u16 = 0xFFFA;
-  pub const RESET: u16 = 0xFFFC;
-  pub const IRQ: u16 = 0xFFFE;
-}
-
 pub struct System {
   pub registers: Registers,
   memory: Box<dyn Memory>,
@@ -74,6 +68,28 @@ impl Stack for System {
   }
 }
 
+pub enum Interrupt {
+  NMI,
+  RESET,
+  IRQ,
+}
+
+pub trait InterruptHandler {
+  fn trigger(&mut self, interrupt: Interrupt);
+}
+
+impl InterruptHandler for System {
+  fn trigger(&mut self, interrupt: Interrupt) {
+    let dest = match interrupt {
+      Interrupt::NMI => self.read_word(0xFFFA),
+      Interrupt::RESET => self.read_word(0xFFFC),
+      Interrupt::IRQ => self.read_word(0xFFFE),
+    };
+
+    self.registers.pc.load(dest);
+  }
+}
+
 impl System {
   pub fn new(memory: Box<dyn Memory>) -> System {
     System {
@@ -84,8 +100,7 @@ impl System {
 
   pub fn reset(&mut self) {
     self.registers.reset();
-    let dest = self.read_word(vectors::RESET);
-    self.registers.pc.load(dest);
+    self.trigger(Interrupt::RESET);
   }
 
   pub fn tick(&mut self) {
