@@ -328,9 +328,6 @@ impl Execute for System {
       // === CONTROL ===
       0x00 => {
         // BRK
-        self.registers.sr.set(flags::INTERRUPT);
-        self.push_word(self.registers.pc.address().wrapping_add(1));
-        self.push(self.registers.sr.get());
         self.trigger(Interrupt::IRQ);
         Ok(())
       }
