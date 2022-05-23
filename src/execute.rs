@@ -1,6 +1,6 @@
 use crate::fetch::Fetch;
 use crate::registers::{flags, ALU};
-use crate::system::{Interrupt, InterruptHandler, MemoryIO, Stack, System};
+use crate::system::{InterruptHandler, MemoryIO, Stack, System};
 
 pub trait Execute {
   fn execute(&mut self, opcode: u8) -> Result<(), ()>;
@@ -328,7 +328,8 @@ impl Execute for System {
       // === CONTROL ===
       0x00 => {
         // BRK
-        self.trigger(Interrupt::IRQ);
+        self.registers.pc.increment();
+        self.interrupt(true);
         Ok(())
       }
       0x4C | 0x6C => {

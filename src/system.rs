@@ -68,26 +68,19 @@ impl Stack for System {
   }
 }
 
-pub enum Interrupt {
-  NMI,
-  RESET,
-  IRQ,
-}
-
 pub trait InterruptHandler {
-  fn trigger(&mut self, interrupt: Interrupt);
+  fn interrupt(&mut self, maskable: bool);
 }
 
 impl InterruptHandler for System {
-  fn trigger(&mut self, interrupt: Interrupt) {
+  fn interrupt(&mut self, maskable: bool) {
     self.registers.sr.set(flags::INTERRUPT);
-    self.push_word(self.registers.pc.address().wrapping_add(1));
+    self.push_word(self.registers.pc.address());
     self.push(self.registers.sr.get());
 
-    let dest = match interrupt {
-      Interrupt::NMI => self.read_word(0xFFFA),
-      Interrupt::RESET => self.read_word(0xFFFC),
-      Interrupt::IRQ => self.read_word(0xFFFE),
+    let dest = match maskable {
+      false => self.read_word(0xFFFA),
+      true => self.read_word(0xFFFE),
     };
 
     self.registers.pc.load(dest);
