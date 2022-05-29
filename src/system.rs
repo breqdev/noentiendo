@@ -27,12 +27,12 @@ impl MemoryIO for System {
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    self.memory.write(address, value)
+    self.memory.write(address, value);
   }
 
   fn write_word(&mut self, address: u16, value: u16) {
     self.memory.write(address, value as u8);
-    self.memory.write(address + 1, (value >> 8) as u8)
+    self.memory.write(address + 1, (value >> 8) as u8);
   }
 }
 
@@ -47,7 +47,7 @@ pub trait Stack {
 impl Stack for System {
   fn push(&mut self, value: u8) {
     self.registers.sp.push();
-    self.write(self.registers.sp.address(), value)
+    self.write(self.registers.sp.address(), value);
   }
 
   fn pop(&mut self) -> u8 {
