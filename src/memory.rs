@@ -58,7 +58,7 @@ impl Memory for MappedIO {
     std::io::stdin().read_line(&mut input).unwrap();
 
     match address & 0x03 {
-      0x00 => input.parse().expect("Invalid input for u8"),
+      0x00 => input.trim().parse().expect("Invalid input for u8"),
       0x01 => {
         let char = input.chars().next().expect("String is empty");
         ((char as u32) & 0xFF) as u8
@@ -73,6 +73,10 @@ impl Memory for MappedIO {
       0x00 => println!("{}", value),
       0x01 => println!("{}", value as char),
       0x02 => println!("{:02X}", value),
+      0x03 => {
+        print!("{}", value as char);
+        std::io::stdout().flush().unwrap();
+      }
       _ => unreachable!(),
     }
   }

@@ -26,7 +26,7 @@ fn main() {
   system.reset();
 
   // Run program for a while (contains an infinite loop)
-  for _ in 0..200 {
+  for _ in 0..1000 {
     system.tick();
   }
 }
