@@ -1,7 +1,7 @@
 use crate::graphics::{Color, GraphicsProvider};
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::VirtualKeyCode;
+use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::platform::run_return::EventLoopExtRunReturn;
 use winit::window::{Window, WindowBuilder};
@@ -13,6 +13,8 @@ pub struct WinitGraphicsProvider {
   window: Option<Window>,
   pixels: Option<Pixels>,
   dimensions: Option<(u32, u32)>,
+  last_key: u8,
+  dirty: bool,
 }
 
 impl WinitGraphicsProvider {
@@ -26,15 +28,20 @@ impl WinitGraphicsProvider {
       window: None,
       pixels: None,
       dimensions: None,
+      last_key: 0,
+      dirty: true,
     }
   }
 }
 
 impl GraphicsProvider for WinitGraphicsProvider {
-  fn create_window(&mut self, width: u32, height: u32) {
+  fn create_window(&mut self, width: u32, height: u32, scale: f64) {
     let window = WindowBuilder::new()
       .with_title("noentiendo")
-      .with_inner_size(LogicalSize::new(width as f64, height as f64))
+      .with_inner_size(LogicalSize::new(
+        width as f64 * scale,
+        height as f64 * scale,
+      ))
       .build(&self.event_loop)
       .unwrap();
 
@@ -61,10 +68,19 @@ impl GraphicsProvider for WinitGraphicsProvider {
         }
       }
 
+      if let Event::WindowEvent { event, .. } = event {
+        if let WindowEvent::ReceivedCharacter(c) = event {
+          self.last_key = c as u8;
+        }
+      }
+
       *control_flow = ControlFlow::Exit;
     });
 
-    self.pixels.as_ref().unwrap().render().unwrap();
+    if self.dirty {
+      self.dirty = false;
+      pixels.render().unwrap();
+    }
   }
 
   fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
@@ -73,5 +89,11 @@ impl GraphicsProvider for WinitGraphicsProvider {
     let index = ((y * width + x) * 4) as usize;
     let pixel = &mut frame[index..(index + 4)];
     pixel.copy_from_slice(&color.to_rgba());
+
+    self.dirty = true;
+  }
+
+  fn get_last_key(&self) -> u8 {
+    self.last_key
   }
 }

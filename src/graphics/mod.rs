@@ -20,7 +20,8 @@ impl Color {
 }
 
 pub trait GraphicsProvider {
-  fn create_window(&mut self, width: u32, height: u32);
+  fn create_window(&mut self, width: u32, height: u32, scale: f64);
   fn tick(&mut self);
   fn set_pixel(&mut self, x: u32, y: u32, color: Color);
+  fn get_last_key(&self) -> u8;
 }

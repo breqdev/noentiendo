@@ -15,7 +15,8 @@ fn main() {
   }
   let filename = &args[1];
 
-  let memory = memory::systems::easy(filename);
+  let graphics = Box::new(graphics::WinitGraphicsProvider::new());
+  let memory = memory::systems::easy(graphics, filename);
 
   let mut system = system::System::new(memory);
 

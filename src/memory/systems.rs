@@ -1,8 +1,10 @@
-use crate::graphics::WinitGraphicsProvider;
+use crate::graphics::GraphicsProvider;
 use crate::memory::{
   easy::{EasyIO, EasyVram},
   BlockMemory, BranchMemory, MappedIO, Memory,
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub fn brooke(rom: &str) -> Box<dyn Memory> {
   let ram = BlockMemory::new(0x4000);
@@ -17,14 +19,13 @@ pub fn brooke(rom: &str) -> Box<dyn Memory> {
   Box::new(memory)
 }
 
-pub fn easy(rom: &str) -> Box<dyn Memory> {
-  let zero_page = BlockMemory::new(0x00fe);
-  let io = EasyIO::new();
+pub fn easy(graphics: Box<dyn GraphicsProvider>, rom: &str) -> Box<dyn Memory> {
+  let graphics = Rc::new(RefCell::new(graphics));
+
+  let zero_page = BlockMemory::new(0x0100);
+  let io = EasyIO::new(Rc::clone(&graphics));
   let stack_ram = BlockMemory::new(0x0100);
-  let vram = {
-    let graphics = WinitGraphicsProvider::new();
-    EasyVram::new(32, 32, Box::new(graphics))
-  };
+  let vram = EasyVram::new(32, 32, graphics);
   let high_ram = BlockMemory::new(0x7A00);
   let rom = BlockMemory::from_file(0x8000, rom);
 
