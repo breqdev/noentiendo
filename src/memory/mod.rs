@@ -2,11 +2,14 @@ mod block;
 mod branch;
 mod easy;
 mod mappedio;
+mod null;
+pub mod systems;
 
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
 pub use easy::EasyMemory;
 pub use mappedio::MappedIO;
+pub use null::NullMemory;
 
 // Commodore PET-style column screen memory
 // (see https://www.chibiakumas.com/6502/platform4.php#LessonP38 for details)

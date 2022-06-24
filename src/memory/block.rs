@@ -3,34 +3,34 @@ use std::fs::File;
 use std::io::Read;
 
 pub struct BlockMemory {
-  bits: u8,
+  size: usize,
   data: Vec<u8>,
 }
 
 impl BlockMemory {
-  pub fn new(bits: u8) -> Self {
+  pub fn new(size: usize) -> Self {
     Self {
-      bits,
-      data: vec![0; (1 << bits) as usize],
+      size,
+      data: vec![0; size],
     }
   }
 
-  pub fn from_file(bits: u8, path: &str) -> Self {
+  pub fn from_file(size: usize, path: &str) -> Self {
     let mut file = File::open(path).unwrap();
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();
 
-    Self { bits, data }
+    Self { size, data }
   }
 }
 
 impl Memory for BlockMemory {
   fn read(&self, address: u16) -> u8 {
-    self.data[(address & ((1 << self.bits) - 1)) as usize]
+    self.data[(address as usize) % self.size]
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    self.data[(address & ((1 << self.bits) - 1)) as usize] = value;
+    self.data[(address as usize) % self.size] = value;
   }
 
   fn tick(&mut self) {}

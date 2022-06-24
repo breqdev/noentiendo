@@ -5,9 +5,8 @@ use crate::memory::Memory;
 // https://skilldrick.github.io/easy6502/
 
 pub struct EasyMemory {
-  width_bits: u8,
-  height_bits: u8,
-  mask: u16,
+  width: u32,
+  height: u32,
   data: Vec<u8>,
   graphics: Box<dyn GraphicsProvider>,
   palette: Vec<Color>,
@@ -16,9 +15,9 @@ pub struct EasyMemory {
 const SCALE: u32 = 8;
 
 impl EasyMemory {
-  pub fn new(width_bits: u8, height_bits: u8, graphics: Box<dyn GraphicsProvider>) -> Self {
+  pub fn new(width: u32, height: u32, graphics: Box<dyn GraphicsProvider>) -> Self {
     let mut graphics = graphics;
-    graphics.create_window((1 << width_bits) * SCALE, (1 << height_bits) * SCALE);
+    graphics.create_window(width * SCALE, height * SCALE);
 
     let palette = [
       0x000000, 0xffffff, 0x880000, 0xaaffee, 0xcc44cc, 0x00cc55, 0x0000aa, 0xeeee77, 0xdd8855,
@@ -31,10 +30,9 @@ impl EasyMemory {
       .collect();
 
     Self {
-      width_bits,
-      height_bits,
-      mask: (1 << (width_bits + height_bits)) - 1,
-      data: vec![0; ((1 << width_bits) * (1 << height_bits)) as usize],
+      width,
+      height,
+      data: vec![0; (width * height) as usize],
       graphics,
       palette,
     }
@@ -43,17 +41,17 @@ impl EasyMemory {
 
 impl Memory for EasyMemory {
   fn read(&self, address: u16) -> u8 {
-    self.data[(address & self.mask) as usize]
+    self.data[((address as u32) % (self.width * self.height)) as usize]
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    self.data[(address & self.mask) as usize] = value;
+    self.data[((address as u32) % (self.width * self.height)) as usize] = value;
   }
 
   fn tick(&mut self) {
     for i in 0..self.data.len() {
-      let x_base = (i & ((1 << self.width_bits) - 1)) as u32 * SCALE;
-      let y_base = (i >> self.width_bits) as u32 * SCALE;
+      let x_base = (i % self.width as usize) as u32 * SCALE;
+      let y_base = (i / self.width as usize) as u32 * SCALE;
       let color = self.palette[(self.data[i] as usize) % self.palette.len()];
 
       for x in 0..SCALE {

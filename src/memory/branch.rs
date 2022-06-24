@@ -1,41 +1,63 @@
 use crate::memory::Memory;
 
 pub struct BranchMemory {
-  low: Box<dyn Memory>,
-  high: Box<dyn Memory>,
-  bits: u8,
+  mapping: Vec<(usize, Box<dyn Memory>)>,
+}
+
+impl BranchMemory {
+  pub fn new() -> Self {
+    Self {
+      mapping: Vec::new(),
+    }
+  }
+
+  pub fn map(mut self, address: usize, memory: Box<dyn Memory>) -> Self {
+    self.mapping.push((address, memory));
+
+    self
+  }
 }
 
 impl Memory for BranchMemory {
   fn read(&self, address: u16) -> u8 {
-    if address < (1 << (self.bits - 1)) {
-      self.low.read(address)
-    } else {
-      self.high.read(address - (1 << (self.bits - 1)))
+    let mut memory = None;
+
+    for (start, mapped) in &self.mapping {
+      if address as usize >= *start {
+        memory = Some(mapped);
+      }
+    }
+
+    match memory {
+      Some(memory) => memory.read(address),
+      None => 0,
     }
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    if address < (1 << (self.bits - 1)) {
-      self.low.write(address, value)
-    } else {
-      self.high.write(address - (1 << (self.bits - 1)), value)
+    let mut memory = None;
+
+    for (start, mapped) in &mut self.mapping {
+      if address as usize >= *start {
+        memory = Some(mapped);
+      }
     }
+
+    match memory {
+      Some(memory) => memory.write(address, value),
+      None => (),
+    };
   }
 
   fn tick(&mut self) {
-    self.low.tick();
-    self.high.tick();
+    for (_, mapped) in &mut self.mapping {
+      mapped.tick();
+    }
   }
 
   fn reset(&mut self) {
-    self.low.reset();
-    self.high.reset();
-  }
-}
-
-impl BranchMemory {
-  pub fn new(low: Box<dyn Memory>, high: Box<dyn Memory>, bits: u8) -> Self {
-    Self { low, high, bits }
+    for (_, mapped) in &mut self.mapping {
+      mapped.reset();
+    }
   }
 }

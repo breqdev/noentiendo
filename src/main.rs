@@ -15,17 +15,7 @@ fn main() {
   }
   let filename = &args[1];
 
-  let ram = Box::new(memory::BlockMemory::new(14));
-  // let io = Box::new(memory::MappedIO::new());
-  let io = Box::new(memory::EasyMemory::new(
-    5,
-    5,
-    Box::new(graphics::WinitGraphicsProvider::new()),
-  ));
-  let rom = Box::new(memory::BlockMemory::from_file(15, filename));
-
-  let low = Box::new(memory::BranchMemory::new(ram, io, 15));
-  let memory = Box::new(memory::BranchMemory::new(low, rom, 16));
+  let memory = memory::systems::brooke(filename);
 
   let mut system = system::System::new(memory);
 
