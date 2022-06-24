@@ -1,32 +1,47 @@
 mod execute;
 mod fetch;
+mod graphics;
 mod memory;
 mod registers;
 mod system;
 
-use std::env;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+  #[clap(short, long, value_parser)]
+  rom_path: String,
+
+  #[clap(short, long, value_parser)]
+  system: String,
+
+  #[clap(short, long, value_parser)]
+  graphics: String,
+}
 
 fn main() {
-  let args: Vec<String> = env::args().collect();
-  match args.len() {
-    2 => {}
-    _ => panic!("Usage: {} <file>", args[0]),
-  }
-  let filename = &args[1];
+  let args = Args::parse();
 
-  let ram = Box::new(memory::BlockMemory::new(14));
-  let io = Box::new(memory::MappedIO::new());
-  let rom = Box::new(memory::BlockMemory::from_file(15, filename));
+  let graphics: Option<Box<dyn graphics::GraphicsProvider>> = match args.graphics.as_str() {
+    "none" => None,
+    "winit" => Some(Box::new(graphics::WinitGraphicsProvider::new())),
+    _ => panic!("Unknown graphics provider"),
+  };
 
-  let low = Box::new(memory::BranchMemory::new(ram, io, 15));
-  let memory = Box::new(memory::BranchMemory::new(low, rom, 16));
+  let mapping = match args.system.as_str() {
+    "brooke" => memory::systems::Mapping::BrookeSystem,
+    "easy" => memory::systems::Mapping::Easy6502,
+    _ => panic!("Unknown system"),
+  };
+
+  let memory = memory::systems::create_memory(mapping, graphics, &args.rom_path);
 
   let mut system = system::System::new(memory);
 
   system.reset();
 
-  // Run program for a while (contains an infinite loop)
-  for _ in 0..1000 {
+  loop {
     system.tick();
   }
 }

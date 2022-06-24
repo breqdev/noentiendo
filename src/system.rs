@@ -101,6 +101,8 @@ impl System {
   }
 
   pub fn tick(&mut self) {
+    self.memory.tick();
+
     let opcode = self.fetch();
     self.execute(opcode).expect("Failed to execute instruction");
   }
