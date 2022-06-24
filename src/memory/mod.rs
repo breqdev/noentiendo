@@ -2,6 +2,7 @@ mod block;
 mod branch;
 pub mod easy;
 mod null;
+pub mod pet;
 mod stdio;
 pub mod systems;
 
