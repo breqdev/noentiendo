@@ -143,7 +143,7 @@ impl Execute for System {
         let value = self.registers.a;
         self.registers.a = value >> 1;
 
-        self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
+        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
         self.registers.sr.set_nz(self.registers.a);
         Ok(())
       }
