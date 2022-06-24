@@ -47,12 +47,16 @@ impl Memory for PetVram {
   fn write(&mut self, address: u16, value: u8) {
     self.data[address as usize % VRAM_SIZE] = value;
 
+    if address >= (HEIGHT * WIDTH) as u16 {
+      return; // ignore writes to the extra bytes
+    }
+
     let mut graphics = self.graphics.borrow_mut();
 
     let column = (address % WIDTH as u16) as u32;
     let row = (address / WIDTH as u16) as u32;
 
-    let character_index = (value * 8) as usize;
+    let character_index = (value as usize) * 8;
 
     let character = self.character_rom[character_index..(character_index + 8)].to_vec();
 
@@ -87,4 +91,37 @@ impl Memory for PetVram {
       }
     }
   }
+}
+
+pub struct PetIO {}
+
+impl PetIO {
+  pub fn new() -> Self {
+    Self {}
+  }
+}
+
+impl Memory for PetIO {
+  fn read(&self, address: u16) -> u8 {
+    match address % 0x100 {
+      0x10 => 0, // cassette sense
+      0x12 => 0, // keyboard row contents
+
+      _ => 0,
+    }
+  }
+
+  fn write(&mut self, address: u16, _value: u8) {
+    match address & 0x100 {
+      0x10 => {} // keyboard row select
+      0x11 => {} // blank screen
+      0x13 => {} // cassette motor
+
+      _ => {}
+    }
+  }
+
+  fn tick(&mut self) {}
+
+  fn reset(&mut self) {}
 }
