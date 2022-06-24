@@ -36,15 +36,17 @@ impl Memory for BranchMemory {
 
   fn write(&mut self, address: u16, value: u8) {
     let mut memory = None;
+    let mut offset = 0;
 
     for (start, mapped) in &mut self.mapping {
       if address as usize >= *start {
         memory = Some(mapped);
+        offset = *start as u16;
       }
     }
 
     match memory {
-      Some(memory) => memory.write(address, value),
+      Some(memory) => memory.write(address - offset, value),
       None => (),
     };
   }
