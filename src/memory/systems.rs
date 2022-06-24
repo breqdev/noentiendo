@@ -1,7 +1,7 @@
 use crate::graphics::GraphicsProvider;
 use crate::memory::{
   easy::{EasyIO, EasyVram},
-  BlockMemory, BranchMemory, MappedIO, Memory,
+  BlockMemory, BranchMemory, MappedStdIO, Memory,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -19,7 +19,7 @@ pub fn create_memory(
   match mapping {
     Mapping::BrookeSystem => {
       let ram = BlockMemory::new(0x4000);
-      let io = MappedIO::new();
+      let io = MappedStdIO::new();
       let rom = BlockMemory::from_file(0x8000, rom);
 
       let memory = BranchMemory::new()

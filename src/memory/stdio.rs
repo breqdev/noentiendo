@@ -1,9 +1,9 @@
 use crate::memory::Memory;
 use std::io::Write;
 
-pub struct MappedIO {}
+pub struct MappedStdIO {}
 
-impl Memory for MappedIO {
+impl Memory for MappedStdIO {
   // 0x00: u8 as dec
   // 0x01: char
   // 0x02: u8 as hex
@@ -42,7 +42,7 @@ impl Memory for MappedIO {
   fn reset(&mut self) {}
 }
 
-impl MappedIO {
+impl MappedStdIO {
   pub fn new() -> Self {
     Self {}
   }
