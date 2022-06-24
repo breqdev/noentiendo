@@ -20,7 +20,7 @@ pub fn create_memory(
 ) -> Box<dyn Memory> {
   match mapping {
     Mapping::BrookeSystem => {
-      let ram = BlockMemory::new(0x4000);
+      let ram = BlockMemory::ram(0x4000);
       let io = MappedStdIO::new();
       let rom = BlockMemory::from_file(0x8000, rom);
 
@@ -34,11 +34,11 @@ pub fn create_memory(
     Mapping::Easy6502 => {
       let graphics = Rc::new(RefCell::new(graphics.unwrap()));
 
-      let zero_page = BlockMemory::new(0x0100);
+      let zero_page = BlockMemory::ram(0x0100);
       let io = EasyIO::new(Rc::clone(&graphics));
-      let stack_ram = BlockMemory::new(0x0100);
+      let stack_ram = BlockMemory::ram(0x0100);
       let vram = EasyVram::new(32, 32, graphics);
-      let high_ram = BlockMemory::new(0x7A00);
+      let high_ram = BlockMemory::ram(0x7A00);
       let rom = BlockMemory::from_file(0x8000, rom);
 
       let memory = BranchMemory::new()
@@ -54,7 +54,7 @@ pub fn create_memory(
     Mapping::CommodorePET => {
       let graphics = Rc::new(RefCell::new(graphics.unwrap()));
 
-      let ram = BlockMemory::new(0x8000);
+      let ram = BlockMemory::ram(0x8000);
       let vram = PetVram::new("bin/pet_char.bin", Rc::clone(&graphics));
 
       let expansion_rom_9 = NullMemory::new();

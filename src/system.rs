@@ -96,6 +96,7 @@ impl System {
   }
 
   pub fn reset(&mut self) {
+    self.memory.reset();
     self.registers.reset();
     self.registers.pc.load(self.read_word(0xFFFC));
   }
