@@ -1,11 +1,11 @@
   .org $8000
 reset:
   LDA #$01
-  STA $0200
+  STA $4000
   LDA #$05
-  STA $0201
+  STA $4001
   LDA #$08
-  STA $0202
+  STA $43ff
 loop:
   JMP loop
 

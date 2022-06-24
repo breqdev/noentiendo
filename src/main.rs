@@ -20,7 +20,7 @@ fn main() {
   let io = Box::new(memory::EasyMemory::new(
     5,
     5,
-    Box::new(graphics::SdlGraphicsProvider::new()),
+    Box::new(graphics::WinitGraphicsProvider::new()),
   ));
   let rom = Box::new(memory::BlockMemory::from_file(15, filename));
 

@@ -1,8 +1,8 @@
-mod sdl;
+mod winit;
 
-pub use sdl::SdlGraphicsProvider;
+pub use self::winit::WinitGraphicsProvider;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {
   r: u8,
   g: u8,
@@ -12,6 +12,10 @@ pub struct Color {
 impl Color {
   pub fn new(r: u8, g: u8, b: u8) -> Self {
     Self { r, g, b }
+  }
+
+  pub fn to_rgba(&self) -> [u8; 4] {
+    [self.r, self.g, self.b, 255]
   }
 }
 
