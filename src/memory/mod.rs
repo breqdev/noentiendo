@@ -1,13 +1,12 @@
 mod block;
 mod branch;
-mod easy;
+pub mod easy;
 mod mappedio;
 mod null;
 pub mod systems;
 
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
-pub use easy::EasyMemory;
 pub use mappedio::MappedIO;
 pub use null::NullMemory;
 

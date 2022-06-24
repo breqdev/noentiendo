@@ -15,7 +15,7 @@ fn main() {
   }
   let filename = &args[1];
 
-  let memory = memory::systems::brooke(filename);
+  let memory = memory::systems::easy(filename);
 
   let mut system = system::System::new(memory);
 
