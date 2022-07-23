@@ -32,6 +32,7 @@ fn main() {
   let mapping = match args.system.as_str() {
     "brooke" => memory::systems::Mapping::BrookeSystem,
     "easy" => memory::systems::Mapping::Easy6502,
+    "pet" => memory::systems::Mapping::CommodorePET,
     _ => panic!("Unknown system"),
   };
 

@@ -5,13 +5,23 @@ use std::io::Read;
 pub struct BlockMemory {
   size: usize,
   data: Vec<u8>,
+  persistent: bool,
 }
 
 impl BlockMemory {
-  pub fn new(size: usize) -> Self {
+  pub fn ram(size: usize) -> Self {
     Self {
       size,
       data: vec![0; size],
+      persistent: false,
+    }
+  }
+
+  pub fn rom(size: usize) -> Self {
+    Self {
+      size,
+      data: vec![0; size],
+      persistent: true,
     }
   }
 
@@ -20,7 +30,11 @@ impl BlockMemory {
     let mut data = Vec::new();
     file.read_to_end(&mut data).unwrap();
 
-    Self { size, data }
+    Self {
+      size,
+      data,
+      persistent: true,
+    }
   }
 }
 
@@ -36,8 +50,10 @@ impl Memory for BlockMemory {
   fn tick(&mut self) {}
 
   fn reset(&mut self) {
-    for i in 0..self.data.len() {
-      self.data[i] = 0;
+    if !self.persistent {
+      for i in 0..self.data.len() {
+        self.data[i] = 0;
+      }
     }
   }
 }

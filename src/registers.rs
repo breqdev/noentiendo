@@ -28,11 +28,11 @@ impl StackPointer {
   }
 
   pub fn push(&mut self) {
-    self.value -= 1;
+    self.value = self.value.wrapping_sub(1);
   }
 
   pub fn pop(&mut self) {
-    self.value += 1;
+    self.value = self.value.wrapping_add(1);
   }
 
   pub fn get(&self) -> u8 {

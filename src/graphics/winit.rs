@@ -85,7 +85,16 @@ impl GraphicsProvider for WinitGraphicsProvider {
 
   fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
     let frame = self.pixels.as_mut().unwrap().get_frame();
-    let (width, _height) = self.dimensions.unwrap();
+    let (width, height) = self.dimensions.unwrap();
+
+    if (x >= width) || (y >= height) {
+      println!(
+        "Invalid pixel coordinates ({}, {}) for dimensions ({}, {})",
+        x, y, width, height
+      );
+      return;
+    }
+
     let index = ((y * width + x) * 4) as usize;
     let pixel = &mut frame[index..(index + 4)];
     pixel.copy_from_slice(&color.to_rgba());
