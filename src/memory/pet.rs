@@ -104,8 +104,8 @@ impl PetIO {
 impl Memory for PetIO {
   fn read(&self, address: u16) -> u8 {
     match address % 0x100 {
-      0x10 => 0, // cassette sense
-      0x12 => 0, // keyboard row contents
+      0x10 => 0xFF, // cassette sense
+      0x12 => 0,    // keyboard row contents
 
       _ => 0,
     }
