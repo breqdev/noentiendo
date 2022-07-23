@@ -1,108 +1,145 @@
-use crate::graphics::{Color, GraphicsProvider};
+use crate::graphics::{Color, GraphicsProvider, WindowConfig};
 use pixels::{Pixels, SurfaceTexture};
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc, Mutex,
+};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::platform::run_return::EventLoopExtRunReturn;
 use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
 
+pub struct WinitGraphicsState {
+  pub event_loop: EventLoop<()>,
+  pub window: Window,
+}
+
+impl WinitGraphicsState {
+  pub fn new(event_loop: EventLoop<()>, window: Window) -> Self {
+    Self { event_loop, window }
+  }
+}
+
 pub struct WinitGraphicsProvider {
-  event_loop: EventLoop<()>,
-  input: WinitInputHelper,
-  window: Option<Window>,
-  pixels: Option<Pixels>,
-  dimensions: Option<(u32, u32)>,
-  last_key: u8,
-  dirty: bool,
+  config: Mutex<Option<WindowConfig>>,
+  pixels: Arc<Mutex<Option<Pixels>>>,
+  dirty: AtomicBool,
+  last_key: Arc<Mutex<u8>>,
 }
 
 impl WinitGraphicsProvider {
   pub fn new() -> Self {
-    let event_loop = EventLoop::new();
-    let input = WinitInputHelper::new();
-
     Self {
-      event_loop,
-      input,
-      window: None,
-      pixels: None,
-      dimensions: None,
-      last_key: 0,
-      dirty: true,
+      config: Mutex::new(None),
+      pixels: Arc::new(Mutex::new(None)),
+      dirty: AtomicBool::new(false),
+      last_key: Arc::new(Mutex::new(0)),
     }
+  }
+
+  fn _get_config(&self) -> WindowConfig {
+    let config = self.config.lock().unwrap();
+    config.clone().unwrap()
   }
 }
 
 impl GraphicsProvider for WinitGraphicsProvider {
-  fn create_window(&mut self, width: u32, height: u32, scale: f64) {
+  fn configure_window(&self, config: WindowConfig) {
+    *self.config.lock().unwrap() = Some(config);
+  }
+
+  fn create_window(&self) -> WinitGraphicsState {
+    let event_loop = EventLoop::new();
+
+    let config = self._get_config();
+
     let window = WindowBuilder::new()
       .with_title("noentiendo")
       .with_inner_size(LogicalSize::new(
-        width as f64 * scale,
-        height as f64 * scale,
+        config.width as f64 * config.scale,
+        config.height as f64 * config.scale,
       ))
-      .build(&self.event_loop)
+      .build(&event_loop)
       .unwrap();
 
     let inner_size = window.inner_size();
     let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
-    let pixels = Pixels::new(width, height, surface_texture).unwrap();
 
-    self.window = Some(window);
-    self.pixels = Some(pixels);
-    self.dimensions = Some((width, height));
+    *self.pixels.lock().unwrap() =
+      Some(Pixels::new(config.width, config.height, surface_texture).unwrap());
+
+    WinitGraphicsState::new(event_loop, window)
   }
 
-  fn tick(&mut self) {
-    let pixels = self.pixels.as_mut().unwrap();
+  fn run(&self, state: WinitGraphicsState) {
+    let mut input = WinitInputHelper::new();
 
-    self.event_loop.run_return(|event, _, control_flow| {
-      if self.input.update(&event) {
-        if self.input.key_pressed(VirtualKeyCode::Escape) || self.input.quit() {
+    let pixels = self.pixels.clone();
+    let last_key = self.last_key.clone();
+
+    state.event_loop.run(move |event, _, control_flow| {
+      *control_flow = ControlFlow::Wait;
+
+      if input.update(&event) {
+        if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
           panic!("Quit");
         }
 
-        if let Some(size) = self.input.window_resized() {
-          pixels.resize_surface(size.width, size.height);
+        if let Some(size) = input.window_resized() {
+          pixels
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .resize_surface(size.width, size.height);
         }
       }
 
       if let Event::WindowEvent { event, .. } = event {
         if let WindowEvent::ReceivedCharacter(c) = event {
-          self.last_key = c as u8;
+          *last_key.lock().unwrap() = c as u8;
         }
       }
-
-      *control_flow = ControlFlow::Exit;
     });
+  }
 
-    if self.dirty {
-      self.dirty = false;
-      pixels.render().unwrap();
+  fn tick(&self) {
+    let dirty = self.dirty.load(Ordering::Relaxed);
+    if dirty {
+      self.dirty.store(false, Ordering::Relaxed);
+      self
+        .pixels
+        .lock()
+        .unwrap()
+        .as_mut()
+        .unwrap()
+        .render()
+        .unwrap();
     }
   }
 
-  fn set_pixel(&mut self, x: u32, y: u32, color: Color) {
-    let frame = self.pixels.as_mut().unwrap().get_frame();
-    let (width, height) = self.dimensions.unwrap();
+  fn set_pixel(&self, x: u32, y: u32, color: Color) {
+    let mut pixels = self.pixels.lock().unwrap();
+    let frame = pixels.as_mut().unwrap().get_frame();
+    let config = self._get_config();
 
-    if (x >= width) || (y >= height) {
+    if (x >= config.width) || (y >= config.height) {
       println!(
         "Invalid pixel coordinates ({}, {}) for dimensions ({}, {})",
-        x, y, width, height
+        x, y, config.width, config.height
       );
       return;
     }
 
-    let index = ((y * width + x) * 4) as usize;
+    let index = ((y * config.width + x) * 4) as usize;
     let pixel = &mut frame[index..(index + 4)];
     pixel.copy_from_slice(&color.to_rgba());
 
-    self.dirty = true;
+    self.dirty.store(true, Ordering::Relaxed);
   }
 
   fn get_last_key(&self) -> u8 {
-    self.last_key
+    self.last_key.lock().unwrap().clone()
   }
 }

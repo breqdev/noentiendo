@@ -1,9 +1,8 @@
-use crate::graphics::{Color, GraphicsProvider};
+use crate::graphics::{Color, GraphicsProvider, WindowConfig};
 use crate::memory::Memory;
-use std::cell::RefCell;
 use std::fs::File;
 use std::io::Read;
-use std::rc::Rc;
+use std::sync::Arc;
 
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
@@ -13,21 +12,23 @@ const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
 pub struct PetVram {
   data: Vec<u8>,
-  graphics: Rc<RefCell<Box<dyn GraphicsProvider>>>,
+  graphics: Arc<dyn GraphicsProvider>,
   character_rom: Vec<u8>,
   foreground: Color,
   background: Color,
 }
 
 impl PetVram {
-  pub fn new(rom_path: &str, graphics: Rc<RefCell<Box<dyn GraphicsProvider>>>) -> Self {
+  pub fn new(rom_path: &str, graphics: Arc<dyn GraphicsProvider>) -> Self {
     let mut file = File::open(rom_path).unwrap();
     let mut character_rom = Vec::new();
     file.read_to_end(&mut character_rom).unwrap();
 
-    graphics
-      .borrow_mut()
-      .create_window(WIDTH * CHAR_WIDTH, HEIGHT * CHAR_HEIGHT, 2.0);
+    graphics.configure_window(WindowConfig::new(
+      WIDTH * CHAR_WIDTH,
+      HEIGHT * CHAR_HEIGHT,
+      2.0,
+    ));
 
     Self {
       data: vec![0; VRAM_SIZE],
@@ -51,8 +52,6 @@ impl Memory for PetVram {
       return; // ignore writes to the extra bytes
     }
 
-    let mut graphics = self.graphics.borrow_mut();
-
     let column = (address % WIDTH as u16) as u32;
     let row = (address / WIDTH as u16) as u32;
 
@@ -69,13 +68,15 @@ impl Memory for PetVram {
           self.background
         };
 
-        graphics.set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+        self
+          .graphics
+          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
       }
     }
   }
 
   fn tick(&mut self) {
-    self.graphics.borrow_mut().tick();
+    self.graphics.tick();
   }
 
   fn reset(&mut self) {
@@ -83,11 +84,9 @@ impl Memory for PetVram {
       self.data[i] = 0;
     }
 
-    let mut graphics = self.graphics.borrow_mut();
-
     for x in 0..(WIDTH * CHAR_WIDTH) {
       for y in 0..(HEIGHT * CHAR_HEIGHT) {
-        graphics.set_pixel(x, y, self.background);
+        self.graphics.set_pixel(x, y, self.background);
       }
     }
   }

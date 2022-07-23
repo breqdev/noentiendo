@@ -4,8 +4,7 @@ use crate::memory::{
   pet::{PetIO, PetVram},
   BlockMemory, BranchMemory, MappedStdIO, Memory, NullMemory,
 };
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub enum Mapping {
   BrookeSystem,
@@ -15,7 +14,7 @@ pub enum Mapping {
 
 pub fn create_memory(
   mapping: Mapping,
-  graphics: Option<Box<dyn GraphicsProvider>>,
+  graphics: Option<Arc<dyn GraphicsProvider>>,
   rom: &str,
 ) -> Box<dyn Memory> {
   match mapping {
@@ -32,10 +31,10 @@ pub fn create_memory(
       Box::new(memory)
     }
     Mapping::Easy6502 => {
-      let graphics = Rc::new(RefCell::new(graphics.unwrap()));
+      let graphics = graphics.unwrap();
 
       let zero_page = BlockMemory::ram(0x0100);
-      let io = EasyIO::new(Rc::clone(&graphics));
+      let io = EasyIO::new(graphics.clone());
       let stack_ram = BlockMemory::ram(0x0100);
       let vram = EasyVram::new(32, 32, graphics);
       let high_ram = BlockMemory::ram(0x7A00);
@@ -52,10 +51,10 @@ pub fn create_memory(
       Box::new(memory)
     }
     Mapping::CommodorePET => {
-      let graphics = Rc::new(RefCell::new(graphics.unwrap()));
+      let graphics = graphics.unwrap();
 
       let ram = BlockMemory::ram(0x8000);
-      let vram = PetVram::new("bin/pet_char.bin", Rc::clone(&graphics));
+      let vram = PetVram::new("bin/pet_char.bin", graphics);
 
       let expansion_rom_9 = NullMemory::new();
       let expansion_rom_a = NullMemory::new();
