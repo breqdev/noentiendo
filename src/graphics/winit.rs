@@ -104,11 +104,13 @@ impl GraphicsService for WinitGraphicsService {
         Event::MainEventsCleared => {
           if *dirty.lock().unwrap() {
             window.request_redraw();
-            *dirty.lock().unwrap() = false;
           }
         }
         Event::RedrawRequested(_) => {
+          println!("render!");
+          *dirty.lock().unwrap() = false;
           pixels.lock().unwrap().as_ref().unwrap().render().unwrap();
+          println!("done");
         }
         Event::WindowEvent { event, .. } => match event {
           WindowEvent::KeyboardInput { input, .. } => {
@@ -123,7 +125,7 @@ impl GraphicsService for WinitGraphicsService {
     });
   }
 
-  fn provider(&self) -> Arc<WinitGraphicsProvider> {
+  fn provider(&self) -> Arc<dyn GraphicsProvider> {
     self.provider.clone()
   }
 }

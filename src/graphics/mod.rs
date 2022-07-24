@@ -1,5 +1,7 @@
+mod null;
 mod winit;
 
+pub use self::null::{NullGraphicsProvider, NullGraphicsService};
 pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
 use std::sync::Arc;
 
@@ -39,7 +41,7 @@ impl WindowConfig {
 
 pub trait GraphicsService {
   fn run(&mut self);
-  fn provider(&self) -> Arc<WinitGraphicsProvider>;
+  fn provider(&self) -> Arc<dyn GraphicsProvider>;
 }
 
 pub trait GraphicsProvider: Send + Sync {
