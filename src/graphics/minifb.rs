@@ -143,8 +143,6 @@ impl GraphicsProvider for MinifbGraphicsProvider {
   }
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
-    self.wait_for_pixels();
-
     let mut pixels = self.pixels.lock().unwrap();
     let config = self._get_config();
 

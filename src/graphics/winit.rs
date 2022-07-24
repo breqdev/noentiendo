@@ -87,7 +87,7 @@ impl GraphicsService for WinitGraphicsService {
 
       if input.update(&event) {
         if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-          panic!("Quit");
+          *control_flow = ControlFlow::Exit;
         }
 
         if let Some(size) = input.window_resized() {
@@ -107,10 +107,8 @@ impl GraphicsService for WinitGraphicsService {
           }
         }
         Event::RedrawRequested(_) => {
-          println!("render!");
           *dirty.lock().unwrap() = false;
           pixels.lock().unwrap().as_ref().unwrap().render().unwrap();
-          println!("done");
         }
         Event::WindowEvent { event, .. } => match event {
           WindowEvent::KeyboardInput { input, .. } => {
@@ -174,8 +172,6 @@ impl GraphicsProvider for WinitGraphicsProvider {
   }
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
-    self.wait_for_pixels();
-
     let mut pixels = self.pixels.lock().unwrap();
     let frame = pixels.as_mut().unwrap().get_frame();
     let config = self._get_config();

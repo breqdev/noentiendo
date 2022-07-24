@@ -80,6 +80,8 @@ impl Memory for PetVram {
       self.data[i] = 0;
     }
 
+    self.graphics.wait_for_pixels();
+
     for x in 0..(WIDTH * CHAR_WIDTH) {
       for y in 0..(HEIGHT * CHAR_HEIGHT) {
         self.graphics.set_pixel(x, y, self.background);
