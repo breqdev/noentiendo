@@ -6,6 +6,7 @@ mod registers;
 mod system;
 
 use clap::Parser;
+use std::thread;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -23,9 +24,10 @@ struct Args {
 fn main() {
   let args = Args::parse();
 
-  let graphics: Option<Box<dyn graphics::GraphicsProvider>> = match args.graphics.as_str() {
-    "none" => None,
-    "winit" => Some(Box::new(graphics::WinitGraphicsProvider::new())),
+  let mut graphics: Box<dyn graphics::GraphicsService> = match args.graphics.as_str() {
+    "none" => Box::new(graphics::NullGraphicsService::new()),
+    "minifb" => Box::new(graphics::MinifbGraphicsService::new()),
+    "winit" => Box::new(graphics::WinitGraphicsService::new()),
     _ => panic!("Unknown graphics provider"),
   };
 
@@ -36,13 +38,18 @@ fn main() {
     _ => panic!("Unknown system"),
   };
 
-  let memory = memory::systems::create_memory(mapping, graphics, &args.rom_path);
-
+  let memory = memory::systems::create_memory(mapping, graphics.provider(), &args.rom_path);
   let mut system = system::System::new(memory);
 
-  system.reset();
+  thread::spawn(move || {
+    system.reset();
 
-  loop {
-    system.tick();
-  }
+    loop {
+      system.tick();
+    }
+  });
+
+  graphics.run();
+
+  println!("no graphics?");
 }

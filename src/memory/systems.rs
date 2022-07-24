@@ -4,8 +4,7 @@ use crate::memory::{
   pet::{PetIO, PetVram},
   BlockMemory, BranchMemory, MappedStdIO, Memory, NullMemory,
 };
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub enum Mapping {
   BrookeSystem,
@@ -15,7 +14,7 @@ pub enum Mapping {
 
 pub fn create_memory(
   mapping: Mapping,
-  graphics: Option<Box<dyn GraphicsProvider>>,
+  graphics: Arc<dyn GraphicsProvider>,
   rom: &str,
 ) -> Box<dyn Memory> {
   match mapping {
@@ -32,10 +31,8 @@ pub fn create_memory(
       Box::new(memory)
     }
     Mapping::Easy6502 => {
-      let graphics = Rc::new(RefCell::new(graphics.unwrap()));
-
       let zero_page = BlockMemory::ram(0x0100);
-      let io = EasyIO::new(Rc::clone(&graphics));
+      let io = EasyIO::new(graphics.clone());
       let stack_ram = BlockMemory::ram(0x0100);
       let vram = EasyVram::new(32, 32, graphics);
       let high_ram = BlockMemory::ram(0x7A00);
@@ -52,22 +49,20 @@ pub fn create_memory(
       Box::new(memory)
     }
     Mapping::CommodorePET => {
-      let graphics = Rc::new(RefCell::new(graphics.unwrap()));
-
       let ram = BlockMemory::ram(0x8000);
-      let vram = PetVram::new("bin/pet_char.bin", Rc::clone(&graphics));
+      let vram = PetVram::new("bin/pet/char.bin", graphics);
 
       let expansion_rom_9 = NullMemory::new();
       let expansion_rom_a = NullMemory::new();
       let expansion_rom_b = NullMemory::new();
 
-      let basic_rom = BlockMemory::from_file(0x8000, "bin/pet_basic.bin");
+      let basic_rom = BlockMemory::from_file(0x2000, "bin/pet/basic.bin");
 
-      let editor_rom = BlockMemory::from_file(0x1000, "bin/pet_editor.bin");
+      let editor_rom = BlockMemory::from_file(0x1000, "bin/pet/editor.bin");
 
       let io = PetIO::new();
 
-      let kernel_rom = BlockMemory::from_file(0x1000, "bin/pet_kernal.bin"); // TODO: actual kernel
+      let kernel_rom = BlockMemory::from_file(0x1000, "bin/pet/kernal.bin");
 
       let memory = BranchMemory::new()
         .map(0x0000, Box::new(ram))

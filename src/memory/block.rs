@@ -47,8 +47,6 @@ impl Memory for BlockMemory {
     self.data[(address as usize) % self.size] = value;
   }
 
-  fn tick(&mut self) {}
-
   fn reset(&mut self) {
     if !self.persistent {
       for i in 0..self.data.len() {
