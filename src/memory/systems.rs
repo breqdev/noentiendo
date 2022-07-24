@@ -14,7 +14,7 @@ pub enum Mapping {
 
 pub fn create_memory(
   mapping: Mapping,
-  graphics: Option<Arc<dyn GraphicsProvider>>,
+  graphics: Arc<dyn GraphicsProvider>,
   rom: &str,
 ) -> Box<dyn Memory> {
   match mapping {
@@ -31,8 +31,6 @@ pub fn create_memory(
       Box::new(memory)
     }
     Mapping::Easy6502 => {
-      let graphics = graphics.unwrap();
-
       let zero_page = BlockMemory::ram(0x0100);
       let io = EasyIO::new(graphics.clone());
       let stack_ram = BlockMemory::ram(0x0100);
@@ -51,8 +49,6 @@ pub fn create_memory(
       Box::new(memory)
     }
     Mapping::CommodorePET => {
-      let graphics = graphics.unwrap();
-
       let ram = BlockMemory::ram(0x8000);
       let vram = PetVram::new("bin/pet/char.bin", graphics);
 

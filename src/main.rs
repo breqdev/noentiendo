@@ -6,9 +6,7 @@ mod registers;
 mod system;
 
 use clap::Parser;
-use std::sync::Arc;
 use std::thread;
-use std::time;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -26,9 +24,9 @@ struct Args {
 fn main() {
   let args = Args::parse();
 
-  let graphics: Arc<dyn graphics::GraphicsProvider> = match args.graphics.as_str() {
+  let mut graphics: Box<dyn graphics::GraphicsService> = match args.graphics.as_str() {
     // "none" => None,
-    "winit" => Arc::new(graphics::WinitGraphicsProvider::new()),
+    "winit" => Box::new(graphics::WinitGraphicsService::new()),
     _ => panic!("Unknown graphics provider"),
   };
 
@@ -39,10 +37,8 @@ fn main() {
     _ => panic!("Unknown system"),
   };
 
-  let memory = memory::systems::create_memory(mapping, Some(graphics.clone()), &args.rom_path);
+  let memory = memory::systems::create_memory(mapping, graphics.provider(), &args.rom_path);
   let mut system = system::System::new(memory);
-
-  let window = graphics.create_window();
 
   thread::spawn(move || {
     system.reset();
@@ -52,7 +48,7 @@ fn main() {
     }
   });
 
-  graphics.run(window);
+  graphics.run();
 
   println!("no graphics?");
 }

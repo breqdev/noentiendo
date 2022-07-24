@@ -1,52 +1,53 @@
-use crate::graphics::{Color, GraphicsProvider, WindowConfig};
+use crate::graphics::{Color, GraphicsProvider, GraphicsService, WindowConfig};
 use pixels::{Pixels, SurfaceTexture};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
 
-pub struct WinitGraphicsState {
-  pub event_loop: EventLoop<()>,
-  pub window: Window,
-}
-
-impl WinitGraphicsState {
-  pub fn new(event_loop: EventLoop<()>, window: Window) -> Self {
-    Self { event_loop, window }
-  }
-}
-
-pub struct WinitGraphicsProvider {
-  config: Mutex<Option<WindowConfig>>,
+pub struct WinitGraphicsService {
+  config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
+  provider: Arc<WinitGraphicsProvider>,
+  ready: Arc<(Mutex<bool>, Condvar)>,
   dirty: Arc<Mutex<bool>>,
   last_key: Arc<Mutex<u8>>,
 }
 
-impl WinitGraphicsProvider {
+impl WinitGraphicsService {
   pub fn new() -> Self {
+    let config = Arc::new(Mutex::new(None));
+    let pixels = Arc::new(Mutex::new(None));
+    let ready = Arc::new((Mutex::new(false), Condvar::new()));
+    let dirty = Arc::new(Mutex::new(false));
+    let last_key = Arc::new(Mutex::new(0));
+
     Self {
-      config: Mutex::new(None),
-      pixels: Arc::new(Mutex::new(None)),
-      dirty: Arc::new(Mutex::new(false)),
-      last_key: Arc::new(Mutex::new(0)),
+      provider: Arc::new(WinitGraphicsProvider::new(
+        config.clone(),
+        pixels.clone(),
+        ready.clone(),
+        dirty.clone(),
+        last_key.clone(),
+      )),
+      config,
+      pixels,
+      ready,
+      dirty,
+      last_key,
     }
   }
 
   fn _get_config(&self) -> WindowConfig {
     let config = self.config.lock().unwrap();
-    config.clone().unwrap()
+    config.clone().expect("WindowConfig not set")
   }
 }
 
-impl GraphicsProvider for WinitGraphicsProvider {
-  fn configure_window(&self, config: WindowConfig) {
-    *self.config.lock().unwrap() = Some(config);
-  }
-
-  fn create_window(&self) -> WinitGraphicsState {
+impl GraphicsService for WinitGraphicsService {
+  fn run(&mut self) {
     let event_loop = EventLoop::new();
 
     let config = self._get_config();
@@ -61,22 +62,26 @@ impl GraphicsProvider for WinitGraphicsProvider {
       .unwrap();
 
     let inner_size = window.inner_size();
+
     let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
     *self.pixels.lock().unwrap() =
       Some(Pixels::new(config.width, config.height, surface_texture).unwrap());
 
-    WinitGraphicsState::new(event_loop, window)
-  }
+    {
+      let (lock, cvar) = &*self.ready;
+      let mut ready = lock.lock().unwrap();
+      *ready = true;
+      cvar.notify_one();
+    }
 
-  fn run(&self, state: WinitGraphicsState) {
     let mut input = WinitInputHelper::new();
 
     let pixels = self.pixels.clone();
     let dirty = self.dirty.clone();
     let last_key = self.last_key.clone();
 
-    state.event_loop.run(move |event, _, control_flow| {
+    event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::Poll;
 
       if input.update(&event) {
@@ -104,7 +109,7 @@ impl GraphicsProvider for WinitGraphicsProvider {
           // applications which do not always need to. Applications that redraw continuously
           // can just render here instead.
           if *dirty.lock().unwrap() {
-            state.window.request_redraw();
+            window.request_redraw();
             *dirty.lock().unwrap() = false;
           }
         }
@@ -129,9 +134,59 @@ impl GraphicsProvider for WinitGraphicsProvider {
     });
   }
 
+  fn provider(&self) -> Arc<WinitGraphicsProvider> {
+    self.provider.clone()
+  }
+}
+
+pub struct WinitGraphicsProvider {
+  config: Arc<Mutex<Option<WindowConfig>>>,
+  pixels: Arc<Mutex<Option<Pixels>>>,
+  ready: Arc<(Mutex<bool>, Condvar)>,
+  dirty: Arc<Mutex<bool>>,
+  last_key: Arc<Mutex<u8>>,
+}
+
+impl WinitGraphicsProvider {
+  pub fn new(
+    config: Arc<Mutex<Option<WindowConfig>>>,
+    pixels: Arc<Mutex<Option<Pixels>>>,
+    ready: Arc<(Mutex<bool>, Condvar)>,
+    dirty: Arc<Mutex<bool>>,
+    last_key: Arc<Mutex<u8>>,
+  ) -> Self {
+    Self {
+      config,
+      pixels,
+      ready,
+      dirty,
+      last_key,
+    }
+  }
+  fn _get_config(&self) -> WindowConfig {
+    let config = self.config.lock().unwrap();
+    config.clone().expect("WindowConfig not set")
+  }
+}
+
+impl GraphicsProvider for WinitGraphicsProvider {
+  fn configure_window(&self, config: WindowConfig) {
+    *self.config.lock().unwrap() = Some(config);
+  }
+
+  fn wait_for_pixels(&self) {
+    let (mutex, condvar) = &*self.ready;
+    let mut ready = mutex.lock().unwrap();
+    while !*ready {
+      ready = condvar.wait(ready).unwrap();
+    }
+  }
+
   fn tick(&self) {}
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
+    self.wait_for_pixels();
+
     let mut pixels = self.pixels.lock().unwrap();
     let frame = pixels.as_mut().unwrap().get_frame();
     let config = self._get_config();

@@ -1,6 +1,7 @@
 mod winit;
 
-pub use self::winit::{WinitGraphicsProvider, WinitGraphicsState};
+pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
+use std::sync::{Arc, Mutex};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {
@@ -36,13 +37,15 @@ impl WindowConfig {
   }
 }
 
+pub trait GraphicsService {
+  fn run(&mut self);
+  fn provider(&self) -> Arc<WinitGraphicsProvider>;
+}
+
 pub trait GraphicsProvider: Send + Sync {
   // Initialization
   fn configure_window(&self, config: WindowConfig);
-
-  // Graphics Thread
-  fn create_window(&self) -> WinitGraphicsState;
-  fn run(&self, event_loop: WinitGraphicsState);
+  fn wait_for_pixels(&self);
 
   // Emulator Thread
   fn tick(&self);
