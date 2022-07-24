@@ -48,7 +48,6 @@ pub trait GraphicsProvider: Send + Sync {
   fn wait_for_pixels(&self);
 
   // Emulator Thread
-  fn tick(&self);
   fn set_pixel(&self, x: u32, y: u32, color: Color);
   fn get_last_key(&self) -> u8;
 }

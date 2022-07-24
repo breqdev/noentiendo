@@ -182,8 +182,6 @@ impl GraphicsProvider for WinitGraphicsProvider {
     }
   }
 
-  fn tick(&self) {}
-
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
     self.wait_for_pixels();
 

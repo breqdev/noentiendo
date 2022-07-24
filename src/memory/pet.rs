@@ -75,10 +75,6 @@ impl Memory for PetVram {
     }
   }
 
-  fn tick(&mut self) {
-    self.graphics.tick();
-  }
-
   fn reset(&mut self) {
     for i in 0..self.data.len() {
       self.data[i] = 0;
@@ -119,8 +115,6 @@ impl Memory for PetIO {
       _ => {}
     }
   }
-
-  fn tick(&mut self) {}
 
   fn reset(&mut self) {}
 }

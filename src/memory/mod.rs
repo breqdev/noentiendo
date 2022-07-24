@@ -17,6 +17,5 @@ pub use stdio::MappedStdIO;
 pub trait Memory: Send {
   fn read(&self, address: u16) -> u8;
   fn write(&mut self, address: u16, value: u8);
-  fn tick(&mut self);
   fn reset(&mut self);
 }

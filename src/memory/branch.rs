@@ -53,12 +53,6 @@ impl Memory for BranchMemory {
     };
   }
 
-  fn tick(&mut self) {
-    for (_, mapped) in &mut self.mapping {
-      mapped.tick();
-    }
-  }
-
   fn reset(&mut self) {
     for (_, mapped) in &mut self.mapping {
       mapped.reset();

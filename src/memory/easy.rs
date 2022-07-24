@@ -56,10 +56,6 @@ impl Memory for EasyVram {
     self.graphics.set_pixel(x_base, y_base, color);
   }
 
-  fn tick(&mut self) {
-    self.graphics.tick();
-  }
-
   fn reset(&mut self) {
     for i in 0..self.data.len() {
       self.data[i] = 0;
@@ -86,8 +82,6 @@ impl Memory for EasyIO {
   }
 
   fn write(&mut self, _address: u16, _value: u8) {}
-
-  fn tick(&mut self) {}
 
   fn reset(&mut self) {}
 }

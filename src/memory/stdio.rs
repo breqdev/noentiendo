@@ -37,8 +37,6 @@ impl Memory for MappedStdIO {
     }
   }
 
-  fn tick(&mut self) {}
-
   fn reset(&mut self) {}
 }
 
