@@ -1,6 +1,8 @@
+mod minifb;
 mod null;
 mod winit;
 
+pub use self::minifb::{MinifbGraphicsProvider, MinifbGraphicsService};
 pub use self::null::{NullGraphicsProvider, NullGraphicsService};
 pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
 use std::sync::Arc;
@@ -19,6 +21,10 @@ impl Color {
 
   pub fn to_rgba(&self) -> [u8; 4] {
     [self.r, self.g, self.b, 255]
+  }
+
+  pub fn to_rgb(&self) -> u32 {
+    (self.r as u32) << 16 | (self.g as u32) << 8 | self.b as u32
   }
 }
 

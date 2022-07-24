@@ -26,6 +26,7 @@ fn main() {
 
   let mut graphics: Box<dyn graphics::GraphicsService> = match args.graphics.as_str() {
     "none" => Box::new(graphics::NullGraphicsService::new()),
+    "minifb" => Box::new(graphics::MinifbGraphicsService::new()),
     "winit" => Box::new(graphics::WinitGraphicsService::new()),
     _ => panic!("Unknown graphics provider"),
   };
