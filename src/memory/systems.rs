@@ -54,19 +54,19 @@ pub fn create_memory(
       let graphics = graphics.unwrap();
 
       let ram = BlockMemory::ram(0x8000);
-      let vram = PetVram::new("bin/pet_char.bin", graphics);
+      let vram = PetVram::new("bin/pet/char.bin", graphics);
 
       let expansion_rom_9 = NullMemory::new();
       let expansion_rom_a = NullMemory::new();
       let expansion_rom_b = NullMemory::new();
 
-      let basic_rom = BlockMemory::from_file(0x8000, "bin/pet_basic.bin");
+      let basic_rom = BlockMemory::from_file(0x2000, "bin/pet/basic.bin");
 
-      let editor_rom = BlockMemory::from_file(0x1000, "bin/pet_editor.bin");
+      let editor_rom = BlockMemory::from_file(0x1000, "bin/pet/editor.bin");
 
       let io = PetIO::new();
 
-      let kernel_rom = BlockMemory::from_file(0x1000, "bin/pet_kernal.bin"); // TODO: actual kernel
+      let kernel_rom = BlockMemory::from_file(0x1000, "bin/pet/kernal.bin");
 
       let memory = BranchMemory::new()
         .map(0x0000, Box::new(ram))

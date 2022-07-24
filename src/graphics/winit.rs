@@ -1,9 +1,6 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
 use pixels::{Pixels, SurfaceTexture};
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc, Mutex,
-};
+use std::sync::{Arc, Mutex};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -24,7 +21,7 @@ impl WinitGraphicsState {
 pub struct WinitGraphicsProvider {
   config: Mutex<Option<WindowConfig>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  dirty: AtomicBool,
+  dirty: Arc<Mutex<bool>>,
   last_key: Arc<Mutex<u8>>,
 }
 
@@ -33,7 +30,7 @@ impl WinitGraphicsProvider {
     Self {
       config: Mutex::new(None),
       pixels: Arc::new(Mutex::new(None)),
-      dirty: AtomicBool::new(false),
+      dirty: Arc::new(Mutex::new(false)),
       last_key: Arc::new(Mutex::new(0)),
     }
   }
@@ -76,10 +73,11 @@ impl GraphicsProvider for WinitGraphicsProvider {
     let mut input = WinitInputHelper::new();
 
     let pixels = self.pixels.clone();
+    let dirty = self.dirty.clone();
     let last_key = self.last_key.clone();
 
     state.event_loop.run(move |event, _, control_flow| {
-      *control_flow = ControlFlow::Wait;
+      *control_flow = ControlFlow::Poll;
 
       if input.update(&event) {
         if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
@@ -96,28 +94,42 @@ impl GraphicsProvider for WinitGraphicsProvider {
         }
       }
 
-      if let Event::WindowEvent { event, .. } = event {
-        if let WindowEvent::ReceivedCharacter(c) = event {
-          *last_key.lock().unwrap() = c as u8;
+      match event {
+        Event::MainEventsCleared => {
+          // Application update code.
+
+          // Queue a RedrawRequested event.
+          //
+          // You only need to call this if you've determined that you need to redraw, in
+          // applications which do not always need to. Applications that redraw continuously
+          // can just render here instead.
+          if *dirty.lock().unwrap() {
+            state.window.request_redraw();
+            *dirty.lock().unwrap() = false;
+          }
         }
+        Event::RedrawRequested(_) => {
+          // Redraw the application.
+          //
+          // It's preferable for applications that do not render continuously to render in
+          // this event rather than in MainEventsCleared, since rendering in here allows
+          // the program to gracefully handle redraws requested by the OS.
+          pixels.lock().unwrap().as_mut().unwrap().render().unwrap();
+        }
+        Event::WindowEvent { event, .. } => match event {
+          WindowEvent::KeyboardInput { input, .. } => {
+            if let Some(key) = input.virtual_keycode {
+              *last_key.lock().unwrap() = key as u8;
+            }
+          }
+          _ => {}
+        },
+        _ => (),
       }
     });
   }
 
-  fn tick(&self) {
-    let dirty = self.dirty.load(Ordering::Relaxed);
-    if dirty {
-      self.dirty.store(false, Ordering::Relaxed);
-      self
-        .pixels
-        .lock()
-        .unwrap()
-        .as_mut()
-        .unwrap()
-        .render()
-        .unwrap();
-    }
-  }
+  fn tick(&self) {}
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
     let mut pixels = self.pixels.lock().unwrap();
@@ -135,8 +147,7 @@ impl GraphicsProvider for WinitGraphicsProvider {
     let index = ((y * config.width + x) * 4) as usize;
     let pixel = &mut frame[index..(index + 4)];
     pixel.copy_from_slice(&color.to_rgba());
-
-    self.dirty.store(true, Ordering::Relaxed);
+    *self.dirty.lock().unwrap() = true;
   }
 
   fn get_last_key(&self) -> u8 {
