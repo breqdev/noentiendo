@@ -1,7 +1,7 @@
 mod winit;
 
 pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {

@@ -1,10 +1,11 @@
 use crate::graphics::{Color, GraphicsProvider, GraphicsService, WindowConfig};
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Condvar, Mutex};
+use std::time::{Duration, Instant};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowBuilder};
+use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 pub struct WinitGraphicsService {
@@ -82,7 +83,7 @@ impl GraphicsService for WinitGraphicsService {
     let last_key = self.last_key.clone();
 
     event_loop.run(move |event, _, control_flow| {
-      *control_flow = ControlFlow::Poll;
+      *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
 
       if input.update(&event) {
         if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
@@ -101,25 +102,13 @@ impl GraphicsService for WinitGraphicsService {
 
       match event {
         Event::MainEventsCleared => {
-          // Application update code.
-
-          // Queue a RedrawRequested event.
-          //
-          // You only need to call this if you've determined that you need to redraw, in
-          // applications which do not always need to. Applications that redraw continuously
-          // can just render here instead.
           if *dirty.lock().unwrap() {
             window.request_redraw();
             *dirty.lock().unwrap() = false;
           }
         }
         Event::RedrawRequested(_) => {
-          // Redraw the application.
-          //
-          // It's preferable for applications that do not render continuously to render in
-          // this event rather than in MainEventsCleared, since rendering in here allows
-          // the program to gracefully handle redraws requested by the OS.
-          pixels.lock().unwrap().as_mut().unwrap().render().unwrap();
+          pixels.lock().unwrap().as_ref().unwrap().render().unwrap();
         }
         Event::WindowEvent { event, .. } => match event {
           WindowEvent::KeyboardInput { input, .. } => {
