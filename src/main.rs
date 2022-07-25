@@ -50,6 +50,4 @@ fn main() {
   });
 
   graphics.run();
-
-  println!("no graphics?");
 }

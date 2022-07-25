@@ -1,7 +1,50 @@
 use crate::graphics::{Color, GraphicsProvider, GraphicsService, WindowConfig};
-use minifb::{Key, Window, WindowOptions};
+use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
+
+fn virtual_key_to_ascii(code: Key) -> u8 {
+  let ch = match code {
+    Key::Key0 => '0',
+    Key::Key1 => '1',
+    Key::Key2 => '2',
+    Key::Key3 => '3',
+    Key::Key4 => '4',
+    Key::Key5 => '5',
+    Key::Key6 => '6',
+    Key::Key7 => '7',
+    Key::Key8 => '8',
+    Key::Key9 => '9',
+    Key::A => 'A',
+    Key::B => 'B',
+    Key::C => 'C',
+    Key::D => 'D',
+    Key::E => 'E',
+    Key::F => 'F',
+    Key::G => 'G',
+    Key::H => 'H',
+    Key::I => 'I',
+    Key::J => 'J',
+    Key::K => 'K',
+    Key::L => 'L',
+    Key::M => 'M',
+    Key::N => 'N',
+    Key::O => 'O',
+    Key::P => 'P',
+    Key::Q => 'Q',
+    Key::R => 'R',
+    Key::S => 'S',
+    Key::T => 'T',
+    Key::U => 'U',
+    Key::V => 'V',
+    Key::W => 'W',
+    Key::X => 'X',
+    Key::Y => 'Y',
+    Key::Z => 'Z',
+    _ => ' ',
+  };
+  ch as u8
+}
 
 pub struct MinifbGraphicsService {
   config: Arc<Mutex<Option<WindowConfig>>>,
@@ -87,8 +130,17 @@ impl GraphicsService for MinifbGraphicsService {
           key_state[i] = false;
         }
         window.get_keys().iter().for_each(|key| {
-          key_state[*key as usize] = window.is_key_down(*key);
+          key_state[virtual_key_to_ascii(*key) as usize] = window.is_key_down(*key);
         });
+      }
+
+      {
+        window
+          .get_keys_pressed(KeyRepeat::No)
+          .iter()
+          .for_each(|key| {
+            *last_key.lock().unwrap() = virtual_key_to_ascii(*key);
+          });
       }
 
       thread::sleep(std::time::Duration::from_millis(100));
