@@ -9,46 +9,12 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 fn virtual_key_to_ascii(code: VirtualKeyCode) -> u8 {
-  let ch = match code {
-    VirtualKeyCode::Key0 => '0',
-    VirtualKeyCode::Key1 => '1',
-    VirtualKeyCode::Key2 => '2',
-    VirtualKeyCode::Key3 => '3',
-    VirtualKeyCode::Key4 => '4',
-    VirtualKeyCode::Key5 => '5',
-    VirtualKeyCode::Key6 => '6',
-    VirtualKeyCode::Key7 => '7',
-    VirtualKeyCode::Key8 => '8',
-    VirtualKeyCode::Key9 => '9',
-    VirtualKeyCode::A => 'A',
-    VirtualKeyCode::B => 'B',
-    VirtualKeyCode::C => 'C',
-    VirtualKeyCode::D => 'D',
-    VirtualKeyCode::E => 'E',
-    VirtualKeyCode::F => 'F',
-    VirtualKeyCode::G => 'G',
-    VirtualKeyCode::H => 'H',
-    VirtualKeyCode::I => 'I',
-    VirtualKeyCode::J => 'J',
-    VirtualKeyCode::K => 'K',
-    VirtualKeyCode::L => 'L',
-    VirtualKeyCode::M => 'M',
-    VirtualKeyCode::N => 'N',
-    VirtualKeyCode::O => 'O',
-    VirtualKeyCode::P => 'P',
-    VirtualKeyCode::Q => 'Q',
-    VirtualKeyCode::R => 'R',
-    VirtualKeyCode::S => 'S',
-    VirtualKeyCode::T => 'T',
-    VirtualKeyCode::U => 'U',
-    VirtualKeyCode::V => 'V',
-    VirtualKeyCode::W => 'W',
-    VirtualKeyCode::X => 'X',
-    VirtualKeyCode::Y => 'Y',
-    VirtualKeyCode::Z => 'Z',
-    _ => ' ',
-  };
-  ch as u8
+  let code = code as u8;
+  match code {
+    0..=9 => '0' as u8 + code,
+    10..=36 => 'A' as u8 + code - 10,
+    _ => ' ' as u8,
+  }
 }
 
 pub struct WinitGraphicsService {

@@ -4,46 +4,12 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
 
 fn virtual_key_to_ascii(code: Key) -> u8 {
-  let ch = match code {
-    Key::Key0 => '0',
-    Key::Key1 => '1',
-    Key::Key2 => '2',
-    Key::Key3 => '3',
-    Key::Key4 => '4',
-    Key::Key5 => '5',
-    Key::Key6 => '6',
-    Key::Key7 => '7',
-    Key::Key8 => '8',
-    Key::Key9 => '9',
-    Key::A => 'A',
-    Key::B => 'B',
-    Key::C => 'C',
-    Key::D => 'D',
-    Key::E => 'E',
-    Key::F => 'F',
-    Key::G => 'G',
-    Key::H => 'H',
-    Key::I => 'I',
-    Key::J => 'J',
-    Key::K => 'K',
-    Key::L => 'L',
-    Key::M => 'M',
-    Key::N => 'N',
-    Key::O => 'O',
-    Key::P => 'P',
-    Key::Q => 'Q',
-    Key::R => 'R',
-    Key::S => 'S',
-    Key::T => 'T',
-    Key::U => 'U',
-    Key::V => 'V',
-    Key::W => 'W',
-    Key::X => 'X',
-    Key::Y => 'Y',
-    Key::Z => 'Z',
-    _ => ' ',
-  };
-  ch as u8
+  let code = code as u8;
+  match code {
+    0..=9 => '0' as u8 + code,
+    10..=36 => 'A' as u8 + code - 10,
+    _ => ' ' as u8,
+  }
 }
 
 pub struct MinifbGraphicsService {
