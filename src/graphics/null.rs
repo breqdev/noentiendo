@@ -38,6 +38,10 @@ impl GraphicsProvider for NullGraphicsProvider {
 
   fn set_pixel(&self, _x: u32, _y: u32, _color: Color) {}
 
+  fn is_pressed(&self, _key: u8) -> bool {
+    false
+  }
+
   fn get_last_key(&self) -> u8 {
     0
   }

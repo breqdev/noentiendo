@@ -8,6 +8,7 @@ pub struct MinifbGraphicsService {
   pixels: Arc<Mutex<Vec<u32>>>,
   provider: Arc<MinifbGraphicsProvider>,
   ready: Arc<(Mutex<bool>, Condvar)>,
+  key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
@@ -16,6 +17,7 @@ impl MinifbGraphicsService {
     let config = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(Vec::new()));
     let ready = Arc::new((Mutex::new(false), Condvar::new()));
+    let key_state = Arc::new(Mutex::new([false; 256]));
     let last_key = Arc::new(Mutex::new(0));
 
     Self {
@@ -23,11 +25,13 @@ impl MinifbGraphicsService {
         config.clone(),
         pixels.clone(),
         ready.clone(),
+        key_state.clone(),
         last_key.clone(),
       )),
       config,
       pixels,
       ready,
+      key_state,
       last_key,
     }
   }
@@ -77,17 +81,15 @@ impl GraphicsService for MinifbGraphicsService {
         println!("resized to {}x{}", size.0, size.1);
       }
 
-      // window.get_keys().iter().for_each(|key| match key {
-      //   Key::W => println!("holding w!"),
-      //   Key::T => println!("holding t!"),
-      //   _ => (),
-      // });
-
-      // window.get_keys_released().iter().for_each(|key| match key {
-      //   Key::W => println!("released w!"),
-      //   Key::T => println!("released t!"),
-      //   _ => (),
-      // });
+      {
+        let mut key_state = self.key_state.lock().unwrap();
+        for i in 0..256 {
+          key_state[i] = false;
+        }
+        window.get_keys().iter().for_each(|key| {
+          key_state[*key as usize] = window.is_key_down(*key);
+        });
+      }
 
       thread::sleep(std::time::Duration::from_millis(100));
 
@@ -106,6 +108,7 @@ pub struct MinifbGraphicsProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Vec<u32>>>,
   ready: Arc<(Mutex<bool>, Condvar)>,
+  key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
@@ -114,12 +117,14 @@ impl MinifbGraphicsProvider {
     config: Arc<Mutex<Option<WindowConfig>>>,
     pixels: Arc<Mutex<Vec<u32>>>,
     ready: Arc<(Mutex<bool>, Condvar)>,
+    key_state: Arc<Mutex<[bool; 256]>>,
     last_key: Arc<Mutex<u8>>,
   ) -> Self {
     Self {
       config,
       pixels,
       ready,
+      key_state,
       last_key,
     }
   }
@@ -167,6 +172,10 @@ impl GraphicsProvider for MinifbGraphicsProvider {
         pixels[index] = color;
       }
     }
+  }
+
+  fn is_pressed(&self, key: u8) -> bool {
+    self.key_state.lock().unwrap()[key as usize]
   }
 
   fn get_last_key(&self) -> u8 {

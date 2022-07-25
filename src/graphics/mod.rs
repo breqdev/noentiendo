@@ -51,11 +51,10 @@ pub trait GraphicsService {
 }
 
 pub trait GraphicsProvider: Send + Sync {
-  // Initialization
   fn configure_window(&self, config: WindowConfig);
   fn wait_for_pixels(&self);
 
-  // Emulator Thread
   fn set_pixel(&self, x: u32, y: u32, color: Color);
+  fn is_pressed(&self, key: u8) -> bool;
   fn get_last_key(&self) -> u8;
 }

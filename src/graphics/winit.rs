@@ -3,7 +3,7 @@ use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode, WindowEvent};
+use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
@@ -14,6 +14,7 @@ pub struct WinitGraphicsService {
   provider: Arc<WinitGraphicsProvider>,
   ready: Arc<(Mutex<bool>, Condvar)>,
   dirty: Arc<Mutex<bool>>,
+  key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
@@ -23,6 +24,7 @@ impl WinitGraphicsService {
     let pixels = Arc::new(Mutex::new(None));
     let ready = Arc::new((Mutex::new(false), Condvar::new()));
     let dirty = Arc::new(Mutex::new(false));
+    let key_state = Arc::new(Mutex::new([false; 256]));
     let last_key = Arc::new(Mutex::new(0));
 
     Self {
@@ -31,12 +33,14 @@ impl WinitGraphicsService {
         pixels.clone(),
         ready.clone(),
         dirty.clone(),
+        key_state.clone(),
         last_key.clone(),
       )),
       config,
       pixels,
       ready,
       dirty,
+      key_state,
       last_key,
     }
   }
@@ -80,6 +84,7 @@ impl GraphicsService for WinitGraphicsService {
 
     let pixels = self.pixels.clone();
     let dirty = self.dirty.clone();
+    let key_state = self.key_state.clone();
     let last_key = self.last_key.clone();
 
     event_loop.run(move |event, _, control_flow| {
@@ -110,13 +115,26 @@ impl GraphicsService for WinitGraphicsService {
           *dirty.lock().unwrap() = false;
           pixels.lock().unwrap().as_ref().unwrap().render().unwrap();
         }
-        Event::WindowEvent { event, .. } => match event {
-          WindowEvent::KeyboardInput { input, .. } => {
-            if let Some(key) = input.virtual_keycode {
-              *last_key.lock().unwrap() = key as u8;
-            }
+        Event::WindowEvent {
+          event:
+            WindowEvent::KeyboardInput {
+              input:
+                winit::event::KeyboardInput {
+                  virtual_keycode: Some(key),
+                  state,
+                  ..
+                },
+              ..
+            },
+          ..
+        } => match state {
+          ElementState::Pressed => {
+            key_state.lock().unwrap()[key as usize] = true;
+            *last_key.lock().unwrap() = key as u8;
           }
-          _ => {}
+          ElementState::Released => {
+            key_state.lock().unwrap()[key as usize] = false;
+          }
         },
         _ => (),
       }
@@ -133,6 +151,7 @@ pub struct WinitGraphicsProvider {
   pixels: Arc<Mutex<Option<Pixels>>>,
   ready: Arc<(Mutex<bool>, Condvar)>,
   dirty: Arc<Mutex<bool>>,
+  key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
@@ -142,6 +161,7 @@ impl WinitGraphicsProvider {
     pixels: Arc<Mutex<Option<Pixels>>>,
     ready: Arc<(Mutex<bool>, Condvar)>,
     dirty: Arc<Mutex<bool>>,
+    key_state: Arc<Mutex<[bool; 256]>>,
     last_key: Arc<Mutex<u8>>,
   ) -> Self {
     Self {
@@ -149,6 +169,7 @@ impl WinitGraphicsProvider {
       pixels,
       ready,
       dirty,
+      key_state,
       last_key,
     }
   }
@@ -188,6 +209,10 @@ impl GraphicsProvider for WinitGraphicsProvider {
     let pixel = &mut frame[index..(index + 4)];
     pixel.copy_from_slice(&color.to_rgba());
     *self.dirty.lock().unwrap() = true;
+  }
+
+  fn is_pressed(&self, key: u8) -> bool {
+    self.key_state.lock().unwrap()[key as usize]
   }
 
   fn get_last_key(&self) -> u8 {
