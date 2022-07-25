@@ -20,10 +20,10 @@ movingDown =   4
 movingLeft =   8
 
 ; ASCII values of keys controlling the snake
-ASCII_w =     $77
-ASCII_a =     $61
-ASCII_s =     $73
-ASCII_d =     $64
+ASCII_w =     $57
+ASCII_a =     $41
+ASCII_s =     $53
+ASCII_d =     $44
 
 ; System variables
 sysRandom =   $fe
