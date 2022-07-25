@@ -2,10 +2,14 @@ use crate::execute::Execute;
 use crate::fetch::Fetch;
 use crate::memory::Memory;
 use crate::registers::{flags, Registers};
+use std::thread;
+use std::time::{Duration, Instant};
 
 pub struct System {
   pub registers: Registers,
   memory: Box<dyn Memory>,
+  time_delta: Duration,
+  last_tick: Instant,
 }
 
 pub trait MemoryIO {
@@ -88,10 +92,12 @@ impl InterruptHandler for System {
 }
 
 impl System {
-  pub fn new(memory: Box<dyn Memory>) -> System {
+  pub fn new(memory: Box<dyn Memory>, clock: f64) -> System {
     System {
       registers: Registers::new(),
       memory,
+      time_delta: Duration::from_micros((1_000_000.0 / clock) as u64),
+      last_tick: Instant::now(),
     }
   }
 
@@ -104,5 +110,11 @@ impl System {
   pub fn tick(&mut self) {
     let opcode = self.fetch();
     self.execute(opcode).expect("Failed to execute instruction");
+
+    let elapsed = Instant::now().duration_since(self.last_tick);
+    if elapsed < self.time_delta {
+      thread::sleep(self.time_delta - elapsed);
+    }
+    self.last_tick = Instant::now();
   }
 }
