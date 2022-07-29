@@ -39,7 +39,8 @@ fn main() {
   };
 
   let memory = memory::systems::create_memory(mapping, graphics.provider(), &args.rom_path);
-  let mut system = system::System::new(memory, 10000.0);
+  // let mut system = system::System::new(memory, 10000.0);
+  let mut system = system::System::new(memory, 0.0);
 
   thread::spawn(move || {
     system.reset();

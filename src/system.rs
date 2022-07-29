@@ -96,7 +96,11 @@ impl System {
     System {
       registers: Registers::new(),
       memory,
-      time_delta: Duration::from_micros((1_000_000.0 / clock) as u64),
+      time_delta: Duration::from_micros(if clock == 0.0 {
+        0
+      } else {
+        (1_000_000.0 / clock) as u64
+      }),
       last_tick: Instant::now(),
     }
   }
