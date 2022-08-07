@@ -10,6 +10,9 @@ const CHAR_WIDTH: u32 = 8;
 const CHAR_HEIGHT: u32 = 8;
 const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
+// Commodore PET-style column screen memory
+// (see https://www.chibiakumas.com/6502/platform4.php#LessonP38 for details)
+
 pub struct PetVram {
   data: Vec<u8>,
   graphics: Arc<dyn GraphicsProvider>,
