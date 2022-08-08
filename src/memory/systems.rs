@@ -51,7 +51,7 @@ pub fn create_memory(
     }
     Mapping::CommodorePET => {
       let ram = BlockMemory::ram(0x8000);
-      let vram = PetVram::new("bin/pet/char.bin", graphics);
+      let vram = PetVram::new("bin/pet/char.bin", graphics.clone());
 
       let expansion_rom_9 = NullMemory::new();
       let expansion_rom_a = NullMemory::new();
@@ -61,7 +61,9 @@ pub fn create_memory(
 
       let editor_rom = BlockMemory::from_file(0x1000, "bin/pet/editor.bin");
 
-      let pia1 = PIA::new(Box::new(PetPia1PortA::new()), Box::new(PetPia1PortB::new()));
+      let port_a = PetPia1PortA::new();
+      let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), graphics);
+      let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
       let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
       let via = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 

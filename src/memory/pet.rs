@@ -2,7 +2,7 @@ use crate::graphics::{Color, GraphicsProvider, WindowConfig};
 use crate::memory::{pia::Port, ActiveInterrupt, Memory};
 use std::fs::File;
 use std::io::Read;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 const WIDTH: u32 = 40;
@@ -103,30 +103,36 @@ impl Memory for PetVram {
 }
 
 pub struct PetPia1PortA {
-  keyboard_row: u8,
+  keyboard_row: Arc<Mutex<u8>>,
   last_draw: Option<Instant>,
 }
 
 impl PetPia1PortA {
   pub fn new() -> Self {
     Self {
-      keyboard_row: 0,
+      keyboard_row: Arc::new(Mutex::new(0)),
       last_draw: None,
     }
+  }
+
+  pub fn get_keyboard_row(&self) -> Arc<Mutex<u8>> {
+    self.keyboard_row.clone()
   }
 }
 
 impl Port for PetPia1PortA {
   fn read(&mut self) -> u8 {
-    0b1000_0000
+    0b1000_0000 | *self.keyboard_row.lock().unwrap()
     //^         diagnostic mode off
     // ^        IEEE488 (not implemented)
     //  ^^      Cassette sense (not implemented)
-    //     ^^^^ Keyboard row select (not readable)
+    //     ^^^^ Keyboard row select
   }
 
   fn write(&mut self, value: u8) {
-    self.keyboard_row = value & 0b1111;
+    println!("setting keyboard row to {}", value);
+    // *self.keyboard_row.lock().unwrap() = value & 0b1111;
+    *self.keyboard_row.lock().unwrap() = 2;
   }
 
   fn poll(&mut self) -> bool {
@@ -147,22 +153,51 @@ impl Port for PetPia1PortA {
   }
 
   fn reset(&mut self) {
-    self.keyboard_row = 0;
+    *self.keyboard_row.lock().unwrap() = 0;
   }
 }
 
-pub struct PetPia1PortB {}
+pub struct PetPia1PortB {
+  keyboard_row: Arc<Mutex<u8>>,
+  graphics: Arc<dyn GraphicsProvider>,
+}
 
 impl PetPia1PortB {
-  pub fn new() -> Self {
-    Self {}
+  pub fn new(keyboard_row: Arc<Mutex<u8>>, graphics: Arc<dyn GraphicsProvider>) -> Self {
+    Self {
+      keyboard_row,
+      graphics,
+    }
   }
 }
+
+const KEYBOARD_MAPPING: [[char; 8]; 10] = [
+  ['!', '#', '%', '&', '(', '_', '_', '_'],
+  ['"', '$', '\'', '\\', ')', '_', '_', '_'],
+  ['Q', 'E', 'T', 'U', 'O', '_', '7', '9'],
+  ['W', 'R', 'Y', 'I', 'P', '_', '8', '/'],
+  ['A', 'D', 'G', 'J', 'L', '_', '4', '6'],
+  ['S', 'F', 'H', 'K', ':', '_', '5', '*'],
+  ['Z', 'C', 'B', 'M', ';', '\n', '1', '3'],
+  ['X', 'V', 'N', ',', '?', '_', '2', '+'],
+  ['_', '@', ']', '_', '>', '_', '0', '-'],
+  ['_', '[', ' ', '<', '_', '_', '.', '='],
+];
 
 impl Port for PetPia1PortB {
   fn read(&mut self) -> u8 {
-    // println!("attempted keyboard read!");
-    0b1111_1111 // contents of keyboard row
+    let row = *self.keyboard_row.lock().unwrap();
+    let row = KEYBOARD_MAPPING[row as usize];
+    let mut value = 0b1111_1111;
+    for i in 0..8 {
+      println!("{}", row[i]);
+      if self.graphics.is_pressed(row[i] as u8) {
+        value &= 0 << i;
+      }
+    }
+    println!("keyboard value: {:08b}", value);
+
+    value
   }
 
   fn write(&mut self, _value: u8) {}
