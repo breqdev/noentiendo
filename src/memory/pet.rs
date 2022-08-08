@@ -97,37 +97,37 @@ impl Memory for PetVram {
   }
 }
 
-pub struct PetIO {}
+// pub struct PetIO {}
 
-impl PetIO {
-  pub fn new() -> Self {
-    Self {}
-  }
-}
+// impl PetIO {
+//   pub fn new() -> Self {
+//     Self {}
+//   }
+// }
 
-impl Memory for PetIO {
-  fn read(&self, address: u16) -> u8 {
-    match address % 0x100 {
-      0x10 => 0xFF, // cassette sense
-      0x12 => 0,    // keyboard row contents
+// impl Memory for PetIO {
+//   fn read(&self, address: u16) -> u8 {
+//     match address % 0x100 {
+//       0x10 => 0xFF, // cassette sense
+//       0x12 => 0,    // keyboard row contents
 
-      _ => 0,
-    }
-  }
+//       _ => 0,
+//     }
+//   }
 
-  fn write(&mut self, address: u16, _value: u8) {
-    match address & 0x100 {
-      0x10 => {} // keyboard row select
-      0x11 => {} // blank screen
-      0x13 => {} // cassette motor
+//   fn write(&mut self, address: u16, _value: u8) {
+//     match address & 0x100 {
+//       0x10 => {} // keyboard row select
+//       0x11 => {} // blank screen
+//       0x13 => {} // cassette motor
 
-      _ => {}
-    }
-  }
+//       _ => {}
+//     }
+//   }
 
-  fn reset(&mut self) {}
+//   fn reset(&mut self) {}
 
-  fn poll(&mut self) -> ActiveInterrupt {
-    ActiveInterrupt::None
-  }
-}
+//   fn poll(&mut self) -> ActiveInterrupt {
+//     ActiveInterrupt::None
+//   }
+// }

@@ -3,6 +3,7 @@ mod branch;
 pub mod easy;
 mod null;
 pub mod pet;
+pub mod pia;
 mod stdio;
 pub mod systems;
 
