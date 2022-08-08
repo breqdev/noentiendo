@@ -13,7 +13,7 @@ impl Memory for MappedStdIO {
   // 0x00: u8 as dec
   // 0x01: char
   // 0x02: u8 as hex
-  fn read(&self, address: u16) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     let mut input = String::new();
     print!("> ");
     std::io::stdout().flush().unwrap();

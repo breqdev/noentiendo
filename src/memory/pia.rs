@@ -11,104 +11,121 @@ use crate::memory::{ActiveInterrupt, Memory};
 //  bit 2: enable accessing DDR
 //  bits 1, 0: CA1 (interrupt status control)
 
+pub enum PortName {
+  A,
+  B,
+}
+
+pub trait Port: Send {
+  fn read(&mut self) -> u8;
+  fn write(&mut self, value: u8);
+
+  fn reset(&mut self);
+}
+
+pub struct NullPort {}
+
+impl NullPort {
+  pub fn new() -> Self {
+    Self {}
+  }
+}
+
+impl Port for NullPort {
+  fn read(&mut self) -> u8 {
+    0
+  }
+
+  fn write(&mut self, _value: u8) {}
+
+  fn reset(&mut self) {}
+}
+
+struct PortRegisters {
+  port: Box<dyn Port>,
+  ddr: u8, // data direction register, each bit controls whether the line is an input (0) or output (1)
+  control: u8, // control register
+}
+
+impl PortRegisters {
+  fn new(port: Box<dyn Port>) -> Self {
+    Self {
+      port,
+      ddr: 0,
+      control: 0,
+    }
+  }
+
+  fn reset(&mut self) {
+    self.ddr = 0;
+    self.control = 0;
+
+    self.port.reset();
+  }
+}
+
+pub mod ControlBits {
+  pub const IRQ1: u8 = 0b10000000;
+  pub const IRQ2: u8 = 0b01000000;
+  pub const CA2: u8 = 0b00110000;
+  pub const DDR: u8 = 0b00000100;
+  pub const CA1: u8 = 0b00000011;
+}
+
 pub struct PIA {
-  port_a: u8,
-  ddr_a: u8,
-  control_a: u8,
-  port_b: u8,
-  ddr_b: u8,
-  control_b: u8,
+  a: PortRegisters,
+  b: PortRegisters,
 }
 
 impl PIA {
-  pub fn new() -> Self {
+  pub fn new(a: Box<dyn Port>, b: Box<dyn Port>) -> Self {
     Self {
-      port_a: 0xFF,
-      ddr_a: 0,
-      control_a: 0,
-      port_b: 0xFF,
-      ddr_b: 0,
-      control_b: 0,
+      a: PortRegisters::new(a),
+      b: PortRegisters::new(b),
     }
   }
 }
 
 impl Memory for PIA {
-  fn read(&self, address: u16) -> u8 {
-    match address & 0b11 {
-      0b00 => {
-        print!("read from PORT A ");
-        if self.control_a & 0b0000_0100 != 0 {
-          println!("from PORT");
-          self.port_a
-        } else {
-          println!("from DDR");
-          self.ddr_a
-        }
+  fn read(&mut self, address: u16) -> u8 {
+    let port = if address & 0b10 == 0 {
+      &mut self.a
+    } else {
+      &mut self.b
+    };
+
+    if address & 0b01 == 0 {
+      if port.control & ControlBits::DDR != 0 {
+        port.port.read() & !port.ddr
+      } else {
+        port.ddr
       }
-      0b01 => {
-        println!("read from CONTROL A");
-        self.control_a
-      }
-      0b10 => {
-        print!("read from PORT B ");
-        if self.control_b & 0b0000_0100 != 0 {
-          println!("from PORT");
-          self.port_b
-        } else {
-          println!("from DDR");
-          self.ddr_b
-        }
-      }
-      0b11 => {
-        println!("read from CONTROL B");
-        self.control_b
-      }
-      _ => unreachable!(),
+    } else {
+      port.control
     }
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    match address & 0b11 {
-      0b00 => {
-        print!("write {} to PORT A ", value);
-        if self.control_a & 0b0000_0100 != 0 {
-          println!("to PORT");
-          self.port_a = value & self.ddr_a;
-        } else {
-          println!("to DDR");
-          self.ddr_a = value;
-        }
-      }
-      0b01 => {
-        println!("write {} to CONTROL A", value);
-        self.control_a = value
-      }
-      0b10 => {
-        print!("write {} to PORT B ", value);
-        if self.control_b & 0b0000_0100 != 0 {
-          println!("to PORT");
-          self.port_b = value & self.ddr_b;
-        } else {
-          println!("to DDR");
-          self.ddr_b = value;
-        }
-      }
-      0b11 => {
-        println!("write {} to CONTROL B", value);
-        self.control_b = value
-      }
-      _ => unreachable!(),
+    let port = if address & 0b10 == 0 {
+      &mut self.a
+    } else {
+      &mut self.b
     };
+
+    if address & 0b01 == 0 {
+      if port.control & ControlBits::DDR != 0 {
+        port.port.write(value & port.ddr);
+      } else {
+        port.ddr = value;
+      }
+    } else {
+      port.control = value;
+    }
   }
 
   fn reset(&mut self) {
-    self.port_a = 0xFF;
-    self.ddr_a = 0;
-    self.control_a = 0;
-    self.port_b = 0xFF;
-    self.ddr_b = 0;
-    self.control_b = 0;
+    self.a.reset();
+    self.b.reset();
   }
 
   fn poll(&mut self) -> ActiveInterrupt {

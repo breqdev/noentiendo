@@ -9,7 +9,7 @@ impl NullMemory {
 }
 
 impl Memory for NullMemory {
-  fn read(&self, _address: u16) -> u8 {
+  fn read(&mut self, _address: u16) -> u8 {
     0
   }
 

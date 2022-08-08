@@ -1,8 +1,8 @@
 use crate::graphics::GraphicsProvider;
 use crate::memory::{
   easy::{EasyIO, EasyVram},
-  pet::PetVram,
-  pia::PIA,
+  pet::{PetPia1PortA, PetPia1PortB, PetVram},
+  pia::{NullPort, PIA},
   BlockMemory, BranchMemory, MappedStdIO, Memory, NullMemory,
 };
 use std::sync::Arc;
@@ -61,9 +61,9 @@ pub fn create_memory(
 
       let editor_rom = BlockMemory::from_file(0x1000, "bin/pet/editor.bin");
 
-      let pia1 = PIA::new();
-      let pia2 = PIA::new();
-      let via = PIA::new();
+      let pia1 = PIA::new(Box::new(PetPia1PortA::new()), Box::new(PetPia1PortB::new()));
+      let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+      let via = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
       let kernel_rom = BlockMemory::from_file(0x1000, "bin/pet/kernal.bin");
 

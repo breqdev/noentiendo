@@ -39,7 +39,7 @@ impl BlockMemory {
 }
 
 impl Memory for BlockMemory {
-  fn read(&self, address: u16) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     self.data[(address as usize) % self.size]
   }
 

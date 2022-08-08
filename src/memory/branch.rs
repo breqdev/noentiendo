@@ -19,11 +19,11 @@ impl BranchMemory {
 }
 
 impl Memory for BranchMemory {
-  fn read(&self, address: u16) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     let mut memory = None;
     let mut offset = 0;
 
-    for (start, mapped) in &self.mapping {
+    for (start, mapped) in &mut self.mapping {
       if address as usize >= *start {
         memory = Some(mapped);
         offset = *start as u16;

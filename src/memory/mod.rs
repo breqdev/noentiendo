@@ -19,7 +19,7 @@ pub enum ActiveInterrupt {
 }
 
 pub trait Memory: Send {
-  fn read(&self, address: u16) -> u8;
+  fn read(&mut self, address: u16) -> u8;
   fn write(&mut self, address: u16, value: u8);
   fn reset(&mut self);
   fn poll(&mut self) -> ActiveInterrupt;

@@ -1,5 +1,5 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
-use crate::memory::{ActiveInterrupt, Memory};
+use crate::memory::{pia::Port, ActiveInterrupt, Memory};
 use std::fs::File;
 use std::io::Read;
 use std::sync::Arc;
@@ -44,7 +44,7 @@ impl PetVram {
 }
 
 impl Memory for PetVram {
-  fn read(&self, address: u16) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     self.data[address as usize % VRAM_SIZE]
   }
 
@@ -97,37 +97,48 @@ impl Memory for PetVram {
   }
 }
 
-// pub struct PetIO {}
+pub struct PetPia1PortA {
+  keyboard_row: u8,
+}
 
-// impl PetIO {
-//   pub fn new() -> Self {
-//     Self {}
-//   }
-// }
+impl PetPia1PortA {
+  pub fn new() -> Self {
+    Self { keyboard_row: 0 }
+  }
+}
 
-// impl Memory for PetIO {
-//   fn read(&self, address: u16) -> u8 {
-//     match address % 0x100 {
-//       0x10 => 0xFF, // cassette sense
-//       0x12 => 0,    // keyboard row contents
+impl Port for PetPia1PortA {
+  fn read(&mut self) -> u8 {
+    0b1000_0000
+    //^         diagnostic mode off
+    // ^        IEEE488 (not implemented)
+    //  ^^      Cassette sense (not implemented)
+    //     ^^^^ Keyboard row select (not readable)
+  }
 
-//       _ => 0,
-//     }
-//   }
+  fn write(&mut self, value: u8) {
+    self.keyboard_row = value & 0b1111;
+  }
 
-//   fn write(&mut self, address: u16, _value: u8) {
-//     match address & 0x100 {
-//       0x10 => {} // keyboard row select
-//       0x11 => {} // blank screen
-//       0x13 => {} // cassette motor
+  fn reset(&mut self) {
+    self.keyboard_row = 0;
+  }
+}
 
-//       _ => {}
-//     }
-//   }
+pub struct PetPia1PortB {}
 
-//   fn reset(&mut self) {}
+impl PetPia1PortB {
+  pub fn new() -> Self {
+    Self {}
+  }
+}
 
-//   fn poll(&mut self) -> ActiveInterrupt {
-//     ActiveInterrupt::None
-//   }
-// }
+impl Port for PetPia1PortB {
+  fn read(&mut self) -> u8 {
+    0b0000_0000 // contents of keyboard row
+  }
+
+  fn write(&mut self, value: u8) {}
+
+  fn reset(&mut self) {}
+}
