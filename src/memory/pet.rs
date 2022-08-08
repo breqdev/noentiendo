@@ -1,5 +1,5 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
-use crate::memory::Memory;
+use crate::memory::{ActiveInterrupt, Memory};
 use std::fs::File;
 use std::io::Read;
 use std::sync::Arc;
@@ -91,6 +91,10 @@ impl Memory for PetVram {
       }
     }
   }
+
+  fn poll(&mut self) -> ActiveInterrupt {
+    ActiveInterrupt::None
+  }
 }
 
 pub struct PetIO {}
@@ -122,4 +126,8 @@ impl Memory for PetIO {
   }
 
   fn reset(&mut self) {}
+
+  fn poll(&mut self) -> ActiveInterrupt {
+    ActiveInterrupt::None
+  }
 }

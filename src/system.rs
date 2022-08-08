@@ -1,7 +1,6 @@
 use crate::execute::Execute;
 use crate::fetch::Fetch;
-use crate::interrupts::{ActiveInterrupt, InterruptTrigger};
-use crate::memory::Memory;
+use crate::memory::{ActiveInterrupt, Memory};
 use crate::registers::{flags, Registers};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -9,7 +8,6 @@ use std::time::{Duration, Instant};
 pub struct System {
   pub registers: Registers,
   memory: Box<dyn Memory>,
-  interrupt_trigger: Box<dyn InterruptTrigger>,
   time_delta: Duration,
   last_tick: Instant,
 }
@@ -94,11 +92,10 @@ impl InterruptHandler for System {
 }
 
 impl System {
-  pub fn new(memory: Box<dyn Memory>, trigger: Box<dyn InterruptTrigger>, clock: f64) -> System {
+  pub fn new(memory: Box<dyn Memory>, clock: f64) -> System {
     System {
       registers: Registers::new(),
       memory,
-      interrupt_trigger: trigger,
       time_delta: Duration::from_micros(if clock == 0.0 {
         0
       } else {
@@ -118,7 +115,7 @@ impl System {
     let opcode = self.fetch();
     self.execute(opcode).expect("Failed to execute instruction");
 
-    match self.interrupt_trigger.poll() {
+    match self.memory.poll() {
       ActiveInterrupt::None => (),
       ActiveInterrupt::NMI => self.interrupt(false),
       ActiveInterrupt::IRQ => self.interrupt(true),

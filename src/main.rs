@@ -1,7 +1,6 @@
 mod execute;
 mod fetch;
 mod graphics;
-mod interrupts;
 mod memory;
 mod registers;
 mod system;
@@ -40,9 +39,8 @@ fn main() {
   };
 
   let memory = memory::systems::create_memory(mapping, graphics.provider(), &args.rom_path);
-  let interrupts = interrupts::PetInterruptTrigger::new();
   // let mut system = system::System::new(memory, 10000.0);
-  let mut system = system::System::new(memory, Box::new(interrupts), 0.0);
+  let mut system = system::System::new(memory, 0.0);
 
   thread::spawn(move || {
     system.reset();

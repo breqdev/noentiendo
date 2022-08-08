@@ -1,7 +1,13 @@
-use crate::memory::Memory;
+use crate::memory::{ActiveInterrupt, Memory};
 use std::io::Write;
 
 pub struct MappedStdIO {}
+
+impl MappedStdIO {
+  pub fn new() -> Self {
+    Self {}
+  }
+}
 
 impl Memory for MappedStdIO {
   // 0x00: u8 as dec
@@ -38,10 +44,8 @@ impl Memory for MappedStdIO {
   }
 
   fn reset(&mut self) {}
-}
 
-impl MappedStdIO {
-  pub fn new() -> Self {
-    Self {}
+  fn poll(&mut self) -> ActiveInterrupt {
+    ActiveInterrupt::None
   }
 }

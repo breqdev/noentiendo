@@ -1,4 +1,4 @@
-use crate::memory::Memory;
+use crate::memory::{ActiveInterrupt, Memory};
 
 pub struct BranchMemory {
   mapping: Vec<(usize, Box<dyn Memory>)>,
@@ -57,5 +57,25 @@ impl Memory for BranchMemory {
     for (_, mapped) in &mut self.mapping {
       mapped.reset();
     }
+  }
+
+  fn poll(&mut self) -> ActiveInterrupt {
+    let mut highest = ActiveInterrupt::None;
+
+    for (_, mapped) in &mut self.mapping {
+      let interrupt = mapped.poll();
+
+      match interrupt {
+        ActiveInterrupt::None => (),
+        ActiveInterrupt::NMI => {
+          highest = ActiveInterrupt::NMI;
+        }
+        ActiveInterrupt::IRQ => {
+          highest = ActiveInterrupt::IRQ;
+        }
+      }
+    }
+
+    highest
   }
 }

@@ -1,5 +1,5 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
-use crate::memory::Memory;
+use crate::memory::{ActiveInterrupt, Memory};
 use rand::random;
 use std::sync::Arc;
 
@@ -62,6 +62,10 @@ impl Memory for EasyVram {
     }
     self.graphics.wait_for_pixels();
   }
+
+  fn poll(&mut self) -> ActiveInterrupt {
+    ActiveInterrupt::None
+  }
 }
 
 pub struct EasyIO {
@@ -85,4 +89,8 @@ impl Memory for EasyIO {
   fn write(&mut self, _address: u16, _value: u8) {}
 
   fn reset(&mut self) {}
+
+  fn poll(&mut self) -> ActiveInterrupt {
+    ActiveInterrupt::None
+  }
 }
