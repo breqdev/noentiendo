@@ -131,8 +131,8 @@ impl Port for PetPia1PortA {
 
   fn write(&mut self, value: u8) {
     println!("setting keyboard row to {}", value);
-    // *self.keyboard_row.lock().unwrap() = value & 0b1111;
-    *self.keyboard_row.lock().unwrap() = 2;
+    *self.keyboard_row.lock().unwrap() = value & 0b1111;
+    // *self.keyboard_row.lock().unwrap() = 2;
   }
 
   fn poll(&mut self) -> bool {
