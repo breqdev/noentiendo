@@ -63,7 +63,11 @@ impl Memory for PetVram {
 
     let character_index = (value as usize) * 8;
 
-    let character = self.character_rom[character_index..(character_index + 8)].to_vec();
+    let mut character = self.character_rom[character_index..(character_index + 8)].to_vec();
+
+    if value & 0x80 != 0 {
+      character = character.iter().map(|&x| !x).collect();
+    }
 
     for line in 0..CHAR_HEIGHT {
       let line_data = character[line as usize];
@@ -153,8 +157,8 @@ impl PetPia1PortB {
 
 impl Port for PetPia1PortB {
   fn read(&mut self) -> u8 {
-    println!("attempted keyboard read!");
-    0b0000_0000 // contents of keyboard row
+    // println!("attempted keyboard read!");
+    0b1111_1111 // contents of keyboard row
   }
 
   fn write(&mut self, _value: u8) {}
