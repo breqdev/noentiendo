@@ -50,8 +50,6 @@ impl Memory for PetVram {
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    println!("{:04x}: {:02x}", address, value);
-
     self.data[address as usize % VRAM_SIZE] = value;
 
     if address >= (HEIGHT * WIDTH) as u16 {
@@ -106,14 +104,14 @@ impl Memory for PetVram {
 
 pub struct PetPia1PortA {
   keyboard_row: u8,
-  last_draw: Instant,
+  last_draw: Option<Instant>,
 }
 
 impl PetPia1PortA {
   pub fn new() -> Self {
     Self {
       keyboard_row: 0,
-      last_draw: Instant::now(),
+      last_draw: None,
     }
   }
 }
@@ -132,13 +130,19 @@ impl Port for PetPia1PortA {
   }
 
   fn poll(&mut self) -> bool {
-    let now = Instant::now();
-    if now - self.last_draw > Duration::from_millis(1000) {
-      self.last_draw = now;
-      println!("firing irq");
-      true
-    } else {
-      false
+    match self.last_draw {
+      Some(last_draw) => {
+        if last_draw.elapsed() > Duration::from_millis(16) {
+          self.last_draw = None;
+          true
+        } else {
+          false
+        }
+      }
+      None => {
+        self.last_draw = Some(Instant::now());
+        false
+      }
     }
   }
 
