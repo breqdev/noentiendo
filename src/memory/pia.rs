@@ -2,24 +2,10 @@ use crate::memory::{ActiveInterrupt, Memory};
 
 // MOS 6520
 
-// PORT: 8 individual lines
-// DDR (Data Direction Register): each bit controls whether the line is an input (0) or output (1)
-// Control Register:
-//  bit 7: IRQ 1
-//  bit 6: IRQ 2
-//  bits 5, 4, 3: CA2 (interrupt status control)
-//  bit 2: enable accessing DDR
-//  bits 1, 0: CA1 (interrupt status control)
-
-pub enum PortName {
-  A,
-  B,
-}
-
 pub trait Port: Send {
   fn read(&mut self) -> u8;
   fn write(&mut self, value: u8);
-
+  fn poll(&mut self) -> bool;
   fn reset(&mut self);
 }
 
@@ -37,6 +23,10 @@ impl Port for NullPort {
   }
 
   fn write(&mut self, _value: u8) {}
+
+  fn poll(&mut self) -> bool {
+    false
+  }
 
   fn reset(&mut self) {}
 }
@@ -56,6 +46,10 @@ impl PortRegisters {
     }
   }
 
+  fn poll(&mut self) -> bool {
+    self.port.poll()
+  }
+
   fn reset(&mut self) {
     self.ddr = 0;
     self.control = 0;
@@ -64,12 +58,13 @@ impl PortRegisters {
   }
 }
 
-pub mod ControlBits {
-  pub const IRQ1: u8 = 0b10000000;
-  pub const IRQ2: u8 = 0b01000000;
-  pub const CA2: u8 = 0b00110000;
-  pub const DDR: u8 = 0b00000100;
-  pub const CA1: u8 = 0b00000011;
+pub mod control_bits {
+  pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000; // 1 = 0->1, 0 = 1->0
+  pub const C2_ACTIVE_TRANSITION_FLAG: u8 = 0b01000000;
+  pub const C2_DIRECTION: u8 = 0b00100000; // 1 = output, 0 = input
+  pub const C2_CONTROL: u8 = 0b00011000; // ???
+  pub const DDR_SELECT: u8 = 0b00000100; // enable accessing DDR
+  pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
 }
 
 pub struct PIA {
@@ -95,7 +90,7 @@ impl Memory for PIA {
     };
 
     if address & 0b01 == 0 {
-      if port.control & ControlBits::DDR != 0 {
+      if port.control & control_bits::DDR_SELECT != 0 {
         port.port.read() & !port.ddr
       } else {
         port.ddr
@@ -113,7 +108,7 @@ impl Memory for PIA {
     };
 
     if address & 0b01 == 0 {
-      if port.control & ControlBits::DDR != 0 {
+      if port.control & control_bits::DDR_SELECT != 0 {
         port.port.write(value & port.ddr);
       } else {
         port.ddr = value;
@@ -129,6 +124,13 @@ impl Memory for PIA {
   }
 
   fn poll(&mut self) -> ActiveInterrupt {
-    ActiveInterrupt::None
+    let a = self.a.poll();
+    let b = self.b.poll();
+
+    if a || b {
+      ActiveInterrupt::IRQ
+    } else {
+      ActiveInterrupt::None
+    }
   }
 }

@@ -3,6 +3,7 @@ use crate::memory::{pia::Port, ActiveInterrupt, Memory};
 use std::fs::File;
 use std::io::Read;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
@@ -49,6 +50,8 @@ impl Memory for PetVram {
   }
 
   fn write(&mut self, address: u16, value: u8) {
+    println!("{:04x}: {:02x}", address, value);
+
     self.data[address as usize % VRAM_SIZE] = value;
 
     if address >= (HEIGHT * WIDTH) as u16 {
@@ -99,11 +102,15 @@ impl Memory for PetVram {
 
 pub struct PetPia1PortA {
   keyboard_row: u8,
+  last_draw: Instant,
 }
 
 impl PetPia1PortA {
   pub fn new() -> Self {
-    Self { keyboard_row: 0 }
+    Self {
+      keyboard_row: 0,
+      last_draw: Instant::now(),
+    }
   }
 }
 
@@ -118,6 +125,17 @@ impl Port for PetPia1PortA {
 
   fn write(&mut self, value: u8) {
     self.keyboard_row = value & 0b1111;
+  }
+
+  fn poll(&mut self) -> bool {
+    let now = Instant::now();
+    if now - self.last_draw > Duration::from_millis(1000) {
+      self.last_draw = now;
+      println!("firing irq");
+      true
+    } else {
+      false
+    }
   }
 
   fn reset(&mut self) {
@@ -135,10 +153,15 @@ impl PetPia1PortB {
 
 impl Port for PetPia1PortB {
   fn read(&mut self) -> u8 {
+    println!("attempted keyboard read!");
     0b0000_0000 // contents of keyboard row
   }
 
-  fn write(&mut self, value: u8) {}
+  fn write(&mut self, _value: u8) {}
+
+  fn poll(&mut self) -> bool {
+    false
+  }
 
   fn reset(&mut self) {}
 }
