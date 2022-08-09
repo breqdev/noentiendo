@@ -1,7 +1,8 @@
 use crate::graphics::GraphicsProvider;
 use crate::memory::{
   easy::{EasyIO, EasyVram},
-  pet::{PetIO, PetVram},
+  pet::{PetPia1PortA, PetPia1PortB, PetVram},
+  pia::{NullPort, PIA},
   BlockMemory, BranchMemory, MappedStdIO, Memory, NullMemory,
 };
 use std::sync::Arc;
@@ -50,7 +51,7 @@ pub fn create_memory(
     }
     Mapping::CommodorePET => {
       let ram = BlockMemory::ram(0x8000);
-      let vram = PetVram::new("bin/pet/char.bin", graphics);
+      let vram = PetVram::new("bin/pet/char.bin", graphics.clone());
 
       let expansion_rom_9 = NullMemory::new();
       let expansion_rom_a = NullMemory::new();
@@ -60,7 +61,11 @@ pub fn create_memory(
 
       let editor_rom = BlockMemory::from_file(0x1000, "bin/pet/editor.bin");
 
-      let io = PetIO::new();
+      let port_a = PetPia1PortA::new();
+      let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), graphics);
+      let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
+      let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+      let via = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
       let kernel_rom = BlockMemory::from_file(0x1000, "bin/pet/kernal.bin");
 
@@ -72,7 +77,9 @@ pub fn create_memory(
         .map(0xB000, Box::new(expansion_rom_b))
         .map(0xC000, Box::new(basic_rom))
         .map(0xE000, Box::new(editor_rom))
-        .map(0xE800, Box::new(io))
+        .map(0xE810, Box::new(pia1))
+        .map(0xE820, Box::new(pia2))
+        .map(0xE840, Box::new(via))
         .map(0xF000, Box::new(kernel_rom));
 
       Box::new(memory)

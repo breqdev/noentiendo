@@ -1,6 +1,6 @@
 use crate::execute::Execute;
 use crate::fetch::Fetch;
-use crate::memory::Memory;
+use crate::memory::{ActiveInterrupt, Memory};
 use crate::registers::{flags, Registers};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -13,18 +13,18 @@ pub struct System {
 }
 
 pub trait MemoryIO {
-  fn read(&self, address: u16) -> u8;
+  fn read(&mut self, address: u16) -> u8;
   fn write(&mut self, address: u16, value: u8);
-  fn read_word(&self, address: u16) -> u16;
+  fn read_word(&mut self, address: u16) -> u16;
   fn write_word(&mut self, address: u16, value: u16);
 }
 
 impl MemoryIO for System {
-  fn read(&self, address: u16) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     self.memory.read(address)
   }
 
-  fn read_word(&self, address: u16) -> u16 {
+  fn read_word(&mut self, address: u16) -> u16 {
     let lo = self.memory.read(address);
     let hi = self.memory.read(address + 1);
     (hi as u16) << 8 | lo as u16
@@ -108,12 +108,19 @@ impl System {
   pub fn reset(&mut self) {
     self.memory.reset();
     self.registers.reset();
-    self.registers.pc.load(self.read_word(0xFFFC));
+    let pc_address = self.read_word(0xFFFC);
+    self.registers.pc.load(pc_address);
   }
 
   pub fn tick(&mut self) {
     let opcode = self.fetch();
     self.execute(opcode).expect("Failed to execute instruction");
+
+    match self.memory.poll() {
+      ActiveInterrupt::None => (),
+      ActiveInterrupt::NMI => self.interrupt(false),
+      ActiveInterrupt::IRQ => self.interrupt(true),
+    }
 
     let elapsed = Instant::now().duration_since(self.last_tick);
     if elapsed < self.time_delta {

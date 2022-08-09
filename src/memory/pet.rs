@@ -1,14 +1,18 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
-use crate::memory::Memory;
+use crate::memory::{pia::Port, ActiveInterrupt, Memory};
 use std::fs::File;
 use std::io::Read;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
 const CHAR_WIDTH: u32 = 8;
 const CHAR_HEIGHT: u32 = 8;
 const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
+
+// Commodore PET-style column screen memory
+// (see https://www.chibiakumas.com/6502/platform4.php#LessonP38 for details)
 
 pub struct PetVram {
   data: Vec<u8>,
@@ -41,7 +45,7 @@ impl PetVram {
 }
 
 impl Memory for PetVram {
-  fn read(&self, address: u16) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     self.data[address as usize % VRAM_SIZE]
   }
 
@@ -57,7 +61,11 @@ impl Memory for PetVram {
 
     let character_index = (value as usize) * 8;
 
-    let character = self.character_rom[character_index..(character_index + 8)].to_vec();
+    let mut character = self.character_rom[character_index..(character_index + 8)].to_vec();
+
+    if value & 0x80 != 0 {
+      character = character.iter().map(|&x| !x).collect();
+    }
 
     for line in 0..CHAR_HEIGHT {
       let line_data = character[line as usize];
@@ -88,34 +96,109 @@ impl Memory for PetVram {
       }
     }
   }
+
+  fn poll(&mut self) -> ActiveInterrupt {
+    ActiveInterrupt::None
+  }
 }
 
-pub struct PetIO {}
+pub struct PetPia1PortA {
+  keyboard_row: Arc<Mutex<u8>>,
+  last_draw: Option<Instant>,
+}
 
-impl PetIO {
+impl PetPia1PortA {
   pub fn new() -> Self {
-    Self {}
+    Self {
+      keyboard_row: Arc::new(Mutex::new(0)),
+      last_draw: None,
+    }
+  }
+
+  pub fn get_keyboard_row(&self) -> Arc<Mutex<u8>> {
+    self.keyboard_row.clone()
   }
 }
 
-impl Memory for PetIO {
-  fn read(&self, address: u16) -> u8 {
-    match address % 0x100 {
-      0x10 => 0xFF, // cassette sense
-      0x12 => 0,    // keyboard row contents
+impl Port for PetPia1PortA {
+  fn read(&mut self) -> u8 {
+    0b1000_0000 | *self.keyboard_row.lock().unwrap()
+    //^         diagnostic mode off
+    // ^        IEEE488 (not implemented)
+    //  ^^      Cassette sense (not implemented)
+    //     ^^^^ Keyboard row select
+  }
 
-      _ => 0,
+  fn write(&mut self, value: u8) {
+    *self.keyboard_row.lock().unwrap() = value & 0b1111;
+  }
+
+  fn poll(&mut self) -> bool {
+    match self.last_draw {
+      Some(last_draw) => {
+        if last_draw.elapsed() > Duration::from_millis(16) {
+          self.last_draw = None;
+          true
+        } else {
+          false
+        }
+      }
+      None => {
+        self.last_draw = Some(Instant::now());
+        false
+      }
     }
   }
 
-  fn write(&mut self, address: u16, _value: u8) {
-    match address & 0x100 {
-      0x10 => {} // keyboard row select
-      0x11 => {} // blank screen
-      0x13 => {} // cassette motor
+  fn reset(&mut self) {
+    *self.keyboard_row.lock().unwrap() = 0;
+  }
+}
 
-      _ => {}
+pub struct PetPia1PortB {
+  keyboard_row: Arc<Mutex<u8>>,
+  graphics: Arc<dyn GraphicsProvider>,
+}
+
+impl PetPia1PortB {
+  pub fn new(keyboard_row: Arc<Mutex<u8>>, graphics: Arc<dyn GraphicsProvider>) -> Self {
+    Self {
+      keyboard_row,
+      graphics,
     }
+  }
+}
+
+const KEYBOARD_MAPPING: [[char; 8]; 10] = [
+  ['!', '#', '%', '&', '(', '_', '_', '_'],
+  ['"', '$', '\'', '\\', ')', '_', '_', '_'],
+  ['Q', 'E', 'T', 'U', 'O', '_', '7', '9'],
+  ['W', 'R', 'Y', 'I', 'P', '_', '8', '/'],
+  ['A', 'D', 'G', 'J', 'L', '_', '4', '6'],
+  ['S', 'F', 'H', 'K', ':', '_', '5', '*'],
+  ['Z', 'C', 'B', 'M', ';', '\n', '1', '3'],
+  ['X', 'V', 'N', ',', '?', '_', '2', '+'],
+  ['_', '@', ']', '_', '>', '_', '0', '-'],
+  ['_', '[', ' ', '<', '_', '_', '.', '='],
+];
+
+impl Port for PetPia1PortB {
+  fn read(&mut self) -> u8 {
+    let row = *self.keyboard_row.lock().unwrap();
+    let row = KEYBOARD_MAPPING[row as usize];
+    let mut value = 0b1111_1111;
+    for i in 0..8 {
+      if self.graphics.is_pressed(row[i] as u8) {
+        value &= !(1 << i);
+      }
+    }
+    value
+  }
+
+  fn write(&mut self, _value: u8) {}
+
+  fn poll(&mut self) -> bool {
+    false
   }
 
   fn reset(&mut self) {}
