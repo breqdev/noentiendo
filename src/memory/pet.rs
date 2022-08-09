@@ -190,13 +190,10 @@ impl Port for PetPia1PortB {
     let row = KEYBOARD_MAPPING[row as usize];
     let mut value = 0b1111_1111;
     for i in 0..8 {
-      println!("{}", row[i]);
       if self.graphics.is_pressed(row[i] as u8) {
         value &= 0 << i;
       }
     }
-    println!("keyboard value: {:08b}", value);
-
     value
   }
 

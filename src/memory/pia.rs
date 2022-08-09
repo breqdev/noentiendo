@@ -33,6 +33,7 @@ impl Port for NullPort {
 
 struct PortRegisters {
   port: Box<dyn Port>,
+  writes: u8,  // if the DDR is write, allow reading the current written value
   ddr: u8, // data direction register, each bit controls whether the line is an input (0) or output (1)
   control: u8, // control register
 }
@@ -41,6 +42,7 @@ impl PortRegisters {
   fn new(port: Box<dyn Port>) -> Self {
     Self {
       port,
+      writes: 0,
       ddr: 0,
       control: 0,
     }
@@ -91,7 +93,7 @@ impl Memory for PIA {
 
     if address & 0b01 == 0 {
       if port.control & control_bits::DDR_SELECT != 0 {
-        port.port.read() & !port.ddr
+        (port.port.read() & !port.ddr) | (port.writes & port.ddr)
       } else {
         port.ddr
       }
@@ -109,6 +111,7 @@ impl Memory for PIA {
 
     if address & 0b01 == 0 {
       if port.control & control_bits::DDR_SELECT != 0 {
+        port.writes = value & port.ddr;
         port.port.write(value & port.ddr);
       } else {
         port.ddr = value;
