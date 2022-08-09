@@ -130,9 +130,7 @@ impl Port for PetPia1PortA {
   }
 
   fn write(&mut self, value: u8) {
-    println!("setting keyboard row to {}", value);
     *self.keyboard_row.lock().unwrap() = value & 0b1111;
-    // *self.keyboard_row.lock().unwrap() = 2;
   }
 
   fn poll(&mut self) -> bool {
@@ -191,7 +189,7 @@ impl Port for PetPia1PortB {
     let mut value = 0b1111_1111;
     for i in 0..8 {
       if self.graphics.is_pressed(row[i] as u8) {
-        value &= 0 << i;
+        value &= !(1 << i);
       }
     }
     value
