@@ -171,7 +171,7 @@ impl PetPia1PortB {
 
 const KEYBOARD_MAPPING: [[char; 8]; 10] = [
   ['!', '#', '%', '&', '(', '_', '_', '_'],
-  ['"', '$', '\'', '\\', ')', '_', '_', '_'],
+  ['"', '$', '\'', '\\', ')', '_', '_', '\x08'],
   ['Q', 'E', 'T', 'U', 'O', '_', '7', '9'],
   ['W', 'R', 'Y', 'I', 'P', '_', '8', '/'],
   ['A', 'D', 'G', 'J', 'L', '_', '4', '6'],
@@ -185,7 +185,7 @@ const KEYBOARD_MAPPING: [[char; 8]; 10] = [
 impl Port for PetPia1PortB {
   fn read(&mut self) -> u8 {
     let row = *self.keyboard_row.lock().unwrap();
-    let row = KEYBOARD_MAPPING[row as usize];
+    let row = KEYBOARD_MAPPING[row as usize % 10];
     let mut value = 0b1111_1111;
     for i in 0..8 {
       if self.graphics.is_pressed(row[i] as u8) {

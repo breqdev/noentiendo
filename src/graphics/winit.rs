@@ -9,11 +9,21 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 fn virtual_key_to_ascii(code: VirtualKeyCode) -> u8 {
-  let code = code as u8;
-  match code {
-    0..=9 => '0' as u8 + code,
-    10..=36 => 'A' as u8 + code - 10,
-    _ => ' ' as u8,
+  if (code as u8) <= 36 {
+    let code = code as u8;
+    match code {
+      0..=8 => '1' as u8 + code,
+      9 => '0' as u8,
+      10..=36 => 'A' as u8 + code - 10,
+      _ => unreachable!(),
+    }
+  } else {
+    match code {
+      VirtualKeyCode::Return => '\n' as u8,
+      VirtualKeyCode::Space => ' ' as u8,
+      VirtualKeyCode::Back => '\x08' as u8,
+      _ => '_' as u8,
+    }
   }
 }
 
