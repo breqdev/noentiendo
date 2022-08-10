@@ -1,11 +1,11 @@
-use crate::memory::{ActiveInterrupt, Memory};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
 // MOS 6520
 
 pub trait Port: Send {
   fn read(&mut self) -> u8;
   fn write(&mut self, value: u8);
-  fn poll(&mut self) -> bool;
+  fn poll(&mut self, info: &SystemInfo) -> bool;
   fn reset(&mut self);
 }
 
@@ -24,7 +24,7 @@ impl Port for NullPort {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self) -> bool {
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -48,8 +48,8 @@ impl PortRegisters {
     }
   }
 
-  fn poll(&mut self) -> bool {
-    self.port.poll()
+  fn poll(&mut self, info: &SystemInfo) -> bool {
+    self.port.poll(info)
   }
 
   fn reset(&mut self) {
@@ -126,9 +126,9 @@ impl Memory for PIA {
     self.b.reset();
   }
 
-  fn poll(&mut self) -> ActiveInterrupt {
-    let a = self.a.poll();
-    let b = self.b.poll();
+  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
+    let a = self.a.poll(info);
+    let b = self.b.poll(info);
 
     if a || b {
       ActiveInterrupt::IRQ

@@ -1,6 +1,6 @@
 use crate::execute::Execute;
 use crate::fetch::Fetch;
-use crate::memory::{ActiveInterrupt, Memory};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::registers::{flags, Registers};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -10,6 +10,7 @@ pub struct System {
   memory: Box<dyn Memory>,
   time_delta: Duration,
   last_tick: Instant,
+  cycle_count: u64,
 }
 
 pub trait MemoryIO {
@@ -102,6 +103,7 @@ impl System {
         (1_000_000.0 / clock) as u64
       }),
       last_tick: Instant::now(),
+      cycle_count: 0,
     }
   }
 
@@ -115,8 +117,13 @@ impl System {
   pub fn tick(&mut self) {
     let opcode = self.fetch();
     self.execute(opcode).expect("Failed to execute instruction");
+    self.cycle_count += 1;
 
-    match self.memory.poll() {
+    let info = SystemInfo {
+      cycle_count: self.cycle_count,
+    };
+
+    match self.memory.poll(&info) {
       ActiveInterrupt::None => (),
       ActiveInterrupt::NMI => self.interrupt(false),
       ActiveInterrupt::IRQ => self.interrupt(true),

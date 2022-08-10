@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
 pub struct NullMemory {}
 
@@ -17,7 +17,7 @@ impl Memory for NullMemory {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self) -> ActiveInterrupt {
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

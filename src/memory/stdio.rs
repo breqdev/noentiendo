@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use std::io::Write;
 
 pub struct MappedStdIO {}
@@ -45,7 +45,7 @@ impl Memory for MappedStdIO {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self) -> ActiveInterrupt {
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

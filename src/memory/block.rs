@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use std::fs::File;
 use std::io::Read;
 
@@ -55,7 +55,7 @@ impl Memory for BlockMemory {
     }
   }
 
-  fn poll(&mut self) -> ActiveInterrupt {
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

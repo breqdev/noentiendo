@@ -1,5 +1,5 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
-use crate::memory::{pia::Port, ActiveInterrupt, Memory};
+use crate::memory::{pia::Port, ActiveInterrupt, Memory, SystemInfo};
 use std::fs::File;
 use std::io::Read;
 use std::sync::{Arc, Mutex};
@@ -97,7 +97,7 @@ impl Memory for PetVram {
     }
   }
 
-  fn poll(&mut self) -> ActiveInterrupt {
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
@@ -105,6 +105,7 @@ impl Memory for PetVram {
 pub struct PetPia1PortA {
   keyboard_row: Arc<Mutex<u8>>,
   last_draw: Option<Instant>,
+  last_cycle: u64,
 }
 
 impl PetPia1PortA {
@@ -112,6 +113,7 @@ impl PetPia1PortA {
     Self {
       keyboard_row: Arc::new(Mutex::new(0)),
       last_draw: None,
+      last_cycle: 0,
     }
   }
 
@@ -133,10 +135,12 @@ impl Port for PetPia1PortA {
     *self.keyboard_row.lock().unwrap() = value & 0b1111;
   }
 
-  fn poll(&mut self) -> bool {
+  fn poll(&mut self, info: &SystemInfo) -> bool {
     match self.last_draw {
       Some(last_draw) => {
-        if last_draw.elapsed() > Duration::from_millis(16) {
+        if last_draw.elapsed() > Duration::from_millis(16)
+          && info.cycle_count > self.last_cycle + 128
+        {
           self.last_draw = None;
           true
         } else {
@@ -197,7 +201,7 @@ impl Port for PetPia1PortB {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self) -> bool {
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
     false
   }
 
