@@ -8,9 +8,12 @@ use std::time::{Duration, Instant};
 pub struct System {
   pub registers: Registers,
   memory: Box<dyn Memory>,
+  cycles_per_second: u64,
   time_delta: Duration,
   last_tick: Instant,
   cycle_count: u64,
+  last_report_time: Instant,
+  last_report_cycles: u64,
 }
 
 pub trait MemoryIO {
@@ -93,17 +96,20 @@ impl InterruptHandler for System {
 }
 
 impl System {
-  pub fn new(memory: Box<dyn Memory>, clock: f64) -> System {
+  pub fn new(memory: Box<dyn Memory>, cycles_per_second: u64) -> System {
     System {
       registers: Registers::new(),
       memory,
-      time_delta: Duration::from_micros(if clock == 0.0 {
+      cycles_per_second,
+      time_delta: Duration::from_micros(if cycles_per_second == 0 {
         0
       } else {
-        (1_000_000.0 / clock) as u64
+        (1_000_000.0 / cycles_per_second as f64) as u64
       }),
       last_tick: Instant::now(),
       cycle_count: 0,
+      last_report_time: Instant::now(),
+      last_report_cycles: 0,
     }
   }
 
@@ -120,6 +126,7 @@ impl System {
     self.cycle_count += 1;
 
     let info = SystemInfo {
+      cycles_per_second: self.cycles_per_second,
       cycle_count: self.cycle_count,
     };
 
@@ -134,5 +141,15 @@ impl System {
       thread::sleep(self.time_delta - elapsed);
     }
     self.last_tick = Instant::now();
+
+    if (self.last_tick - self.last_report_time).as_secs() > 1 {
+      println!(
+        "Cycles: {} ({}/s)",
+        self.cycle_count,
+        self.cycle_count - self.last_report_cycles
+      );
+      self.last_report_time = self.last_tick;
+      self.last_report_cycles = self.cycle_count;
+    }
   }
 }

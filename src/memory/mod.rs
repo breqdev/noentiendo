@@ -19,6 +19,7 @@ pub enum ActiveInterrupt {
 }
 
 pub struct SystemInfo {
+  pub cycles_per_second: u64,
   pub cycle_count: u64,
 }
 

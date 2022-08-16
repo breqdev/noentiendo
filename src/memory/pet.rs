@@ -104,16 +104,16 @@ impl Memory for PetVram {
 
 pub struct PetPia1PortA {
   keyboard_row: Arc<Mutex<u8>>,
-  last_draw: Option<Instant>,
-  last_cycle: u64,
+  last_draw_instant: Option<Instant>,
+  last_draw_cycle: u64,
 }
 
 impl PetPia1PortA {
   pub fn new() -> Self {
     Self {
       keyboard_row: Arc::new(Mutex::new(0)),
-      last_draw: None,
-      last_cycle: 0,
+      last_draw_instant: None,
+      last_draw_cycle: 0,
     }
   }
 
@@ -136,19 +136,20 @@ impl Port for PetPia1PortA {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> bool {
-    match self.last_draw {
+    match self.last_draw_instant {
       Some(last_draw) => {
-        if last_draw.elapsed() > Duration::from_millis(16)
-          && info.cycle_count > self.last_cycle + 128
+        if last_draw.elapsed() > Duration::from_millis(17)
+          && info.cycle_count > self.last_draw_cycle + (info.cycles_per_second / 16)
         {
-          self.last_draw = None;
+          self.last_draw_cycle = info.cycle_count;
+          self.last_draw_instant = None;
           true
         } else {
           false
         }
       }
       None => {
-        self.last_draw = Some(Instant::now());
+        self.last_draw_instant = Some(Instant::now());
         false
       }
     }
