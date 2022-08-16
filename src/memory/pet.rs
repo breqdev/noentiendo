@@ -1,4 +1,4 @@
-use crate::graphics::{Color, GraphicsProvider, WindowConfig};
+use crate::graphics::{scancodes, Color, GraphicsProvider, WindowConfig};
 use crate::memory::{pia::Port, ActiveInterrupt, Memory, SystemInfo};
 use std::fs::File;
 use std::io::Read;
@@ -176,14 +176,23 @@ impl PetPia1PortB {
 
 const KEYBOARD_MAPPING: [[char; 8]; 10] = [
   ['!', '#', '%', '&', '(', '_', '_', '_'],
-  ['"', '$', '\'', '\\', ')', '_', '_', '\x08'],
+  ['"', '$', '\'', '\\', ')', '_', '_', scancodes::BACKSPACE],
   ['Q', 'E', 'T', 'U', 'O', '_', '7', '9'],
   ['W', 'R', 'Y', 'I', 'P', '_', '8', '/'],
   ['A', 'D', 'G', 'J', 'L', '_', '4', '6'],
   ['S', 'F', 'H', 'K', ':', '_', '5', '*'],
-  ['Z', 'C', 'B', 'M', ';', '\n', '1', '3'],
+  ['Z', 'C', 'B', 'M', ';', scancodes::RETURN, '1', '3'],
   ['X', 'V', 'N', ',', '?', '_', '2', '+'],
-  ['_', '@', ']', '_', '>', '_', '0', '-'],
+  [
+    scancodes::LSHIFT,
+    '@',
+    ']',
+    '_',
+    '>',
+    scancodes::RSHIFT,
+    '0',
+    '-',
+  ],
   ['_', '[', ' ', '<', '_', '_', '.', '='],
 ];
 

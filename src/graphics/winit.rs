@@ -1,4 +1,4 @@
-use crate::graphics::{Color, GraphicsProvider, GraphicsService, WindowConfig};
+use crate::graphics::{scancodes, Color, GraphicsProvider, GraphicsService, WindowConfig};
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
@@ -19,9 +19,12 @@ fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
     })
   } else {
     match code {
-      VirtualKeyCode::Return => Some('\n' as u8),
       VirtualKeyCode::Space => Some(' ' as u8),
-      VirtualKeyCode::Back => Some('\x08' as u8),
+      VirtualKeyCode::Return => Some(scancodes::RETURN as u8),
+      VirtualKeyCode::Back => Some(scancodes::BACKSPACE as u8),
+      VirtualKeyCode::LShift => Some(scancodes::LSHIFT as u8),
+      VirtualKeyCode::RShift => Some(scancodes::RSHIFT as u8),
+      VirtualKeyCode::Apostrophe => Some('"' as u8), // should be ', but PET has separate keys
       _ => None,
     }
   }
