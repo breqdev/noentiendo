@@ -9,7 +9,6 @@ edition = "2021"
 pixels = "0.9"
 winit = "0.26"
 winit_input_helper = "0.12"
-minifb = "0.23.0"
 rand = "0.8"
 clap = { version = "3.2.6", features = ["derive"] }
 

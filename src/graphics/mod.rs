@@ -1,8 +1,6 @@
-mod minifb;
 mod null;
 mod winit;
 
-pub use self::minifb::{MinifbGraphicsProvider, MinifbGraphicsService};
 pub use self::null::{NullGraphicsProvider, NullGraphicsService};
 pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
 use std::sync::Arc;
