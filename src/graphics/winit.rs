@@ -8,21 +8,21 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
-fn virtual_key_to_ascii(code: VirtualKeyCode) -> u8 {
+fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   if (code as u8) <= 36 {
     let code = code as u8;
-    match code {
+    Some(match code {
       0..=8 => '1' as u8 + code,
       9 => '0' as u8,
       10..=36 => 'A' as u8 + code - 10,
       _ => unreachable!(),
-    }
+    })
   } else {
     match code {
-      VirtualKeyCode::Return => '\n' as u8,
-      VirtualKeyCode::Space => ' ' as u8,
-      VirtualKeyCode::Back => '\x08' as u8,
-      _ => '_' as u8,
+      VirtualKeyCode::Return => Some('\n' as u8),
+      VirtualKeyCode::Space => Some(' ' as u8),
+      VirtualKeyCode::Back => Some('\x08' as u8),
+      _ => None,
     }
   }
 }
@@ -149,12 +149,16 @@ impl GraphicsService for WinitGraphicsService {
         } => match state {
           ElementState::Pressed => {
             let key = virtual_key_to_ascii(key);
-            key_state.lock().unwrap()[key as usize] = true;
-            *last_key.lock().unwrap() = key;
+            if let Some(key) = key {
+              key_state.lock().unwrap()[key as usize] = true;
+              *last_key.lock().unwrap() = key;
+            }
           }
           ElementState::Released => {
             let key = virtual_key_to_ascii(key);
-            key_state.lock().unwrap()[key as usize] = false;
+            if let Some(key) = key {
+              key_state.lock().unwrap()[key as usize] = false;
+            }
           }
         },
         _ => (),
