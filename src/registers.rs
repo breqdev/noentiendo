@@ -125,6 +125,10 @@ pub trait ALU {
 
 impl ALU for Registers {
   fn alu_add(&mut self, value: u8) {
+    if self.sr.read(flags::DECIMAL) {
+      todo!("decimal mode not yet implemented!");
+    }
+
     let sum = (self.a as u16)
       .wrapping_add(value as u16)
       .wrapping_add(self.sr.read(flags::CARRY) as u16);
@@ -140,6 +144,10 @@ impl ALU for Registers {
   }
 
   fn alu_subtract(&mut self, value: u8) {
+    if self.sr.read(flags::DECIMAL) {
+      todo!("decimal mode not yet implemented!");
+    }
+
     self.alu_add(!value);
   }
 
