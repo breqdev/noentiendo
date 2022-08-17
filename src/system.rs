@@ -122,7 +122,16 @@ impl System {
 
   pub fn tick(&mut self) {
     let opcode = self.fetch();
-    self.execute(opcode).expect("Failed to execute instruction");
+    match self.execute(opcode) {
+      Ok(()) => {}
+      Err(_) => {
+        panic!(
+          "Failed to execute instruction {:02x} at {:04x}",
+          opcode,
+          self.registers.pc.address()
+        );
+      }
+    }
     self.cycle_count += 1;
 
     let info = SystemInfo {
