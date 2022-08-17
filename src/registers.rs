@@ -80,7 +80,7 @@ pub struct StatusRegister {
 
 impl StatusRegister {
   fn new() -> Self {
-    Self { value: 0b00110000 }
+    Self { value: 0b00110100 }
   }
 
   pub fn write(&mut self, flag: u8, value: bool) {

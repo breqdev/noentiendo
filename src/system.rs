@@ -82,9 +82,14 @@ pub trait InterruptHandler {
 
 impl InterruptHandler for System {
   fn interrupt(&mut self, maskable: bool) {
-    self.registers.sr.set(flags::INTERRUPT);
+    if maskable && self.registers.sr.read(flags::INTERRUPT) {
+      return;
+    }
+
     self.push_word(self.registers.pc.address());
     self.push(self.registers.sr.get());
+
+    self.registers.sr.set(flags::INTERRUPT);
 
     let dest = match maskable {
       false => self.read_word(0xFFFA),
