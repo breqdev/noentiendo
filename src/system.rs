@@ -105,7 +105,11 @@ impl System {
     System {
       registers: Registers::new(),
       memory,
-      cycles_per_second,
+      cycles_per_second: if cycles_per_second == 0 {
+        1_000_000
+      } else {
+        cycles_per_second
+      },
       time_delta: Duration::from_micros(if cycles_per_second == 0 {
         0
       } else {

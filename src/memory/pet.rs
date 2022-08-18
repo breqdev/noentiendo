@@ -136,13 +136,15 @@ impl Port for PetPia1PortA {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> bool {
+    let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
+
     match self.last_draw_instant {
       Some(last_draw) => {
-        if last_draw.elapsed() > Duration::from_millis(17)
-          && info.cycle_count > self.last_draw_cycle + (info.cycles_per_second / 16)
+        if (last_draw.elapsed() > Duration::from_millis(17))
+          && (info.cycle_count > self.last_draw_cycle + min_elapsed)
         {
           self.last_draw_cycle = info.cycle_count;
-          self.last_draw_instant = None;
+          self.last_draw_instant = Some(Instant::now());
           true
         } else {
           false
