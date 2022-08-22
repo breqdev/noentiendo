@@ -1,9 +1,8 @@
-mod execute;
-mod fetch;
-mod graphics;
-mod memory;
-mod registers;
-mod system;
+use libnoentiendo::{
+  graphics::{GraphicsService, NullGraphicsService, WinitGraphicsService},
+  memory::systems::{create_memory, Mapping},
+  system::System,
+};
 
 use clap::Parser;
 use std::thread;
@@ -24,22 +23,22 @@ struct Args {
 fn main() {
   let args = Args::parse();
 
-  let mut graphics: Box<dyn graphics::GraphicsService> = match args.graphics.as_str() {
-    "none" => Box::new(graphics::NullGraphicsService::new()),
-    "winit" => Box::new(graphics::WinitGraphicsService::new()),
+  let mut graphics: Box<dyn GraphicsService> = match args.graphics.as_str() {
+    "none" => Box::new(NullGraphicsService::new()),
+    "winit" => Box::new(WinitGraphicsService::new()),
     _ => panic!("Unknown graphics provider"),
   };
 
   let mapping = match args.system.as_str() {
-    "brooke" => memory::systems::Mapping::BrookeSystem,
-    "easy" => memory::systems::Mapping::Easy6502,
-    "pet" => memory::systems::Mapping::CommodorePET,
+    "brooke" => Mapping::BrookeSystem,
+    "easy" => Mapping::Easy6502,
+    "pet" => Mapping::CommodorePET,
     _ => panic!("Unknown system"),
   };
 
-  let memory = memory::systems::create_memory(mapping, graphics.provider(), &args.rom_path);
-  // let mut system = system::System::new(memory, 10000);
-  let mut system = system::System::new(memory, 0);
+  let memory = create_memory(mapping, graphics.provider(), &args.rom_path);
+  // let mut system = System::new(memory, 10000);
+  let mut system = System::new(memory, 0);
 
   thread::spawn(move || {
     system.reset();

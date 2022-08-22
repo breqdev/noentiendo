@@ -14,3 +14,12 @@ clap = { version = "3.2.6", features = ["derive"] }
 
 [profile.release]
 debug = true
+
+
+[lib]
+name = "libnoentiendo"
+path = "src/lib.rs"
+
+[[bin]]
+name = "noentiendo-desktop"
+path = "src/main.rs"
