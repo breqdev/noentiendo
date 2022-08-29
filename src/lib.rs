@@ -7,6 +7,9 @@ pub mod system;
 mod utils;
 
 #[cfg(feature = "web")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(feature = "web")]
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
