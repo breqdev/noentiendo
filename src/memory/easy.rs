@@ -1,6 +1,6 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
-use rand::random;
+use crate::utils::random_u8;
 use std::sync::Arc;
 
 // Easy6502 bitmap screen memory
@@ -81,7 +81,7 @@ impl EasyIO {
 impl Memory for EasyIO {
   fn read(&mut self, address: u16) -> u8 {
     match address % 2 {
-      0 => random::<u8>(),
+      0 => random_u8(),
       _ => self.graphics.get_last_key(),
     }
   }

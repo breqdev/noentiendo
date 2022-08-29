@@ -1,9 +1,12 @@
 mod null;
 pub mod scancodes;
+
+#[cfg(feature = "desktop")]
 mod winit;
+#[cfg(feature = "desktop")]
+pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
 
 pub use self::null::{NullGraphicsProvider, NullGraphicsService};
-pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
 use std::sync::Arc;
 
 #[derive(Copy, Clone, Debug, PartialEq)]

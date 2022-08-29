@@ -1,12 +1,16 @@
+#[cfg(feature = "desktop")]
 use libnoentiendo::{
   graphics::{GraphicsService, NullGraphicsService, WinitGraphicsService},
   memory::systems::{create_memory, Mapping},
   system::System,
 };
 
+#[cfg(feature = "desktop")]
 use clap::Parser;
+#[cfg(feature = "desktop")]
 use std::thread;
 
+#[cfg(feature = "desktop")]
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -20,6 +24,7 @@ struct Args {
   graphics: String,
 }
 
+#[cfg(feature = "desktop")]
 fn main() {
   let args = Args::parse();
 
@@ -49,4 +54,9 @@ fn main() {
   });
 
   graphics.run();
+}
+
+#[cfg(not(feature = "desktop"))]
+fn main() {
+  panic!("No supported platform found! Please enable the `desktop` feature.");
 }
