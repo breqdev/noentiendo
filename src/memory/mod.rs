@@ -1,16 +1,13 @@
 mod block;
 mod branch;
-pub mod easy;
 mod null;
-pub mod pet;
 pub mod pia;
-mod stdio;
-pub mod systems;
+mod romfile;
 
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
 pub use null::NullMemory;
-pub use stdio::MappedStdIO;
+pub use romfile::RomFile;
 
 pub enum ActiveInterrupt {
   None,

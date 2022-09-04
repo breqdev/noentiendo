@@ -1,6 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
-use std::fs::File;
-use std::io::Read;
+use crate::memory::{ActiveInterrupt, Memory, RomFile, SystemInfo};
 
 pub struct BlockMemory {
   size: usize,
@@ -25,10 +23,17 @@ impl BlockMemory {
     }
   }
 
-  pub fn from_file(size: usize, path: &str) -> Self {
-    let mut file = File::open(path).unwrap();
-    let mut data = Vec::new();
-    file.read_to_end(&mut data).unwrap();
+  pub fn from_file(size: usize, file: RomFile) -> Self {
+    let mut data = vec![0; size];
+    let file_data = file.get_data();
+
+    if file_data.len() > size {
+      panic!("File of size {} is too large for memory block of size {}", file_data.len(), size);
+    }
+
+    for i in 0..file_data.len() {
+      data[i] = file_data[i];
+    }
 
     Self {
       size,

@@ -1,8 +1,8 @@
 #[cfg(feature = "desktop")]
 use libnoentiendo::{
   graphics::{GraphicsService, NullGraphicsService, WinitGraphicsService},
-  memory::systems::{create_memory, Mapping},
-  system::System,
+  systems::pet::PetSystemRoms,
+  systems::{BrookeSystemFactory, EasySystemFactory, PetSystemFactory, SystemFactory},
 };
 
 #[cfg(feature = "desktop")]
@@ -14,13 +14,13 @@ use std::thread;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-  #[clap(short, long, value_parser)]
+  #[clap(short, long, value_parser, default_value = "")]
   rom_path: String,
 
   #[clap(short, long, value_parser)]
   system: String,
 
-  #[clap(short, long, value_parser)]
+  #[clap(short, long, value_parser, default_value = "none")]
   graphics: String,
 }
 
@@ -34,16 +34,17 @@ fn main() {
     _ => panic!("Unknown graphics provider"),
   };
 
-  let mapping = match args.system.as_str() {
-    "brooke" => Mapping::BrookeSystem,
-    "easy" => Mapping::Easy6502,
-    "pet" => Mapping::CommodorePET,
-    _ => panic!("Unknown system"),
+  let romfile = match args.rom_path.as_str() {
+    "" => None,
+    _ => Some(libnoentiendo::memory::RomFile::from_file(&args.rom_path)),
   };
 
-  let memory = create_memory(mapping, graphics.provider(), &args.rom_path);
-  // let mut system = System::new(memory, 10000);
-  let mut system = System::new(memory, 0);
+  let mut system = match args.system.as_str() {
+    "brooke" => BrookeSystemFactory::create(romfile.unwrap(), graphics.provider()),
+    "easy" => EasySystemFactory::create(romfile.unwrap(), graphics.provider()),
+    "pet" => PetSystemFactory::create(PetSystemRoms::from_disk(), graphics.provider()),
+    _ => panic!("Unknown system"),
+  };
 
   thread::spawn(move || {
     system.reset();

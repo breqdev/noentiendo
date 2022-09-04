@@ -13,10 +13,11 @@ rand = { version = "0.8", optional = true }
 clap = { version = "3.2.6", features = ["derive"], optional = true }
 wasm-bindgen = { version = "0.2.63", optional = true }
 js-sys = { version = "0.3.59", optional = true }
+console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [features]
 desktop = ["dep:pixels", "dep:winit", "dep:winit_input_helper", "dep:rand", "dep:clap"]
-web = ["dep:wasm-bindgen", "dep:js-sys"]
+web = ["dep:wasm-bindgen", "dep:js-sys", "dep:console_error_panic_hook"]
 
 [profile.release]
 debug = true
