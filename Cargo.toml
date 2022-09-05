@@ -6,11 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pixels = "0.9"
-winit = "0.26"
-winit_input_helper = "0.12"
-rand = "0.8"
-clap = { version = "3.2.6", features = ["derive"] }
+pixels = { version = "0.9", optional = true }
+winit = { version = "0.26", optional = true }
+winit_input_helper = { version = "0.12", optional = true }
+rand = { version = "0.8", optional = true }
+clap = { version = "3.2.6", features = ["derive"], optional = true }
+wasm-bindgen = { version = "0.2.63", optional = true }
+js-sys = { version = "0.3.59", optional = true }
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+[features]
+desktop = ["dep:pixels", "dep:winit", "dep:winit_input_helper", "dep:rand", "dep:clap"]
+web = ["dep:wasm-bindgen", "dep:js-sys", "dep:console_error_panic_hook"]
 
 [profile.release]
 debug = true
@@ -19,6 +26,7 @@ debug = true
 [lib]
 name = "libnoentiendo"
 path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "noentiendo-desktop"

@@ -1,12 +1,14 @@
 use crate::graphics::{Color, GraphicsProvider, WindowConfig};
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
-use rand::random;
+use crate::isomorphic::random_u8;
+use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, RomFile, SystemInfo};
+use crate::system::System;
+use crate::systems::SystemFactory;
 use std::sync::Arc;
 
 // Easy6502 bitmap screen memory
 // https://skilldrick.github.io/easy6502/
 
-pub struct EasyVram {
+struct EasyVram {
   width: u32,
   height: u32,
   data: Vec<u8>,
@@ -68,7 +70,7 @@ impl Memory for EasyVram {
   }
 }
 
-pub struct EasyIO {
+struct EasyIO {
   graphics: Arc<dyn GraphicsProvider>,
 }
 
@@ -81,7 +83,7 @@ impl EasyIO {
 impl Memory for EasyIO {
   fn read(&mut self, address: u16) -> u8 {
     match address % 2 {
-      0 => random::<u8>(),
+      0 => random_u8(),
       _ => self.graphics.get_last_key(),
     }
   }
@@ -92,5 +94,28 @@ impl Memory for EasyIO {
 
   fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
+  }
+}
+
+pub struct EasySystemFactory {}
+
+impl SystemFactory<RomFile> for EasySystemFactory {
+  fn create(rom: RomFile, graphics: Arc<dyn GraphicsProvider>) -> System {
+    let zero_page = BlockMemory::ram(0x0100);
+    let io = EasyIO::new(graphics.clone());
+    let stack_ram = BlockMemory::ram(0x0100);
+    let vram = EasyVram::new(32, 32, graphics);
+    let high_ram = BlockMemory::ram(0x7A00);
+    let rom = BlockMemory::from_file(0x8000, rom);
+
+    let memory = BranchMemory::new()
+      .map(0x0000, Box::new(zero_page))
+      .map(0x00fe, Box::new(io))
+      .map(0x0100, Box::new(stack_ram))
+      .map(0x0200, Box::new(vram))
+      .map(0x0600, Box::new(high_ram))
+      .map(0x8000, Box::new(rom));
+
+    System::new(Box::new(memory), 10_000)
   }
 }

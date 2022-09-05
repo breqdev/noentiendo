@@ -1,7 +1,10 @@
 use crate::graphics::{scancodes, Color, GraphicsProvider, WindowConfig};
-use crate::memory::{pia::Port, ActiveInterrupt, Memory, SystemInfo};
-use std::fs::File;
-use std::io::Read;
+use crate::memory::{
+  pia::{NullPort, Port, PIA},
+  ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, RomFile, SystemInfo,
+};
+use crate::system::System;
+use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -23,11 +26,7 @@ pub struct PetVram {
 }
 
 impl PetVram {
-  pub fn new(rom_path: &str, graphics: Arc<dyn GraphicsProvider>) -> Self {
-    let mut file = File::open(rom_path).unwrap();
-    let mut character_rom = Vec::new();
-    file.read_to_end(&mut character_rom).unwrap();
-
+  pub fn new(character_rom: RomFile, graphics: Arc<dyn GraphicsProvider>) -> Self {
     graphics.configure_window(WindowConfig::new(
       WIDTH * CHAR_WIDTH,
       HEIGHT * CHAR_HEIGHT,
@@ -37,7 +36,7 @@ impl PetVram {
     Self {
       data: vec![0; VRAM_SIZE],
       graphics,
-      character_rom,
+      character_rom: character_rom.get_data(),
       foreground: Color::new(255, 255, 255),
       background: Color::new(0, 0, 255),
     }
@@ -218,4 +217,67 @@ impl Port for PetPia1PortB {
   }
 
   fn reset(&mut self) {}
+}
+
+pub struct PetSystemRoms {
+  pub character: RomFile,
+  pub basic: RomFile,
+  pub editor: RomFile,
+  pub kernal: RomFile,
+}
+
+impl PetSystemRoms {
+  #[cfg(feature = "desktop")]
+  pub fn from_disk() -> Self {
+    let character = RomFile::from_file("pet/char.bin");
+    let basic = RomFile::from_file("pet/basic.bin");
+    let editor = RomFile::from_file("pet/editor.bin");
+    let kernal = RomFile::from_file("pet/kernal.bin");
+
+    Self {
+      character,
+      basic,
+      editor,
+      kernal,
+    }
+  }
+}
+
+pub struct PetSystemFactory {}
+
+impl SystemFactory<PetSystemRoms> for PetSystemFactory {
+  fn create(roms: PetSystemRoms, graphics: Arc<dyn GraphicsProvider>) -> System {
+    let ram = BlockMemory::ram(0x8000);
+    let vram = PetVram::new(roms.character, graphics.clone());
+
+    let expansion_rom_9 = NullMemory::new();
+    let expansion_rom_a = NullMemory::new();
+    let expansion_rom_b = NullMemory::new();
+
+    let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
+    let editor_rom = BlockMemory::from_file(0x1000, roms.editor);
+
+    let port_a = PetPia1PortA::new();
+    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), graphics);
+    let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
+    let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let via = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    let kernel_rom = BlockMemory::from_file(0x1000, roms.kernal);
+
+    let memory = BranchMemory::new()
+      .map(0x0000, Box::new(ram))
+      .map(0x8000, Box::new(vram))
+      .map(0x9000, Box::new(expansion_rom_9))
+      .map(0xA000, Box::new(expansion_rom_a))
+      .map(0xB000, Box::new(expansion_rom_b))
+      .map(0xC000, Box::new(basic_rom))
+      .map(0xE000, Box::new(editor_rom))
+      .map(0xE810, Box::new(pia1))
+      .map(0xE820, Box::new(pia2))
+      .map(0xE840, Box::new(via))
+      .map(0xF000, Box::new(kernel_rom));
+
+    System::new(Box::new(memory), 1_000_000)
+  }
 }

@@ -2,18 +2,14 @@ use crate::execute::Execute;
 use crate::fetch::Fetch;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::registers::{flags, Registers};
-use std::thread;
-use std::time::{Duration, Instant};
+use crate::time::Rate;
 
 pub struct System {
   pub registers: Registers,
   memory: Box<dyn Memory>,
   cycles_per_second: u64,
-  time_delta: Duration,
-  last_tick: Instant,
   cycle_count: u64,
-  last_report_time: Instant,
-  last_report_cycles: u64,
+  rate: Rate,
 }
 
 pub trait MemoryIO {
@@ -110,15 +106,12 @@ impl System {
       } else {
         cycles_per_second
       },
-      time_delta: Duration::from_micros(if cycles_per_second == 0 {
-        0
-      } else {
-        (1_000_000.0 / cycles_per_second as f64) as u64
-      }),
-      last_tick: Instant::now(),
       cycle_count: 0,
-      last_report_time: Instant::now(),
-      last_report_cycles: 0,
+      rate: Rate::new(if cycles_per_second == 0 {
+        0.0
+      } else {
+        1.0 / cycles_per_second as f64
+      }),
     }
   }
 
@@ -154,20 +147,7 @@ impl System {
       ActiveInterrupt::IRQ => self.interrupt(true),
     }
 
-    let elapsed = Instant::now().duration_since(self.last_tick);
-    if elapsed < self.time_delta {
-      thread::sleep(self.time_delta - elapsed);
-    }
-    self.last_tick = Instant::now();
-
-    if (self.last_tick - self.last_report_time).as_secs() > 1 {
-      println!(
-        "Cycles: {} ({}/s)",
-        self.cycle_count,
-        self.cycle_count - self.last_report_cycles
-      );
-      self.last_report_time = self.last_tick;
-      self.last_report_cycles = self.cycle_count;
-    }
+    #[cfg(feature = "desktop")]
+    self.rate.sleep();
   }
 }
