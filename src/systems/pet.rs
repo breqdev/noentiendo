@@ -1,8 +1,8 @@
-use crate::graphics::{scancodes, Color, GraphicsProvider, WindowConfig};
 use crate::memory::{
   pia::{NullPort, Port, PIA},
   ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, RomFile, SystemInfo,
 };
+use crate::platform::{scancodes, Color, PlatformProvider, WindowConfig};
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
@@ -19,15 +19,15 @@ const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
 pub struct PetVram {
   data: Vec<u8>,
-  graphics: Arc<dyn GraphicsProvider>,
+  graphics: Arc<dyn PlatformProvider>,
   character_rom: Vec<u8>,
   foreground: Color,
   background: Color,
 }
 
 impl PetVram {
-  pub fn new(character_rom: RomFile, graphics: Arc<dyn GraphicsProvider>) -> Self {
-    graphics.configure_window(WindowConfig::new(
+  pub fn new(character_rom: RomFile, graphics: Arc<dyn PlatformProvider>) -> Self {
+    graphics.request_window(WindowConfig::new(
       WIDTH * CHAR_WIDTH,
       HEIGHT * CHAR_HEIGHT,
       2.0,
@@ -161,11 +161,11 @@ impl Port for PetPia1PortA {
 
 pub struct PetPia1PortB {
   keyboard_row: Arc<Mutex<u8>>,
-  graphics: Arc<dyn GraphicsProvider>,
+  graphics: Arc<dyn PlatformProvider>,
 }
 
 impl PetPia1PortB {
-  pub fn new(keyboard_row: Arc<Mutex<u8>>, graphics: Arc<dyn GraphicsProvider>) -> Self {
+  pub fn new(keyboard_row: Arc<Mutex<u8>>, graphics: Arc<dyn PlatformProvider>) -> Self {
     Self {
       keyboard_row,
       graphics,
@@ -244,7 +244,7 @@ impl PetSystemRoms {
 pub struct PetSystemFactory {}
 
 impl SystemFactory<PetSystemRoms> for PetSystemFactory {
-  fn create(roms: PetSystemRoms, graphics: Arc<dyn GraphicsProvider>) -> System {
+  fn create(roms: PetSystemRoms, graphics: Arc<dyn PlatformProvider>) -> System {
     let ram = BlockMemory::ram(0x8000);
     let vram = PetVram::new(roms.character, graphics.clone());
 

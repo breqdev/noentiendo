@@ -1,6 +1,6 @@
-use crate::graphics::{Color, GraphicsProvider, WindowConfig};
 use crate::isomorphic::random_u8;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, RomFile, SystemInfo};
+use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::Arc;
@@ -12,15 +12,15 @@ struct EasyVram {
   width: u32,
   height: u32,
   data: Vec<u8>,
-  graphics: Arc<dyn GraphicsProvider>,
+  graphics: Arc<dyn PlatformProvider>,
   palette: Vec<Color>,
 }
 
 const SCALE: u32 = 8;
 
 impl EasyVram {
-  pub fn new(width: u32, height: u32, graphics: Arc<dyn GraphicsProvider>) -> Self {
-    graphics.configure_window(WindowConfig::new(width, height, SCALE as f64));
+  pub fn new(width: u32, height: u32, graphics: Arc<dyn PlatformProvider>) -> Self {
+    graphics.request_window(WindowConfig::new(width, height, SCALE as f64));
 
     let palette = [
       0x000000, 0xffffff, 0x880000, 0xaaffee, 0xcc44cc, 0x00cc55, 0x0000aa, 0xeeee77, 0xdd8855,
@@ -70,11 +70,11 @@ impl Memory for EasyVram {
 }
 
 struct EasyIO {
-  graphics: Arc<dyn GraphicsProvider>,
+  graphics: Arc<dyn PlatformProvider>,
 }
 
 impl EasyIO {
-  pub fn new(graphics: Arc<dyn GraphicsProvider>) -> Self {
+  pub fn new(graphics: Arc<dyn PlatformProvider>) -> Self {
     Self { graphics }
   }
 }
@@ -99,7 +99,7 @@ impl Memory for EasyIO {
 pub struct EasySystemFactory {}
 
 impl SystemFactory<RomFile> for EasySystemFactory {
-  fn create(rom: RomFile, graphics: Arc<dyn GraphicsProvider>) -> System {
+  fn create(rom: RomFile, graphics: Arc<dyn PlatformProvider>) -> System {
     let zero_page = BlockMemory::ram(0x0100);
     let io = EasyIO::new(graphics.clone());
     let stack_ram = BlockMemory::ram(0x0100);

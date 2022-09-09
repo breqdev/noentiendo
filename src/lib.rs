@@ -1,8 +1,8 @@
 mod execute;
 mod fetch;
-pub mod graphics;
 mod isomorphic;
 pub mod memory;
+pub mod platform;
 mod registers;
 pub mod system;
 pub mod systems;
@@ -22,17 +22,13 @@ use js_sys::Uint8Array;
 pub async fn main(rom: Uint8Array) {
   console_error_panic_hook::set_once();
 
-  use graphics::{CanvasGraphicsService, GraphicsService};
+  use platform::{CanvasPlatform, Platform};
   use systems::{EasySystemFactory, SystemFactory};
 
-  let mut graphics = CanvasGraphicsService::new();
+  let mut graphics = CanvasPlatform::new();
   let romfile = memory::RomFile::from_uint8array(&rom);
 
   let mut system = EasySystemFactory::create(romfile, graphics.provider());
 
-  let state = graphics.init_async().await;
-
-  system.reset();
-
-  graphics.run(state);
+  graphics.run_async(system).await;
 }

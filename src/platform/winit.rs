@@ -1,12 +1,14 @@
-use crate::graphics::{scancodes, Color, GraphicsProvider, GraphicsService, WindowConfig};
+use crate::platform::{scancodes, Color, Platform, PlatformProvider, WindowConfig};
+use crate::system::System;
 use async_trait::async_trait;
+use instant::Instant;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Condvar, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowBuilder};
+use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
@@ -31,17 +33,17 @@ fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   }
 }
 
-pub struct WinitGraphicsService {
+pub struct WinitPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  provider: Arc<WinitGraphicsProvider>,
+  provider: Arc<WinitPlatformProvider>,
   ready: Arc<(Mutex<bool>, Condvar)>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
-impl WinitGraphicsService {
+impl WinitPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(None));
@@ -51,7 +53,7 @@ impl WinitGraphicsService {
     let last_key = Arc::new(Mutex::new(0));
 
     Self {
-      provider: Arc::new(WinitGraphicsProvider::new(
+      provider: Arc::new(WinitPlatformProvider::new(
         config.clone(),
         pixels.clone(),
         ready.clone(),
@@ -75,8 +77,8 @@ impl WinitGraphicsService {
 }
 
 #[async_trait(?Send)]
-impl GraphicsService<(EventLoop<()>, WinitInputHelper, Window)> for WinitGraphicsService {
-  fn init(&mut self) -> (EventLoop<()>, WinitInputHelper, Window) {
+impl Platform for WinitPlatform {
+  fn run(&mut self, mut system: System) {
     let event_loop = EventLoop::new();
 
     let config = self.get_config();
@@ -105,21 +107,10 @@ impl GraphicsService<(EventLoop<()>, WinitInputHelper, Window)> for WinitGraphic
     }
 
     let mut input = WinitInputHelper::new();
-
-    (event_loop, input, window)
-  }
-
-  async fn init_async(&mut self) -> (EventLoop<()>, WinitInputHelper, Window) {
-    self.init()
-  }
-
-  fn run(&mut self, state: (EventLoop<()>, WinitInputHelper, Window)) {
     let pixels = self.pixels.clone();
     let dirty = self.dirty.clone();
     let key_state = self.key_state.clone();
     let last_key = self.last_key.clone();
-
-    let (event_loop, mut input, window) = state;
 
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
@@ -181,12 +172,16 @@ impl GraphicsService<(EventLoop<()>, WinitInputHelper, Window)> for WinitGraphic
     });
   }
 
-  fn provider(&self) -> Arc<dyn GraphicsProvider> {
+  async fn run_async(&mut self, _system: System) {
+    unimplemented!("Winit on desktop can only run synchronously")
+  }
+
+  fn provider(&self) -> Arc<dyn PlatformProvider> {
     self.provider.clone()
   }
 }
 
-pub struct WinitGraphicsProvider {
+pub struct WinitPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
   ready: Arc<(Mutex<bool>, Condvar)>,
@@ -195,7 +190,7 @@ pub struct WinitGraphicsProvider {
   last_key: Arc<Mutex<u8>>,
 }
 
-impl WinitGraphicsProvider {
+impl WinitPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
     pixels: Arc<Mutex<Option<Pixels>>>,
@@ -219,8 +214,8 @@ impl WinitGraphicsProvider {
   }
 }
 
-impl GraphicsProvider for WinitGraphicsProvider {
-  fn configure_window(&self, config: WindowConfig) {
+impl PlatformProvider for WinitPlatformProvider {
+  fn request_window(&self, config: WindowConfig) {
     *self.config.lock().unwrap() = Some(config);
   }
 

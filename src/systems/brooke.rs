@@ -1,7 +1,7 @@
-use crate::graphics::GraphicsProvider;
 use crate::isomorphic::{readline, writeline};
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory, RomFile};
+use crate::platform::PlatformProvider;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::Arc;
@@ -56,7 +56,7 @@ impl Memory for MappedStdIO {
 pub struct BrookeSystemFactory {}
 
 impl SystemFactory<RomFile> for BrookeSystemFactory {
-  fn create(rom: RomFile, _graphics: Arc<dyn GraphicsProvider>) -> System {
+  fn create(rom: RomFile, _graphics: Arc<dyn PlatformProvider>) -> System {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new();
     let rom = BlockMemory::from_file(0x8000, rom);
