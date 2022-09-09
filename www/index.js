@@ -1,22 +1,8 @@
 import * as wasm from "noentiendo";
+import bin from "../bin/easy.bin";
 
-let rom = new Array(0x8000).fill(0);
+let bin64 = bin.split(";")[1].split(",")[1];
 
-let program = [
-  0xad, 0x01, 0x40, 0xc9, 0x61, 0x30, 0x06, 0xc9, 0x7b, 0x10, 0x02, 0x29, 0xdf,
-  0x8d, 0x01, 0x40, 0x4c, 0x00, 0x80,
-];
+let rom = Uint8Array.from(atob(bin64), (c) => c.charCodeAt(0));
 
-for (let i = 0; i < program.length; i++) {
-  rom[i] = program[i];
-}
-
-let vectors = [0x00, 0x00, 0x00, 0x80, 0x00, 0x00];
-
-for (let i = 0; i < vectors.length; i++) {
-  rom[i + 0x7ffa] = vectors[i];
-}
-
-console.log(rom.length);
-
-wasm.main(new Uint8Array(rom));
+wasm.main(rom);

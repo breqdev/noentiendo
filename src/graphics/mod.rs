@@ -1,12 +1,18 @@
 mod null;
 pub mod scancodes;
 
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 mod winit;
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 pub use self::winit::{WinitGraphicsProvider, WinitGraphicsService};
 
+#[cfg(target_arch = "wasm32")]
+mod canvas;
+#[cfg(target_arch = "wasm32")]
+pub use self::canvas::{CanvasGraphicsProvider, CanvasGraphicsService};
+
 pub use self::null::{NullGraphicsProvider, NullGraphicsService};
+use async_trait::async_trait;
 use std::sync::Arc;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -47,14 +53,18 @@ impl WindowConfig {
   }
 }
 
-pub trait GraphicsService {
-  fn run(&mut self);
+#[async_trait(?Send)]
+pub trait GraphicsService<GraphicsState> {
+  fn init(&mut self) -> GraphicsState;
+  async fn init_async(&mut self) -> GraphicsState;
+
+  fn run(&mut self, state: GraphicsState);
+
   fn provider(&self) -> Arc<dyn GraphicsProvider>;
 }
 
 pub trait GraphicsProvider: Send + Sync {
   fn configure_window(&self, config: WindowConfig);
-  fn wait_for_pixels(&self);
 
   fn set_pixel(&self, x: u32, y: u32, color: Color);
   fn is_pressed(&self, key: u8) -> bool;

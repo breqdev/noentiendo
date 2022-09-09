@@ -147,7 +147,7 @@ impl System {
       ActiveInterrupt::IRQ => self.interrupt(true),
     }
 
-    #[cfg(feature = "desktop")]
+    #[cfg(not(target_arch = "wasm32"))]
     self.rate.sleep();
   }
 }

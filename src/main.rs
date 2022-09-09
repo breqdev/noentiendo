@@ -1,16 +1,16 @@
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 use libnoentiendo::{
   graphics::{GraphicsService, NullGraphicsService, WinitGraphicsService},
   systems::pet::PetSystemRoms,
   systems::{BrookeSystemFactory, EasySystemFactory, PetSystemFactory, SystemFactory},
 };
 
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 use clap::Parser;
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 use std::thread;
 
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -24,7 +24,7 @@ struct Args {
   graphics: String,
 }
 
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
   let args = Args::parse();
 
@@ -46,6 +46,8 @@ fn main() {
     _ => panic!("Unknown system"),
   };
 
+  let state = graphics.init();
+
   thread::spawn(move || {
     system.reset();
 
@@ -54,10 +56,5 @@ fn main() {
     }
   });
 
-  graphics.run();
-}
-
-#[cfg(not(feature = "desktop"))]
-fn main() {
-  panic!("No supported platform found! Please enable the `desktop` feature.");
+  graphics.run(state);
 }

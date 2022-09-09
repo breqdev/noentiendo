@@ -1,4 +1,5 @@
 use crate::graphics::{Color, GraphicsProvider, GraphicsService, WindowConfig};
+use async_trait::async_trait;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
@@ -11,8 +12,17 @@ impl NullGraphicsService {
   }
 }
 
-impl GraphicsService for NullGraphicsService {
-  fn run(&mut self) {
+#[async_trait(?Send)]
+impl GraphicsService<()> for NullGraphicsService {
+  fn init(&mut self) -> () {
+    ()
+  }
+
+  async fn init_async(&mut self) -> () {
+    ()
+  }
+
+  fn run(&mut self, _state: ()) {
     loop {
       thread::sleep(Duration::from_millis(10));
     }
@@ -33,8 +43,6 @@ impl NullGraphicsProvider {
 
 impl GraphicsProvider for NullGraphicsProvider {
   fn configure_window(&self, _config: WindowConfig) {}
-
-  fn wait_for_pixels(&self) {}
 
   fn set_pixel(&self, _x: u32, _y: u32, _color: Color) {}
 

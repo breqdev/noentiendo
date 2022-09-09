@@ -1,12 +1,15 @@
 use crate::graphics::{scancodes, Color, GraphicsProvider, GraphicsService, WindowConfig};
+use crate::isomorphic::sleep;
 use async_trait::async_trait;
+use instant::Instant;
 use pixels::{Pixels, SurfaceTexture};
-use std::sync::{Arc, Condvar, Mutex};
-use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use wasm_bindgen_futures::spawn_local;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::{Window, WindowBuilder};
+use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
@@ -31,27 +34,27 @@ fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   }
 }
 
-pub struct WinitGraphicsService {
+pub struct CanvasGraphicsService {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  provider: Arc<WinitGraphicsProvider>,
-  ready: Arc<(Mutex<bool>, Condvar)>,
+  provider: Arc<CanvasGraphicsProvider>,
+  ready: Arc<Mutex<bool>>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
-impl WinitGraphicsService {
+impl CanvasGraphicsService {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(None));
-    let ready = Arc::new((Mutex::new(false), Condvar::new()));
+    let ready = Arc::new(Mutex::new(false));
     let dirty = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new([false; 256]));
     let last_key = Arc::new(Mutex::new(0));
 
     Self {
-      provider: Arc::new(WinitGraphicsProvider::new(
+      provider: Arc::new(CanvasGraphicsProvider::new(
         config.clone(),
         pixels.clone(),
         ready.clone(),
@@ -75,51 +78,63 @@ impl WinitGraphicsService {
 }
 
 #[async_trait(?Send)]
-impl GraphicsService<(EventLoop<()>, WinitInputHelper, Window)> for WinitGraphicsService {
-  fn init(&mut self) -> (EventLoop<()>, WinitInputHelper, Window) {
+impl GraphicsService for CanvasGraphicsService {
+  fn run(&mut self) {
     let event_loop = EventLoop::new();
 
     let config = self.get_config();
 
-    let window = WindowBuilder::new()
-      .with_title("noentiendo")
-      .with_inner_size(LogicalSize::new(
-        config.width as f64 * config.scale,
-        config.height as f64 * config.scale,
-      ))
-      .build(&event_loop)
-      .unwrap();
+    let window = Arc::new(
+      WindowBuilder::new()
+        .with_title("noentiendo")
+        .with_inner_size(LogicalSize::new(
+          config.width as f64 * config.scale,
+          config.height as f64 * config.scale,
+        ))
+        .build(&event_loop)
+        .unwrap(),
+    );
 
     let inner_size = window.inner_size();
 
-    let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
+    let pixels_arc = self.pixels.clone();
+    let window_arc = window.clone();
+    let ready_arc = self.ready.clone();
 
-    *self.pixels.lock().unwrap() =
-      Some(Pixels::new(config.width, config.height, surface_texture).unwrap());
+    spawn_local(async move {
+      let surface_texture =
+        SurfaceTexture::new(inner_size.width, inner_size.height, window_arc.as_ref());
 
+      let pixels = Pixels::new_async(config.width, config.height, surface_texture)
+        .await
+        .unwrap();
+
+      *pixels_arc.lock().unwrap() = Some(pixels);
+      *ready_arc.lock().unwrap() = true;
+    });
+
+    #[cfg(target_arch = "wasm32")]
     {
-      let (lock, cvar) = &*self.ready;
-      let mut ready = lock.lock().unwrap();
-      *ready = true;
-      cvar.notify_one();
+      use winit::platform::web::WindowExtWebSys;
+
+      // Attach winit canvas to body element
+      web_sys::window()
+        .and_then(|win| win.document())
+        .and_then(|doc| doc.body())
+        .and_then(|body| {
+          body
+            .append_child(&web_sys::Element::from(window.canvas()))
+            .ok()
+        })
+        .expect("couldn't append canvas to document body");
     }
 
     let mut input = WinitInputHelper::new();
 
-    (event_loop, input, window)
-  }
-
-  async fn init_async(&mut self) -> (EventLoop<()>, WinitInputHelper, Window) {
-    self.init()
-  }
-
-  fn run(&mut self, state: (EventLoop<()>, WinitInputHelper, Window)) {
     let pixels = self.pixels.clone();
     let dirty = self.dirty.clone();
     let key_state = self.key_state.clone();
     let last_key = self.last_key.clone();
-
-    let (event_loop, mut input, window) = state;
 
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
@@ -181,25 +196,31 @@ impl GraphicsService<(EventLoop<()>, WinitInputHelper, Window)> for WinitGraphic
     });
   }
 
+  async fn wait_for_pixels_async(&self) {
+    while !*self.ready.lock().unwrap() {
+      sleep(0.1).await;
+    }
+  }
+
   fn provider(&self) -> Arc<dyn GraphicsProvider> {
     self.provider.clone()
   }
 }
 
-pub struct WinitGraphicsProvider {
+pub struct CanvasGraphicsProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  ready: Arc<(Mutex<bool>, Condvar)>,
+  ready: Arc<Mutex<bool>>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
-impl WinitGraphicsProvider {
+impl CanvasGraphicsProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
     pixels: Arc<Mutex<Option<Pixels>>>,
-    ready: Arc<(Mutex<bool>, Condvar)>,
+    ready: Arc<Mutex<bool>>,
     dirty: Arc<Mutex<bool>>,
     key_state: Arc<Mutex<[bool; 256]>>,
     last_key: Arc<Mutex<u8>>,
@@ -219,9 +240,17 @@ impl WinitGraphicsProvider {
   }
 }
 
-impl GraphicsProvider for WinitGraphicsProvider {
+impl GraphicsProvider for CanvasGraphicsProvider {
   fn configure_window(&self, config: WindowConfig) {
     *self.config.lock().unwrap() = Some(config);
+  }
+
+  fn wait_for_pixels(&self) {
+    if *self.ready.lock().unwrap() {
+      return;
+    }
+
+    unimplemented!("synchronous operation not supported on wasm");
   }
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {

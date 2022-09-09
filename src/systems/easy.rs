@@ -62,7 +62,6 @@ impl Memory for EasyVram {
     for i in 0..self.data.len() {
       self.data[i] = 0;
     }
-    self.graphics.wait_for_pixels();
   }
 
   fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {

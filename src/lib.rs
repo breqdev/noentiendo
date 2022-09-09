@@ -8,33 +8,31 @@ pub mod system;
 pub mod systems;
 mod time;
 
-#[cfg(feature = "web")]
+#[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;
 
-#[cfg(feature = "web")]
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(feature = "web")]
+#[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
 
-#[cfg(feature = "web")]
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn main(rom: &Uint8Array) {
+pub async fn main(rom: Uint8Array) {
   console_error_panic_hook::set_once();
 
-  use graphics::{GraphicsService, NullGraphicsService};
-  use systems::{BrookeSystemFactory, SystemFactory};
+  use graphics::{CanvasGraphicsService, GraphicsService};
+  use systems::{EasySystemFactory, SystemFactory};
 
-  let graphics = NullGraphicsService::new();
-  let romfile = memory::RomFile::from_uint8array(rom);
+  let mut graphics = CanvasGraphicsService::new();
+  let romfile = memory::RomFile::from_uint8array(&rom);
 
-  let mut system =
-    BrookeSystemFactory::create(memory::RomFile::from_uint8array(rom), graphics.provider());
+  let mut system = EasySystemFactory::create(romfile, graphics.provider());
+
+  let state = graphics.init_async().await;
 
   system.reset();
 
-  loop {
-    system.tick();
-  }
+  graphics.run(state);
 }
