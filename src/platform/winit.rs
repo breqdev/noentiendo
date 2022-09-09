@@ -3,7 +3,8 @@ use crate::system::System;
 use async_trait::async_trait;
 use instant::Instant;
 use pixels::{Pixels, SurfaceTexture};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Duration;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
@@ -37,7 +38,6 @@ pub struct WinitPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
   provider: Arc<WinitPlatformProvider>,
-  ready: Arc<(Mutex<bool>, Condvar)>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
@@ -47,7 +47,6 @@ impl WinitPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(None));
-    let ready = Arc::new((Mutex::new(false), Condvar::new()));
     let dirty = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new([false; 256]));
     let last_key = Arc::new(Mutex::new(0));
@@ -56,14 +55,12 @@ impl WinitPlatform {
       provider: Arc::new(WinitPlatformProvider::new(
         config.clone(),
         pixels.clone(),
-        ready.clone(),
         dirty.clone(),
         key_state.clone(),
         last_key.clone(),
       )),
       config,
       pixels,
-      ready,
       dirty,
       key_state,
       last_key,
@@ -99,18 +96,17 @@ impl Platform for WinitPlatform {
     *self.pixels.lock().unwrap() =
       Some(Pixels::new(config.width, config.height, surface_texture).unwrap());
 
-    {
-      let (lock, cvar) = &*self.ready;
-      let mut ready = lock.lock().unwrap();
-      *ready = true;
-      cvar.notify_one();
-    }
-
     let mut input = WinitInputHelper::new();
     let pixels = self.pixels.clone();
     let dirty = self.dirty.clone();
     let key_state = self.key_state.clone();
     let last_key = self.last_key.clone();
+
+    system.reset();
+
+    // thread::spawn(move || loop {
+    //   system.tick();
+    // });
 
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
@@ -132,9 +128,13 @@ impl Platform for WinitPlatform {
 
       match event {
         Event::MainEventsCleared => {
-          if *dirty.lock().unwrap() {
-            window.request_redraw();
+          for _ in 0..10000 {
+            system.tick();
           }
+
+          // if *dirty.lock().unwrap() {
+          window.request_redraw();
+          // }
         }
         Event::RedrawRequested(_) => {
           *dirty.lock().unwrap() = false;
@@ -184,7 +184,6 @@ impl Platform for WinitPlatform {
 pub struct WinitPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  ready: Arc<(Mutex<bool>, Condvar)>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
@@ -194,7 +193,6 @@ impl WinitPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
     pixels: Arc<Mutex<Option<Pixels>>>,
-    ready: Arc<(Mutex<bool>, Condvar)>,
     dirty: Arc<Mutex<bool>>,
     key_state: Arc<Mutex<[bool; 256]>>,
     last_key: Arc<Mutex<u8>>,
@@ -202,7 +200,6 @@ impl WinitPlatformProvider {
     Self {
       config,
       pixels,
-      ready,
       dirty,
       key_state,
       last_key,

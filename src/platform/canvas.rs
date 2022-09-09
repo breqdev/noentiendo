@@ -6,6 +6,7 @@ use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen_futures::spawn_local;
+use web_sys::console;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -133,6 +134,8 @@ impl Platform for CanvasPlatform {
     let key_state = self.key_state.clone();
     let last_key = self.last_key.clone();
 
+    system.reset();
+
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
 
@@ -153,9 +156,13 @@ impl Platform for CanvasPlatform {
 
       match event {
         Event::MainEventsCleared => {
-          if *dirty.lock().unwrap() {
-            window.request_redraw();
+          for _ in 0..300 {
+            system.tick();
           }
+
+          // if *dirty.lock().unwrap() {
+          window.request_redraw();
+          // }
         }
         Event::RedrawRequested(_) => {
           *dirty.lock().unwrap() = false;

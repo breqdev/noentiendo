@@ -147,7 +147,7 @@ impl System {
       ActiveInterrupt::IRQ => self.interrupt(true),
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    self.rate.sleep();
+    // #[cfg(not(target_arch = "wasm32"))]
+    // self.rate.sleep();
   }
 }

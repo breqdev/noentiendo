@@ -143,6 +143,7 @@ impl Port for PetPia1PortA {
           self.last_draw_cycle = info.cycle_count;
           self.last_draw_instant = Some(Instant::now());
           true
+          // false
         } else {
           false
         }
