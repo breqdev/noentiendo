@@ -3,6 +3,7 @@ use crate::system::System;
 use async_trait::async_trait;
 use instant::Instant;
 use pixels::{Pixels, SurfaceTexture};
+use rand;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -261,5 +262,9 @@ impl PlatformProvider for WinitPlatformProvider {
       .read_line(&mut input)
       .expect("Failed to read line");
     input
+  }
+
+  fn random(&self) -> u8 {
+    rand::random()
   }
 }

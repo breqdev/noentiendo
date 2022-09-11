@@ -2,6 +2,7 @@ use crate::system::System;
 #[cfg(target_arch = "wasm32")]
 mod canvas;
 pub mod scancodes;
+#[cfg(not(target_arch = "wasm32"))]
 mod text;
 #[cfg(not(target_arch = "wasm32"))]
 mod winit;
@@ -10,6 +11,7 @@ use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
 pub use self::canvas::{CanvasPlatform, CanvasPlatformProvider};
+#[cfg(not(target_arch = "wasm32"))]
 pub use self::text::{TextPlatform, TextPlatformProvider};
 #[cfg(not(target_arch = "wasm32"))]
 pub use self::winit::{WinitPlatform, WinitPlatformProvider};
@@ -73,4 +75,7 @@ pub trait PlatformProvider: Send + Sync {
   // Text I/O
   fn print(&self, text: &str);
   fn input(&self) -> String;
+
+  // Randomness
+  fn random(&self) -> u8;
 }

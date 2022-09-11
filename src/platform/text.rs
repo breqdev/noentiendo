@@ -1,6 +1,7 @@
 use crate::platform::{Color, Platform, PlatformProvider, WindowConfig};
 use crate::system::System;
 use async_trait::async_trait;
+use rand;
 use std::io::Write;
 use std::sync::Arc;
 use std::thread;
@@ -73,5 +74,9 @@ impl PlatformProvider for TextPlatformProvider {
       .read_line(&mut input)
       .expect("Failed to read line");
     input
+  }
+
+  fn random(&self) -> u8 {
+    rand::random()
   }
 }

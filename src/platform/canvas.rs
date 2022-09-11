@@ -2,6 +2,7 @@ use crate::platform::{scancodes, Color, Platform, PlatformProvider, WindowConfig
 use crate::system::System;
 use async_trait::async_trait;
 use instant::Instant;
+use js_sys::Math;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -292,5 +293,9 @@ impl PlatformProvider for CanvasPlatformProvider {
 
   fn input(&self) -> String {
     prompt("> ")
+  }
+
+  fn random(&self) -> u8 {
+    Math::floor(Math::random() * 255.0) as u8
   }
 }

@@ -1,4 +1,3 @@
-use crate::isomorphic::random_u8;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, RomFile, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::system::System;
@@ -82,7 +81,7 @@ impl EasyIO {
 impl Memory for EasyIO {
   fn read(&mut self, address: u16) -> u8 {
     match address % 2 {
-      0 => random_u8(),
+      0 => self.platform.random(),
       _ => self.platform.get_last_key(),
     }
   }

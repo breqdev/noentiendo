@@ -1,6 +1,5 @@
 mod execute;
 mod fetch;
-mod isomorphic;
 pub mod memory;
 pub mod platform;
 mod registers;
