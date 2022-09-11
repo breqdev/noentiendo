@@ -72,17 +72,21 @@ impl Stack for System {
 }
 
 pub trait InterruptHandler {
-  fn interrupt(&mut self, maskable: bool);
+  fn interrupt(&mut self, maskable: bool, set_brk: bool);
 }
 
 impl InterruptHandler for System {
-  fn interrupt(&mut self, maskable: bool) {
+  fn interrupt(&mut self, maskable: bool, set_brk: bool) {
     if maskable && self.registers.sr.read(flags::INTERRUPT) {
       return;
     }
 
     self.push_word(self.registers.pc.address());
-    self.push(self.registers.sr.get());
+    if set_brk {
+      self.push(self.registers.sr.get() | flags::BREAK);
+    } else {
+      self.push(self.registers.sr.get() & !flags::BREAK);
+    }
 
     self.registers.sr.set(flags::INTERRUPT);
 
@@ -137,8 +141,8 @@ impl System {
 
     match self.memory.poll(&info) {
       ActiveInterrupt::None => (),
-      ActiveInterrupt::NMI => self.interrupt(false),
-      ActiveInterrupt::IRQ => self.interrupt(true),
+      ActiveInterrupt::NMI => self.interrupt(false, false),
+      ActiveInterrupt::IRQ => self.interrupt(true, false),
     }
 
     Duration::from_secs_f64(1.0 / self.cycles_per_second as f64)

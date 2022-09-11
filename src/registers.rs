@@ -12,8 +12,8 @@ pub mod flags {
   pub const ZERO: u8 = 0b00000010;
   pub const INTERRUPT: u8 = 0b00000100;
   pub const DECIMAL: u8 = 0b00001000;
-  pub const _BREAK: u8 = 0b00010000;
-  pub const _UNUSED: u8 = 0b00100000;
+  pub const BREAK: u8 = 0b00010000;
+  pub const UNUSED: u8 = 0b00100000;
   pub const OVERFLOW: u8 = 0b01000000;
   pub const NEGATIVE: u8 = 0b10000000;
 }
@@ -104,7 +104,7 @@ impl StatusRegister {
   }
 
   pub fn load(&mut self, value: u8) {
-    self.value = value;
+    self.value = value | flags::UNUSED | flags::BREAK;
   }
 
   pub fn get(&self) -> u8 {

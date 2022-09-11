@@ -97,22 +97,26 @@ impl Execute for System {
       0x48 => {
         // PHA
         self.push(self.registers.a);
+        println!("PHA: {:08b}", self.registers.a);
         Ok(())
       }
       0x08 => {
         // PHP
-        self.push(self.registers.sr.get());
+        self.push(self.registers.sr.get() | flags::BREAK);
+        println!("PHP: {:08b}", self.registers.sr.get() | flags::BREAK);
         Ok(())
       }
       0x68 => {
         // PLA
         self.registers.a = self.pop();
+        println!("PLA: {:08b}", self.registers.a);
         Ok(())
       }
       0x28 => {
         // PLP
         let status = self.pop();
         self.registers.sr.load(status);
+        println!("PLP: {:08b}", self.registers.sr.get());
         Ok(())
       }
 
@@ -329,7 +333,7 @@ impl Execute for System {
       0x00 => {
         // BRK
         self.registers.pc.increment();
-        self.interrupt(true);
+        self.interrupt(true, true);
         Ok(())
       }
       0x4C | 0x6C => {
