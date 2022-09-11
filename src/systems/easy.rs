@@ -12,15 +12,15 @@ struct EasyVram {
   width: u32,
   height: u32,
   data: Vec<u8>,
-  graphics: Arc<dyn PlatformProvider>,
+  platform: Arc<dyn PlatformProvider>,
   palette: Vec<Color>,
 }
 
 const SCALE: u32 = 8;
 
 impl EasyVram {
-  pub fn new(width: u32, height: u32, graphics: Arc<dyn PlatformProvider>) -> Self {
-    graphics.request_window(WindowConfig::new(width, height, SCALE as f64));
+  pub fn new(width: u32, height: u32, platform: Arc<dyn PlatformProvider>) -> Self {
+    platform.request_window(WindowConfig::new(width, height, SCALE as f64));
 
     let palette = [
       0x000000, 0xffffff, 0x880000, 0xaaffee, 0xcc44cc, 0x00cc55, 0x0000aa, 0xeeee77, 0xdd8855,
@@ -36,7 +36,7 @@ impl EasyVram {
       width,
       height,
       data: vec![0; (width * height) as usize],
-      graphics,
+      platform,
       palette,
     }
   }
@@ -55,7 +55,7 @@ impl Memory for EasyVram {
     let y_base = (index / self.width as usize) as u32;
     let color = self.palette[(self.data[index] as usize) % self.palette.len()];
 
-    self.graphics.set_pixel(x_base, y_base, color);
+    self.platform.set_pixel(x_base, y_base, color);
   }
 
   fn reset(&mut self) {
@@ -70,12 +70,12 @@ impl Memory for EasyVram {
 }
 
 struct EasyIO {
-  graphics: Arc<dyn PlatformProvider>,
+  platform: Arc<dyn PlatformProvider>,
 }
 
 impl EasyIO {
-  pub fn new(graphics: Arc<dyn PlatformProvider>) -> Self {
-    Self { graphics }
+  pub fn new(platform: Arc<dyn PlatformProvider>) -> Self {
+    Self { platform }
   }
 }
 
@@ -83,7 +83,7 @@ impl Memory for EasyIO {
   fn read(&mut self, address: u16) -> u8 {
     match address % 2 {
       0 => random_u8(),
-      _ => self.graphics.get_last_key(),
+      _ => self.platform.get_last_key(),
     }
   }
 
@@ -99,11 +99,11 @@ impl Memory for EasyIO {
 pub struct EasySystemFactory {}
 
 impl SystemFactory<RomFile> for EasySystemFactory {
-  fn create(rom: RomFile, graphics: Arc<dyn PlatformProvider>) -> System {
+  fn create(rom: RomFile, platform: Arc<dyn PlatformProvider>) -> System {
     let zero_page = BlockMemory::ram(0x0100);
-    let io = EasyIO::new(graphics.clone());
+    let io = EasyIO::new(platform.clone());
     let stack_ram = BlockMemory::ram(0x0100);
-    let vram = EasyVram::new(32, 32, graphics);
+    let vram = EasyVram::new(32, 32, platform);
     let high_ram = BlockMemory::ram(0x7A00);
     let rom = BlockMemory::from_file(0x8000, rom);
 

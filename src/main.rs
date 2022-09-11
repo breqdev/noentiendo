@@ -19,17 +19,17 @@ struct Args {
   system: String,
 
   #[clap(short, long, value_parser, default_value = "text")]
-  graphics: String,
+  platform: String,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
   let args = Args::parse();
 
-  let mut platform: Box<dyn Platform> = match args.graphics.as_str() {
+  let mut platform: Box<dyn Platform> = match args.platform.as_str() {
     "text" => Box::new(TextPlatform::new()),
     "winit" => Box::new(WinitPlatform::new()),
-    _ => panic!("Unknown graphics provider"),
+    _ => panic!("Unknown platform"),
   };
 
   let romfile = match args.rom_path.as_str() {

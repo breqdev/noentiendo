@@ -1,5 +1,5 @@
 import * as wasm from "noentiendo";
-import bin from "../bin/easy.bin";
+import bin from "../bin/capitalize.bin";
 
 let bin64 = bin.split(";")[1].split(",")[1];
 

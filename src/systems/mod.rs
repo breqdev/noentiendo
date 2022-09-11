@@ -11,5 +11,5 @@ pub use easy::EasySystemFactory;
 pub use pet::PetSystemFactory;
 
 pub trait SystemFactory<RomRegistry> {
-  fn create(roms: RomRegistry, graphics: Arc<dyn PlatformProvider>) -> System;
+  fn create(roms: RomRegistry, platform: Arc<dyn PlatformProvider>) -> System;
 }

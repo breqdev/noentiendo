@@ -22,12 +22,16 @@ pub async fn main(rom: Uint8Array) {
   console_error_panic_hook::set_once();
 
   use platform::{CanvasPlatform, Platform};
-  use systems::{EasySystemFactory, SystemFactory};
+  use systems::{BrookeSystemFactory, SystemFactory};
 
-  let mut graphics = CanvasPlatform::new();
+  let mut platform = CanvasPlatform::new();
+  platform
+    .provider()
+    .request_window(platform::WindowConfig::new(1, 1, 2.0));
+
   let romfile = memory::RomFile::from_uint8array(&rom);
 
-  let system = EasySystemFactory::create(romfile, graphics.provider());
+  let system = BrookeSystemFactory::create(romfile, platform.provider());
 
-  graphics.run_async(system).await;
+  platform.run_async(system).await;
 }
