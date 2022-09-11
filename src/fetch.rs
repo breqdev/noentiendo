@@ -61,15 +61,15 @@ impl Fetch for System {
       0x14 | 0x15 => {
         // Zero page,X
         let base = self.fetch();
-        base as u16 + self.registers.x as u16
+        (base as u16 + self.registers.x as u16) & 0xFF
       }
       0x16 | 0x17 => {
         // Zero page,X or Zero page,Y
         let base = self.fetch();
         if opcode & 0xC0 == 0x80 {
-          base as u16 + self.registers.y as u16
+          (base as u16 + self.registers.y as u16) & 0xFF
         } else {
-          base as u16 + self.registers.x as u16
+          (base as u16 + self.registers.x as u16) & 0xFF
         }
       }
       0x19 | 0x1B => {

@@ -397,9 +397,6 @@ impl Execute for System {
 
         if condition {
           self.registers.pc.offset(offset);
-          if self.registers.pc.address() != 0x09fd {
-            println!("branching to {:04X}", self.registers.pc.address());
-          }
         }
 
         Ok(())
