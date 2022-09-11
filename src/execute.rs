@@ -108,8 +108,10 @@ impl Execute for System {
       }
       0x68 => {
         // PLA
-        self.registers.a = self.pop();
-        println!("PLA: {:08b}", self.registers.a);
+        let value = self.pop();
+        self.registers.a = value;
+        self.registers.sr.set_nz(value);
+        println!("PLA: {:08b}", value);
         Ok(())
       }
       0x28 => {
