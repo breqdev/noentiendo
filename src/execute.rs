@@ -97,13 +97,11 @@ impl Execute for System {
       0x48 => {
         // PHA
         self.push(self.registers.a);
-        println!("PHA: {:08b}", self.registers.a);
         Ok(())
       }
       0x08 => {
         // PHP
         self.push(self.registers.sr.get() | flags::BREAK);
-        println!("PHP: {:08b}", self.registers.sr.get() | flags::BREAK);
         Ok(())
       }
       0x68 => {
@@ -111,14 +109,12 @@ impl Execute for System {
         let value = self.pop();
         self.registers.a = value;
         self.registers.sr.set_nz(value);
-        println!("PLA: {:08b}", value);
         Ok(())
       }
       0x28 => {
         // PLP
         let status = self.pop();
         self.registers.sr.load(status);
-        println!("PLP: {:08b}", self.registers.sr.get());
         Ok(())
       }
 
