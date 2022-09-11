@@ -77,21 +77,11 @@ pub trait InterruptHandler {
 
 impl InterruptHandler for System {
   fn interrupt(&mut self, maskable: bool, break_instr: bool) {
-    println!(
-      "Interrupt, maskable: {}, break: {}, status register {:08b}",
-      maskable,
-      break_instr,
-      self.registers.sr.get()
-    );
-
     if maskable && !break_instr && self.registers.sr.read(flags::INTERRUPT) {
-      println!("ignoring, I flag is set");
       return;
     }
 
     self.push_word(self.registers.pc.address());
-
-    println!("pushing status register {:08b}", self.registers.sr.get());
 
     if break_instr {
       self.push(self.registers.sr.get() | flags::BREAK);
@@ -105,8 +95,6 @@ impl InterruptHandler for System {
       false => self.read_word(0xFFFA),
       true => self.read_word(0xFFFE),
     };
-
-    println!("Interrupt destination: {:04X}", dest);
 
     self.registers.pc.load(dest);
   }
