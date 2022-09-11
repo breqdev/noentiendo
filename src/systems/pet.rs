@@ -1,8 +1,8 @@
-use crate::graphics::{scancodes, Color, GraphicsProvider, WindowConfig};
 use crate::memory::{
   pia::{NullPort, Port, PIA},
   ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, RomFile, SystemInfo,
 };
+use crate::platform::{scancodes, Color, PlatformProvider, WindowConfig};
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
@@ -19,15 +19,15 @@ const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
 pub struct PetVram {
   data: Vec<u8>,
-  graphics: Arc<dyn GraphicsProvider>,
+  platform: Arc<dyn PlatformProvider>,
   character_rom: Vec<u8>,
   foreground: Color,
   background: Color,
 }
 
 impl PetVram {
-  pub fn new(character_rom: RomFile, graphics: Arc<dyn GraphicsProvider>) -> Self {
-    graphics.configure_window(WindowConfig::new(
+  pub fn new(character_rom: RomFile, platform: Arc<dyn PlatformProvider>) -> Self {
+    platform.request_window(WindowConfig::new(
       WIDTH * CHAR_WIDTH,
       HEIGHT * CHAR_HEIGHT,
       2.0,
@@ -35,7 +35,7 @@ impl PetVram {
 
     Self {
       data: vec![0; VRAM_SIZE],
-      graphics,
+      platform,
       character_rom: character_rom.get_data(),
       foreground: Color::new(255, 255, 255),
       background: Color::new(0, 0, 255),
@@ -76,7 +76,7 @@ impl Memory for PetVram {
         };
 
         self
-          .graphics
+          .platform
           .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
       }
     }
@@ -87,11 +87,9 @@ impl Memory for PetVram {
       self.data[i] = 0;
     }
 
-    self.graphics.wait_for_pixels();
-
     for x in 0..(WIDTH * CHAR_WIDTH) {
       for y in 0..(HEIGHT * CHAR_HEIGHT) {
-        self.graphics.set_pixel(x, y, self.background);
+        self.platform.set_pixel(x, y, self.background);
       }
     }
   }
@@ -145,6 +143,7 @@ impl Port for PetPia1PortA {
           self.last_draw_cycle = info.cycle_count;
           self.last_draw_instant = Some(Instant::now());
           true
+          // false
         } else {
           false
         }
@@ -163,14 +162,14 @@ impl Port for PetPia1PortA {
 
 pub struct PetPia1PortB {
   keyboard_row: Arc<Mutex<u8>>,
-  graphics: Arc<dyn GraphicsProvider>,
+  platform: Arc<dyn PlatformProvider>,
 }
 
 impl PetPia1PortB {
-  pub fn new(keyboard_row: Arc<Mutex<u8>>, graphics: Arc<dyn GraphicsProvider>) -> Self {
+  pub fn new(keyboard_row: Arc<Mutex<u8>>, platform: Arc<dyn PlatformProvider>) -> Self {
     Self {
       keyboard_row,
-      graphics,
+      platform,
     }
   }
 }
@@ -203,7 +202,7 @@ impl Port for PetPia1PortB {
     let row = KEYBOARD_MAPPING[row as usize % 10];
     let mut value = 0b1111_1111;
     for i in 0..8 {
-      if self.graphics.is_pressed(row[i] as u8) {
+      if self.platform.is_pressed(row[i] as u8) {
         value &= !(1 << i);
       }
     }
@@ -227,7 +226,7 @@ pub struct PetSystemRoms {
 }
 
 impl PetSystemRoms {
-  #[cfg(feature = "desktop")]
+  #[cfg(not(target_arch = "wasm32"))]
   pub fn from_disk() -> Self {
     let character = RomFile::from_file("pet/char.bin");
     let basic = RomFile::from_file("pet/basic.bin");
@@ -246,9 +245,9 @@ impl PetSystemRoms {
 pub struct PetSystemFactory {}
 
 impl SystemFactory<PetSystemRoms> for PetSystemFactory {
-  fn create(roms: PetSystemRoms, graphics: Arc<dyn GraphicsProvider>) -> System {
+  fn create(roms: PetSystemRoms, platform: Arc<dyn PlatformProvider>) -> System {
     let ram = BlockMemory::ram(0x8000);
-    let vram = PetVram::new(roms.character, graphics.clone());
+    let vram = PetVram::new(roms.character, platform.clone());
 
     let expansion_rom_9 = NullMemory::new();
     let expansion_rom_a = NullMemory::new();
@@ -258,7 +257,7 @@ impl SystemFactory<PetSystemRoms> for PetSystemFactory {
     let editor_rom = BlockMemory::from_file(0x1000, roms.editor);
 
     let port_a = PetPia1PortA::new();
-    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), graphics);
+    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), platform);
     let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
     let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
     let via = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));

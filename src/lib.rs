@@ -1,40 +1,36 @@
 mod execute;
 mod fetch;
-pub mod graphics;
-mod isomorphic;
 pub mod memory;
+pub mod platform;
 mod registers;
 pub mod system;
 pub mod systems;
-mod time;
 
-#[cfg(feature = "web")]
+#[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;
 
-#[cfg(feature = "web")]
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
-#[cfg(feature = "web")]
+#[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
 
-#[cfg(feature = "web")]
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn main(rom: &Uint8Array) {
+pub async fn main(rom: Uint8Array) {
   console_error_panic_hook::set_once();
 
-  use graphics::{GraphicsService, NullGraphicsService};
-  use systems::{BrookeSystemFactory, SystemFactory};
+  use platform::{CanvasPlatform, Platform};
+  use systems::{EasySystemFactory, SystemFactory};
 
-  let graphics = NullGraphicsService::new();
-  let romfile = memory::RomFile::from_uint8array(rom);
+  let mut platform = CanvasPlatform::new();
+  // platform
+  //   .provider()
+  //   .request_window(platform::WindowConfig::new(1, 1, 2.0));
 
-  let mut system =
-    BrookeSystemFactory::create(memory::RomFile::from_uint8array(rom), graphics.provider());
+  let romfile = memory::RomFile::from_uint8array(&rom);
 
-  system.reset();
+  let system = EasySystemFactory::create(romfile, platform.provider());
 
-  loop {
-    system.tick();
-  }
+  platform.run_async(system).await;
 }

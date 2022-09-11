@@ -1,12 +1,26 @@
-use crate::graphics::{scancodes, Color, GraphicsProvider, GraphicsService, WindowConfig};
+use crate::platform::{scancodes, Color, Platform, PlatformProvider, WindowConfig};
+use crate::system::System;
+use async_trait::async_trait;
+use instant::Instant;
+use js_sys::Math;
 use pixels::{Pixels, SurfaceTexture};
-use std::sync::{Arc, Condvar, Mutex};
-use std::time::{Duration, Instant};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
+use winit::platform::web::WindowExtWebSys;
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
+
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+  fn prompt(message: &str) -> String;
+  fn alert(message: &str);
+}
 
 fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   if (code as u8) <= 36 {
@@ -30,77 +44,110 @@ fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   }
 }
 
-pub struct WinitGraphicsService {
+pub struct CanvasPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  provider: Arc<WinitGraphicsProvider>,
-  ready: Arc<(Mutex<bool>, Condvar)>,
+  provider: Arc<CanvasPlatformProvider>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
-impl WinitGraphicsService {
+impl CanvasPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(None));
-    let ready = Arc::new((Mutex::new(false), Condvar::new()));
     let dirty = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new([false; 256]));
     let last_key = Arc::new(Mutex::new(0));
 
     Self {
-      provider: Arc::new(WinitGraphicsProvider::new(
+      provider: Arc::new(CanvasPlatformProvider::new(
         config.clone(),
         pixels.clone(),
-        ready.clone(),
         dirty.clone(),
         key_state.clone(),
         last_key.clone(),
       )),
       config,
       pixels,
-      ready,
       dirty,
       key_state,
       last_key,
     }
   }
 
-  fn _get_config(&self) -> WindowConfig {
+  fn get_config(&self) -> WindowConfig {
     let config = self.config.lock().unwrap();
     config.clone().expect("WindowConfig not set")
   }
 }
 
-impl GraphicsService for WinitGraphicsService {
-  fn run(&mut self) {
+fn run_system(mut system: System) {
+  let mut duration = Duration::ZERO;
+
+  while duration < Duration::from_millis(20) {
+    duration += system.tick();
+  }
+
+  let closure = Closure::once_into_js(move || {
+    run_system(system);
+  });
+
+  web_sys::window()
+    .unwrap()
+    .set_timeout_with_callback_and_timeout_and_arguments_0(
+      closure.unchecked_ref(),
+      duration.as_millis() as i32,
+    )
+    .unwrap();
+}
+
+#[async_trait(?Send)]
+impl Platform for CanvasPlatform {
+  fn run(&mut self, _system: System) {
+    unimplemented!("WebAssembly cannot run synchronously, to avoid blocking the main thread");
+  }
+
+  async fn run_async(&mut self, mut system: System) {
     let event_loop = EventLoop::new();
 
-    let config = self._get_config();
+    let config = self.get_config();
 
-    let window = WindowBuilder::new()
-      .with_title("noentiendo")
-      .with_inner_size(LogicalSize::new(
-        config.width as f64 * config.scale,
-        config.height as f64 * config.scale,
-      ))
-      .build(&event_loop)
-      .unwrap();
+    let window = Arc::new(
+      WindowBuilder::new()
+        .with_title("noentiendo")
+        .with_inner_size(LogicalSize::new(
+          config.width as f64 * config.scale,
+          config.height as f64 * config.scale,
+        ))
+        .build(&event_loop)
+        .unwrap(),
+    );
+
+    // Attach winit canvas to body element
+    web_sys::window()
+      .and_then(|win| win.document())
+      .and_then(|doc| doc.body())
+      .and_then(|body| {
+        body
+          .append_child(&web_sys::Element::from(window.canvas()))
+          .ok()
+      })
+      .expect("couldn't append canvas to document body");
 
     let inner_size = window.inner_size();
 
-    let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
+    let pixels_arc = self.pixels.clone();
+    let window_arc = window.clone();
+    let surface_texture =
+      SurfaceTexture::new(inner_size.width, inner_size.height, window_arc.as_ref());
 
-    *self.pixels.lock().unwrap() =
-      Some(Pixels::new(config.width, config.height, surface_texture).unwrap());
+    let pixels = Pixels::new_async(config.width, config.height, surface_texture)
+      .await
+      .unwrap();
 
-    {
-      let (lock, cvar) = &*self.ready;
-      let mut ready = lock.lock().unwrap();
-      *ready = true;
-      cvar.notify_one();
-    }
+    *pixels_arc.lock().unwrap() = Some(pixels);
 
     let mut input = WinitInputHelper::new();
 
@@ -108,6 +155,10 @@ impl GraphicsService for WinitGraphicsService {
     let dirty = self.dirty.clone();
     let key_state = self.key_state.clone();
     let last_key = self.last_key.clone();
+
+    system.reset();
+
+    run_system(system);
 
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
@@ -169,25 +220,23 @@ impl GraphicsService for WinitGraphicsService {
     });
   }
 
-  fn provider(&self) -> Arc<dyn GraphicsProvider> {
+  fn provider(&self) -> Arc<dyn PlatformProvider> {
     self.provider.clone()
   }
 }
 
-pub struct WinitGraphicsProvider {
+pub struct CanvasPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  ready: Arc<(Mutex<bool>, Condvar)>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
 }
 
-impl WinitGraphicsProvider {
+impl CanvasPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
     pixels: Arc<Mutex<Option<Pixels>>>,
-    ready: Arc<(Mutex<bool>, Condvar)>,
     dirty: Arc<Mutex<bool>>,
     key_state: Arc<Mutex<[bool; 256]>>,
     last_key: Arc<Mutex<u8>>,
@@ -195,35 +244,26 @@ impl WinitGraphicsProvider {
     Self {
       config,
       pixels,
-      ready,
       dirty,
       key_state,
       last_key,
     }
   }
-  fn _get_config(&self) -> WindowConfig {
+  fn get_config(&self) -> WindowConfig {
     let config = self.config.lock().unwrap();
     config.clone().expect("WindowConfig not set")
   }
 }
 
-impl GraphicsProvider for WinitGraphicsProvider {
-  fn configure_window(&self, config: WindowConfig) {
+impl PlatformProvider for CanvasPlatformProvider {
+  fn request_window(&self, config: WindowConfig) {
     *self.config.lock().unwrap() = Some(config);
-  }
-
-  fn wait_for_pixels(&self) {
-    let (mutex, condvar) = &*self.ready;
-    let mut ready = mutex.lock().unwrap();
-    while !*ready {
-      ready = condvar.wait(ready).unwrap();
-    }
   }
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
     let mut pixels = self.pixels.lock().unwrap();
     let frame = pixels.as_mut().unwrap().get_frame();
-    let config = self._get_config();
+    let config = self.get_config();
 
     if (x >= config.width) || (y >= config.height) {
       println!(
@@ -245,5 +285,17 @@ impl GraphicsProvider for WinitGraphicsProvider {
 
   fn get_last_key(&self) -> u8 {
     self.last_key.lock().unwrap().clone()
+  }
+
+  fn print(&self, text: &str) {
+    alert(text);
+  }
+
+  fn input(&self) -> String {
+    prompt("> ")
+  }
+
+  fn random(&self) -> u8 {
+    Math::floor(Math::random() * 255.0) as u8
   }
 }

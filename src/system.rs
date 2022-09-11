@@ -2,14 +2,13 @@ use crate::execute::Execute;
 use crate::fetch::Fetch;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::registers::{flags, Registers};
-use crate::time::Rate;
+use std::time::Duration;
 
 pub struct System {
   pub registers: Registers,
   memory: Box<dyn Memory>,
   cycles_per_second: u64,
   cycle_count: u64,
-  rate: Rate,
 }
 
 pub trait MemoryIO {
@@ -107,11 +106,6 @@ impl System {
         cycles_per_second
       },
       cycle_count: 0,
-      rate: Rate::new(if cycles_per_second == 0 {
-        0.0
-      } else {
-        1.0 / cycles_per_second as f64
-      }),
     }
   }
 
@@ -122,7 +116,7 @@ impl System {
     self.registers.pc.load(pc_address);
   }
 
-  pub fn tick(&mut self) {
+  pub fn tick(&mut self) -> Duration {
     let opcode = self.fetch();
     match self.execute(opcode) {
       Ok(()) => {}
@@ -147,7 +141,6 @@ impl System {
       ActiveInterrupt::IRQ => self.interrupt(true),
     }
 
-    #[cfg(feature = "desktop")]
-    self.rate.sleep();
+    Duration::from_secs_f64(1.0 / self.cycles_per_second as f64)
   }
 }

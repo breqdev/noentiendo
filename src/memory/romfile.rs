@@ -1,10 +1,10 @@
-#[cfg(feature = "web")]
+#[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
 
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs::File;
 
-#[cfg(feature = "desktop")]
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::Read;
 
 pub struct RomFile {
@@ -16,7 +16,7 @@ impl RomFile {
     Self { data: Vec::new() }
   }
 
-  #[cfg(feature = "desktop")]
+  #[cfg(not(target_arch = "wasm32"))]
   pub fn from_file(path: &str) -> Self {
     let mut file = File::open(path).map_err(|e| e.to_string()).unwrap();
     let mut data = Vec::new();
@@ -27,7 +27,7 @@ impl RomFile {
     Self { data }
   }
 
-  #[cfg(feature = "web")]
+  #[cfg(target_arch = "wasm32")]
   pub fn from_uint8array(array: &Uint8Array) -> Self {
     let mut data = Vec::new();
     for i in 0..array.length() {

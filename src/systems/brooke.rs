@@ -1,16 +1,17 @@
-use crate::graphics::GraphicsProvider;
-use crate::isomorphic::{readline, writeline};
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory, RomFile};
+use crate::platform::PlatformProvider;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::Arc;
 
-struct MappedStdIO {}
+struct MappedStdIO {
+  provider: Arc<dyn PlatformProvider>,
+}
 
 impl MappedStdIO {
-  pub fn new() -> Self {
-    Self {}
+  pub fn new(provider: Arc<dyn PlatformProvider>) -> Self {
+    Self { provider }
   }
 }
 
@@ -19,7 +20,7 @@ impl Memory for MappedStdIO {
   // 0x01: char
   // 0x02: u8 as hex
   fn read(&mut self, address: u16) -> u8 {
-    let input = readline();
+    let input = self.provider.input();
 
     match address & 0x03 {
       0x00 => input.trim().parse().expect("Invalid input for u8"),
@@ -35,9 +36,9 @@ impl Memory for MappedStdIO {
 
   fn write(&mut self, address: u16, value: u8) {
     match address & 0x03 {
-      0x00 => writeline(&format!("{}", value)),
-      0x01 => writeline(&format!("{}", value as char)),
-      0x02 => writeline(&format!("{:02X}", value)),
+      0x00 => self.provider.print(&format!("{}\n", value)),
+      0x01 => self.provider.print(&format!("{}\n", value as char)),
+      0x02 => self.provider.print(&format!("{:02X}\n", value)),
       0x03 => {
         // print!("{}", value as char);
         // std::io::stdout().flush().unwrap();
@@ -56,9 +57,9 @@ impl Memory for MappedStdIO {
 pub struct BrookeSystemFactory {}
 
 impl SystemFactory<RomFile> for BrookeSystemFactory {
-  fn create(rom: RomFile, _graphics: Arc<dyn GraphicsProvider>) -> System {
+  fn create(rom: RomFile, platform: Arc<dyn PlatformProvider>) -> System {
     let ram = BlockMemory::ram(0x4000);
-    let io = MappedStdIO::new();
+    let io = MappedStdIO::new(platform);
     let rom = BlockMemory::from_file(0x8000, rom);
 
     let memory = BranchMemory::new()
