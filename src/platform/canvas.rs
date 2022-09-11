@@ -14,6 +14,13 @@ use winit::platform::web::WindowExtWebSys;
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+  fn prompt(message: &str) -> String;
+  fn alert(message: &str);
+}
+
 fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   if (code as u8) <= 36 {
     let code = code as u8;
@@ -277,5 +284,13 @@ impl PlatformProvider for CanvasPlatformProvider {
 
   fn get_last_key(&self) -> u8 {
     self.last_key.lock().unwrap().clone()
+  }
+
+  fn print(&self, text: &str) {
+    alert(text);
+  }
+
+  fn input(&self) -> String {
+    prompt("> ")
   }
 }

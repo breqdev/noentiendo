@@ -1,8 +1,8 @@
 use crate::system::System;
 #[cfg(target_arch = "wasm32")]
 mod canvas;
-mod null;
 pub mod scancodes;
+mod text;
 #[cfg(not(target_arch = "wasm32"))]
 mod winit;
 use async_trait::async_trait;
@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
 pub use self::canvas::{CanvasPlatform, CanvasPlatformProvider};
-pub use self::null::{NullPlatform, NullPlatformProvider};
+pub use self::text::{TextPlatform, TextPlatformProvider};
 #[cfg(not(target_arch = "wasm32"))]
 pub use self::winit::{WinitPlatform, WinitPlatformProvider};
 
@@ -60,9 +60,17 @@ impl WindowConfig {
 }
 
 pub trait PlatformProvider: Send + Sync {
+  // Window management
   fn request_window(&self, config: WindowConfig);
 
+  // Graphics
   fn set_pixel(&self, x: u32, y: u32, color: Color);
+
+  // Keyboard input
   fn is_pressed(&self, key: u8) -> bool;
   fn get_last_key(&self) -> u8;
+
+  // Text I/O
+  fn print(&self, text: &str);
+  fn input(&self) -> String;
 }

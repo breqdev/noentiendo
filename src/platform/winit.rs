@@ -3,6 +3,7 @@ use crate::system::System;
 use async_trait::async_trait;
 use instant::Instant;
 use pixels::{Pixels, SurfaceTexture};
+use std::io::Write;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -246,5 +247,19 @@ impl PlatformProvider for WinitPlatformProvider {
 
   fn get_last_key(&self) -> u8 {
     self.last_key.lock().unwrap().clone()
+  }
+
+  fn print(&self, text: &str) {
+    print!("{}", text);
+  }
+
+  fn input(&self) -> String {
+    let mut input = String::new();
+    print!("> ");
+    std::io::stdout().flush().unwrap();
+    std::io::stdin()
+      .read_line(&mut input)
+      .expect("Failed to read line");
+    input
   }
 }

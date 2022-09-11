@@ -1,6 +1,6 @@
 #[cfg(not(target_arch = "wasm32"))]
 use libnoentiendo::{
-  platform::{NullPlatform, Platform, WinitPlatform},
+  platform::{Platform, TextPlatform, WinitPlatform},
   systems::pet::PetSystemRoms,
   systems::{BrookeSystemFactory, EasySystemFactory, PetSystemFactory, SystemFactory},
 };
@@ -18,7 +18,7 @@ struct Args {
   #[clap(short, long, value_parser)]
   system: String,
 
-  #[clap(short, long, value_parser, default_value = "none")]
+  #[clap(short, long, value_parser, default_value = "text")]
   graphics: String,
 }
 
@@ -27,7 +27,7 @@ fn main() {
   let args = Args::parse();
 
   let mut platform: Box<dyn Platform> = match args.graphics.as_str() {
-    "none" => Box::new(NullPlatform::new()),
+    "text" => Box::new(TextPlatform::new()),
     "winit" => Box::new(WinitPlatform::new()),
     _ => panic!("Unknown graphics provider"),
   };
