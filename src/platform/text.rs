@@ -21,6 +21,8 @@ impl Platform for TextPlatform {
     system.reset();
 
     let mut last_tick = Instant::now();
+    let mut last_report = last_tick;
+
     loop {
       let duration = system.tick();
       let now = Instant::now();
@@ -29,6 +31,12 @@ impl Platform for TextPlatform {
         thread::sleep(duration - elapsed);
       }
       last_tick = now;
+
+      if now - last_report > std::time::Duration::from_secs(1) {
+        let pc = system.registers.pc.address();
+        println!("Program Counter: {:02x}", pc);
+        last_report = now;
+      }
     }
   }
 
