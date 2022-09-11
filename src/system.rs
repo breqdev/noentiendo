@@ -60,13 +60,13 @@ impl Stack for System {
   }
 
   fn push_word(&mut self, value: u16) {
-    self.push((value & 0xFF) as u8);
     self.push((value >> 8) as u8);
+    self.push((value & 0xFF) as u8);
   }
 
   fn pop_word(&mut self) -> u16 {
-    let hi = self.pop();
     let lo = self.pop();
+    let hi = self.pop();
     (hi as u16) << 8 | lo as u16
   }
 }
