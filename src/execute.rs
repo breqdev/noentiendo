@@ -15,6 +15,7 @@ impl Execute for System {
         let value = self.fetch_operand_value(opcode);
         self.registers.a = value;
         self.registers.sr.set_nz(value);
+        println!("LDA ${:02X}", value);
         Ok(())
       }
 
@@ -115,6 +116,7 @@ impl Execute for System {
         // PLP
         let status = self.pop();
         self.registers.sr.load(status);
+        println!("PLP ${:08b}", status);
         Ok(())
       }
 
@@ -230,6 +232,7 @@ impl Execute for System {
         // EOR
         let value = self.fetch_operand_value(opcode);
         self.registers.a ^= value;
+        println!("EOR!!!");
         self.registers.sr.set_nz(self.registers.a);
         Ok(())
       }
@@ -253,6 +256,7 @@ impl Execute for System {
       0xC1 | 0xC5 | 0xC9 | 0xCD | 0xD1 | 0xD5 | 0xD9 | 0xDD => {
         // CMP
         let value = self.fetch_operand_value(opcode);
+        println!("CMP A: {:02X} val: {:02X}", self.registers.a, value);
         self.registers.alu_compare(self.registers.a, value);
         Ok(())
       }
@@ -330,6 +334,7 @@ impl Execute for System {
       // === CONTROL ===
       0x00 => {
         // BRK
+        println!("BRKing at {:04X}", self.registers.pc.address());
         self.registers.pc.increment();
         self.interrupt(true, true);
         Ok(())
@@ -344,6 +349,8 @@ impl Execute for System {
           }
           _ => unreachable!(),
         };
+
+        println!("JMPing to {:04X}", address);
 
         self.registers.pc.load(address);
         Ok(())
@@ -361,12 +368,14 @@ impl Execute for System {
         self.registers.sr.load(status);
         let dest = self.pop_word();
         self.registers.pc.load(dest);
+        println!("RTI: {:04X} with status {:08b}", dest, status);
         Ok(())
       }
       0x60 => {
         // RTS
         let dest = self.pop_word().wrapping_add(1);
         self.registers.pc.load(dest);
+        println!("RTS: {:04X}", dest);
         Ok(())
       }
 
@@ -388,6 +397,9 @@ impl Execute for System {
 
         if condition {
           self.registers.pc.offset(offset);
+          if self.registers.pc.address() != 0x09fd {
+            println!("branching to {:04X}", self.registers.pc.address());
+          }
         }
 
         Ok(())
@@ -413,6 +425,8 @@ impl Execute for System {
           0x78 => flags::INTERRUPT, // SEI
           _ => unreachable!(),
         });
+
+        println!("set flag {:08b}", self.registers.sr.get());
 
         Ok(())
       }
