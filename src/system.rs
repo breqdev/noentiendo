@@ -49,13 +49,13 @@ pub trait Stack {
 
 impl Stack for System {
   fn push(&mut self, value: u8) {
-    self.registers.sp.push();
     self.write(self.registers.sp.address(), value);
+    self.registers.sp.push();
   }
 
   fn pop(&mut self) -> u8 {
-    let value = self.read(self.registers.sp.address());
     self.registers.sp.pop();
+    let value = self.read(self.registers.sp.address());
     value
   }
 
