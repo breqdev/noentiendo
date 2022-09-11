@@ -20,6 +20,8 @@ impl Platform for TextPlatform {
   fn run(&mut self, mut system: System) {
     system.reset();
 
+    system.registers.pc.load(0x0400); // Klaus tests
+
     let mut last_tick = Instant::now();
     let mut last_report = last_tick;
 
