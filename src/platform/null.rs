@@ -15,13 +15,13 @@ impl NullPlatform {
 
 #[async_trait(?Send)]
 impl Platform for NullPlatform {
-  fn run(&mut self, system: System) {
+  fn run(&mut self, _system: System) {
     loop {
       thread::sleep(Duration::from_millis(10));
     }
   }
 
-  async fn run_async(&mut self, system: System) {}
+  async fn run_async(&mut self, _system: System) {}
 
   fn provider(&self) -> Arc<dyn PlatformProvider> {
     Arc::new(NullPlatformProvider::new())

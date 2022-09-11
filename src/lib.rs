@@ -6,7 +6,6 @@ pub mod platform;
 mod registers;
 pub mod system;
 pub mod systems;
-mod time;
 
 #[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;
@@ -28,7 +27,7 @@ pub async fn main(rom: Uint8Array) {
   let mut graphics = CanvasPlatform::new();
   let romfile = memory::RomFile::from_uint8array(&rom);
 
-  let mut system = EasySystemFactory::create(romfile, graphics.provider());
+  let system = EasySystemFactory::create(romfile, graphics.provider());
 
   graphics.run_async(system).await;
 }

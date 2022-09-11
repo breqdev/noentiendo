@@ -5,8 +5,8 @@ use instant::Instant;
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
-use wasm_bindgen_futures::spawn_local;
-use web_sys::console;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -40,7 +40,6 @@ pub struct CanvasPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
   provider: Arc<CanvasPlatformProvider>,
-  ready: Arc<Mutex<bool>>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
@@ -50,7 +49,6 @@ impl CanvasPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(None));
-    let ready = Arc::new(Mutex::new(false));
     let dirty = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new([false; 256]));
     let last_key = Arc::new(Mutex::new(0));
@@ -59,14 +57,12 @@ impl CanvasPlatform {
       provider: Arc::new(CanvasPlatformProvider::new(
         config.clone(),
         pixels.clone(),
-        ready.clone(),
         dirty.clone(),
         key_state.clone(),
         last_key.clone(),
       )),
       config,
       pixels,
-      ready,
       dirty,
       key_state,
       last_key,
@@ -77,6 +73,26 @@ impl CanvasPlatform {
     let config = self.config.lock().unwrap();
     config.clone().expect("WindowConfig not set")
   }
+}
+
+fn run_system(mut system: System) {
+  let mut duration = Duration::ZERO;
+
+  while duration < Duration::from_millis(20) {
+    duration += system.tick();
+  }
+
+  let closure = Closure::once_into_js(move || {
+    run_system(system);
+  });
+
+  web_sys::window()
+    .unwrap()
+    .set_timeout_with_callback_and_timeout_and_arguments_0(
+      closure.unchecked_ref(),
+      duration.as_millis() as i32,
+    )
+    .unwrap();
 }
 
 #[async_trait(?Send)]
@@ -116,7 +132,6 @@ impl Platform for CanvasPlatform {
 
     let pixels_arc = self.pixels.clone();
     let window_arc = window.clone();
-    let ready_arc = self.ready.clone();
     let surface_texture =
       SurfaceTexture::new(inner_size.width, inner_size.height, window_arc.as_ref());
 
@@ -125,7 +140,6 @@ impl Platform for CanvasPlatform {
       .unwrap();
 
     *pixels_arc.lock().unwrap() = Some(pixels);
-    *ready_arc.lock().unwrap() = true;
 
     let mut input = WinitInputHelper::new();
 
@@ -135,6 +149,8 @@ impl Platform for CanvasPlatform {
     let last_key = self.last_key.clone();
 
     system.reset();
+
+    run_system(system);
 
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
@@ -156,13 +172,9 @@ impl Platform for CanvasPlatform {
 
       match event {
         Event::MainEventsCleared => {
-          for _ in 0..300 {
-            system.tick();
+          if *dirty.lock().unwrap() {
+            window.request_redraw();
           }
-
-          // if *dirty.lock().unwrap() {
-          window.request_redraw();
-          // }
         }
         Event::RedrawRequested(_) => {
           *dirty.lock().unwrap() = false;
@@ -208,7 +220,6 @@ impl Platform for CanvasPlatform {
 pub struct CanvasPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  ready: Arc<Mutex<bool>>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<[bool; 256]>>,
   last_key: Arc<Mutex<u8>>,
@@ -218,7 +229,6 @@ impl CanvasPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
     pixels: Arc<Mutex<Option<Pixels>>>,
-    ready: Arc<Mutex<bool>>,
     dirty: Arc<Mutex<bool>>,
     key_state: Arc<Mutex<[bool; 256]>>,
     last_key: Arc<Mutex<u8>>,
@@ -226,7 +236,6 @@ impl CanvasPlatformProvider {
     Self {
       config,
       pixels,
-      ready,
       dirty,
       key_state,
       last_key,

@@ -59,20 +59,3 @@ pub fn writeline(message: &str) {
 pub fn writeline(message: &str) {
   alert(message);
 }
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn sleep(duration: std::time::Duration) {
-  std::thread::sleep(duration);
-}
-
-#[cfg(target_arch = "wasm32")]
-pub async fn sleep(duration: f64) {
-  let promise = Promise::new(&mut |yes, _| {
-    let win = window().unwrap();
-    win
-      .set_timeout_with_callback_and_timeout_and_arguments_0(&yes, (duration * 1000.0) as i32)
-      .unwrap();
-  });
-  let js_fut = JsFuture::from(promise);
-  js_fut.await.unwrap();
-}

@@ -104,9 +104,18 @@ impl Platform for WinitPlatform {
 
     system.reset();
 
-    // thread::spawn(move || loop {
-    //   system.tick();
-    // });
+    thread::spawn(move || {
+      let mut last_tick = Instant::now();
+      loop {
+        let duration = system.tick();
+        let now = Instant::now();
+        let elapsed = now - last_tick;
+        if elapsed < duration {
+          thread::sleep(duration - elapsed);
+        }
+        last_tick = now;
+      }
+    });
 
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
@@ -128,13 +137,9 @@ impl Platform for WinitPlatform {
 
       match event {
         Event::MainEventsCleared => {
-          for _ in 0..10000 {
-            system.tick();
+          if *dirty.lock().unwrap() {
+            window.request_redraw();
           }
-
-          // if *dirty.lock().unwrap() {
-          window.request_redraw();
-          // }
         }
         Event::RedrawRequested(_) => {
           *dirty.lock().unwrap() = false;
