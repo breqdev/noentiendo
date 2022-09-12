@@ -28,7 +28,11 @@ impl BlockMemory {
     let file_data = file.get_data();
 
     if file_data.len() > size {
-      panic!("File of size {} is too large for memory block of size {}", file_data.len(), size);
+      panic!(
+        "File of size {} is too large for memory block of size {}",
+        file_data.len(),
+        size
+      );
     }
 
     for i in 0..file_data.len() {

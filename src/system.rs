@@ -49,40 +49,45 @@ pub trait Stack {
 
 impl Stack for System {
   fn push(&mut self, value: u8) {
-    self.registers.sp.push();
     self.write(self.registers.sp.address(), value);
+    self.registers.sp.push();
   }
 
   fn pop(&mut self) -> u8 {
-    let value = self.read(self.registers.sp.address());
     self.registers.sp.pop();
+    let value = self.read(self.registers.sp.address());
     value
   }
 
   fn push_word(&mut self, value: u16) {
-    self.push((value & 0xFF) as u8);
     self.push((value >> 8) as u8);
+    self.push((value & 0xFF) as u8);
   }
 
   fn pop_word(&mut self) -> u16 {
-    let hi = self.pop();
     let lo = self.pop();
+    let hi = self.pop();
     (hi as u16) << 8 | lo as u16
   }
 }
 
 pub trait InterruptHandler {
-  fn interrupt(&mut self, maskable: bool);
+  fn interrupt(&mut self, maskable: bool, set_brk: bool);
 }
 
 impl InterruptHandler for System {
-  fn interrupt(&mut self, maskable: bool) {
-    if maskable && self.registers.sr.read(flags::INTERRUPT) {
+  fn interrupt(&mut self, maskable: bool, break_instr: bool) {
+    if maskable && !break_instr && self.registers.sr.read(flags::INTERRUPT) {
       return;
     }
 
     self.push_word(self.registers.pc.address());
-    self.push(self.registers.sr.get());
+
+    if break_instr {
+      self.push(self.registers.sr.get() | flags::BREAK);
+    } else {
+      self.push(self.registers.sr.get() & !flags::BREAK);
+    }
 
     self.registers.sr.set(flags::INTERRUPT);
 
@@ -137,8 +142,8 @@ impl System {
 
     match self.memory.poll(&info) {
       ActiveInterrupt::None => (),
-      ActiveInterrupt::NMI => self.interrupt(false),
-      ActiveInterrupt::IRQ => self.interrupt(true),
+      ActiveInterrupt::NMI => self.interrupt(false, false),
+      ActiveInterrupt::IRQ => self.interrupt(true, false),
     }
 
     Duration::from_secs_f64(1.0 / self.cycles_per_second as f64)

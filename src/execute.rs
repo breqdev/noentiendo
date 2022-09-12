@@ -101,12 +101,14 @@ impl Execute for System {
       }
       0x08 => {
         // PHP
-        self.push(self.registers.sr.get());
+        self.push(self.registers.sr.get() | flags::BREAK);
         Ok(())
       }
       0x68 => {
         // PLA
-        self.registers.a = self.pop();
+        let value = self.pop();
+        self.registers.a = value;
+        self.registers.sr.set_nz(value);
         Ok(())
       }
       0x28 => {
@@ -329,7 +331,7 @@ impl Execute for System {
       0x00 => {
         // BRK
         self.registers.pc.increment();
-        self.interrupt(true);
+        self.interrupt(true, true);
         Ok(())
       }
       0x4C | 0x6C => {

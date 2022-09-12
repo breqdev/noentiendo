@@ -44,7 +44,7 @@ impl Fetch for System {
       0x01 | 0x03 => {
         // (Indirect,X)
         let base = self.fetch();
-        let pointer = (base + self.registers.x) as u16;
+        let pointer = (base as u16 + self.registers.x as u16) & 0xFF;
         self.read_word(pointer)
       }
       0x04 | 0x05 | 0x06 | 0x07 => self.fetch() as u16, // Zero page
@@ -61,15 +61,15 @@ impl Fetch for System {
       0x14 | 0x15 => {
         // Zero page,X
         let base = self.fetch();
-        (base + self.registers.x) as u16
+        (base as u16 + self.registers.x as u16) & 0xFF
       }
       0x16 | 0x17 => {
         // Zero page,X or Zero page,Y
         let base = self.fetch();
         if opcode & 0xC0 == 0x80 {
-          (base + self.registers.y) as u16
+          (base as u16 + self.registers.y as u16) & 0xFF
         } else {
-          (base + self.registers.x) as u16
+          (base as u16 + self.registers.x as u16) & 0xFF
         }
       }
       0x19 | 0x1B => {

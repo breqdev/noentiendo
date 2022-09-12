@@ -12,8 +12,8 @@ pub mod flags {
   pub const ZERO: u8 = 0b00000010;
   pub const INTERRUPT: u8 = 0b00000100;
   pub const DECIMAL: u8 = 0b00001000;
-  pub const _BREAK: u8 = 0b00010000;
-  pub const _UNUSED: u8 = 0b00100000;
+  pub const BREAK: u8 = 0b00010000;
+  pub const UNUSED: u8 = 0b00100000;
   pub const OVERFLOW: u8 = 0b01000000;
   pub const NEGATIVE: u8 = 0b10000000;
 }
@@ -104,7 +104,7 @@ impl StatusRegister {
   }
 
   pub fn load(&mut self, value: u8) {
-    self.value = value;
+    self.value = value | flags::UNUSED | flags::BREAK;
   }
 
   pub fn get(&self) -> u8 {
@@ -125,30 +125,77 @@ pub trait ALU {
 
 impl ALU for Registers {
   fn alu_add(&mut self, value: u8) {
-    if self.sr.read(flags::DECIMAL) {
-      todo!("decimal mode not yet implemented!");
+    if !self.sr.read(flags::DECIMAL) {
+      let sum = (self.a as u16)
+        .wrapping_add(value as u16)
+        .wrapping_add(self.sr.read(flags::CARRY) as u16);
+
+      self.sr.write(flags::CARRY, sum > 0xFF);
+      self.sr.write(
+        flags::OVERFLOW,
+        !(self.a ^ value) & (self.a ^ sum as u8) & 0x80 != 0,
+      );
+
+      let sum = sum as u8;
+      self.sr.set_nz(sum);
+      self.a = sum;
+    } else {
+      let mut lsd = (self.a & 0x0F) + (value & 0x0F) + self.sr.read(flags::CARRY) as u8;
+      let mut msd = ((self.a & 0xF0) as u16) + ((value & 0xF0) as u16);
+
+      if lsd > 0x09 {
+        msd += 0x10;
+        lsd += 0x06;
+        lsd &= 0x0F;
+      }
+
+      if msd > 0x90 {
+        msd += 0x60;
+      }
+
+      self.sr.write(flags::CARRY, (msd & 0xFF00) != 0);
+
+      let sum = (msd as u8) | (lsd as u8);
+      self.sr.set_nz(sum);
+      self.a = sum;
     }
-
-    let sum = (self.a as u16)
-      .wrapping_add(value as u16)
-      .wrapping_add(self.sr.read(flags::CARRY) as u16);
-
-    self.sr.write(flags::CARRY, sum > 0xFF);
-    self.sr.write(
-      flags::OVERFLOW,
-      !(self.a ^ value) & (self.a ^ sum as u8) & 0x80 != 0,
-    );
-
-    self.a = sum as u8;
-    self.sr.set_nz(self.a);
   }
 
   fn alu_subtract(&mut self, value: u8) {
-    if self.sr.read(flags::DECIMAL) {
-      todo!("decimal mode not yet implemented!");
-    }
+    if !self.sr.read(flags::DECIMAL) {
+      let sum = (self.a as u16)
+        .wrapping_add(!value as u16)
+        .wrapping_add(self.sr.read(flags::CARRY) as u16);
 
-    self.alu_add(!value);
+      self.sr.write(flags::CARRY, sum > 0xFF);
+      self.sr.write(
+        flags::OVERFLOW,
+        (self.a ^ value) & (self.a ^ sum as u8) & 0x80 != 0,
+      );
+
+      let sum = sum as u8;
+      self.sr.set_nz(sum);
+      self.a = sum;
+    } else {
+      let mut lsd = (self.a & 0x0F) + (0x09 - (value & 0x0F)) + self.sr.read(flags::CARRY) as u8;
+      let mut msd = ((self.a & 0xF0) as u16) + ((0x90 - (value & 0xF0)) as u16);
+
+      if lsd > 0x09 {
+        msd += 0x10;
+        lsd += 0x06;
+        lsd &= 0x0F;
+      }
+
+      if msd > 0x90 {
+        msd += 0x60;
+      }
+
+      self.sr.write(flags::CARRY, (msd & 0xFF00) != 0);
+
+      let sum = (msd as u8) | (lsd as u8);
+      self.sr.set_nz(sum);
+      self.a = sum;
+    }
   }
 
   fn alu_compare(&mut self, register: u8, value: u8) {

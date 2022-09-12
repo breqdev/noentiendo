@@ -2,7 +2,9 @@
 use libnoentiendo::{
   platform::{Platform, TextPlatform, WinitPlatform},
   systems::pet::PetSystemRoms,
-  systems::{BrookeSystemFactory, EasySystemFactory, PetSystemFactory, SystemFactory},
+  systems::{
+    BrookeSystemFactory, EasySystemFactory, KlausSystemFactory, PetSystemFactory, SystemFactory,
+  },
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -40,6 +42,7 @@ fn main() {
   let system = match args.system.as_str() {
     "brooke" => BrookeSystemFactory::create(romfile.unwrap(), platform.provider()),
     "easy" => EasySystemFactory::create(romfile.unwrap(), platform.provider()),
+    "klaus" => KlausSystemFactory::create(romfile.unwrap(), platform.provider()),
     "pet" => PetSystemFactory::create(PetSystemRoms::from_disk(), platform.provider()),
     _ => panic!("Unknown system"),
   };
