@@ -105,11 +105,7 @@ impl System {
     System {
       registers: Registers::new(),
       memory,
-      cycles_per_second: if cycles_per_second == 0 {
-        1_000_000
-      } else {
-        cycles_per_second
-      },
+      cycles_per_second,
       cycle_count: 0,
     }
   }
@@ -119,6 +115,13 @@ impl System {
     self.registers.reset();
     let pc_address = self.read_word(0xFFFC);
     self.registers.pc.load(pc_address);
+  }
+
+  pub fn get_info(&self) -> SystemInfo {
+    SystemInfo {
+      cycles_per_second: self.cycles_per_second,
+      cycle_count: self.cycle_count,
+    }
   }
 
   pub fn tick(&mut self) -> Duration {
@@ -135,10 +138,7 @@ impl System {
     }
     self.cycle_count += 1;
 
-    let info = SystemInfo {
-      cycles_per_second: self.cycles_per_second,
-      cycle_count: self.cycle_count,
-    };
+    let info = self.get_info();
 
     match self.memory.poll(&info) {
       ActiveInterrupt::None => (),
@@ -146,6 +146,10 @@ impl System {
       ActiveInterrupt::IRQ => self.interrupt(true, false),
     }
 
-    Duration::from_secs_f64(1.0 / self.cycles_per_second as f64)
+    if self.cycles_per_second == 0 {
+      Duration::from_secs(0)
+    } else {
+      Duration::from_secs_f64(1.0 / self.cycles_per_second as f64)
+    }
   }
 }

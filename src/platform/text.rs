@@ -5,7 +5,7 @@ use rand;
 use std::io::Write;
 use std::sync::Arc;
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 pub struct TextPlatform {}
 
@@ -26,7 +26,16 @@ impl Platform for TextPlatform {
     let mut last_report = last_tick;
 
     loop {
-      let duration = system.tick();
+      let mut duration = Duration::ZERO;
+      if system.get_info().cycles_per_second > 0 {
+        while duration < Duration::from_millis(16) {
+          duration += system.tick();
+        }
+      } else {
+        for _ in 0..1000 {
+          system.tick();
+        }
+      }
       let now = Instant::now();
       let elapsed = now - last_tick;
       if elapsed < duration {
