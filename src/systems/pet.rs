@@ -5,8 +5,9 @@ use crate::memory::{
 use crate::platform::{scancodes, Color, PlatformProvider, WindowConfig};
 use crate::system::System;
 use crate::systems::SystemFactory;
+use instant::Instant;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;

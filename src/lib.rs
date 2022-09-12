@@ -17,20 +17,36 @@ use js_sys::Uint8Array;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub async fn main(rom: Uint8Array) {
+pub async fn main(
+  basic: Uint8Array,
+  character: Uint8Array,
+  editor: Uint8Array,
+  kernal: Uint8Array,
+) {
   console_error_panic_hook::set_once();
 
   use platform::{CanvasPlatform, Platform};
-  use systems::{EasySystemFactory, SystemFactory};
+  use systems::{PetSystemFactory, SystemFactory};
 
   let mut platform = CanvasPlatform::new();
   // platform
   //   .provider()
   //   .request_window(platform::WindowConfig::new(1, 1, 2.0));
 
-  let romfile = memory::RomFile::from_uint8array(&rom);
+  // let romfile = memory::RomFile::from_uint8array(&rom);
+  let basic = memory::RomFile::from_uint8array(&basic);
+  let character = memory::RomFile::from_uint8array(&character);
+  let editor = memory::RomFile::from_uint8array(&editor);
+  let kernal = memory::RomFile::from_uint8array(&kernal);
 
-  let system = EasySystemFactory::create(romfile, platform.provider());
+  let roms = systems::PetSystemRoms {
+    character,
+    basic,
+    editor,
+    kernal,
+  };
+
+  let system = PetSystemFactory::create(roms, platform.provider());
 
   platform.run_async(system).await;
 }

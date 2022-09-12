@@ -1,8 +1,11 @@
 import * as wasm from "noentiendo";
-import bin from "../bin/easy.bin";
+import basicBin from "../pet/basic.bin";
+import charBin from "../pet/char.bin";
+import editorBin from "../pet/editor.bin";
+import kernalBin from "../pet/kernal.bin";
 
-let bin64 = bin.split(";")[1].split(",")[1];
+let [basic, char, editor, kernal] = [basicBin, charBin, editorBin, kernalBin]
+  .map((x) => x.split(";")[1].split(",")[1])
+  .map((x) => Uint8Array.from(atob(x), (c) => c.charCodeAt(0)));
 
-let rom = Uint8Array.from(atob(bin64), (c) => c.charCodeAt(0));
-
-wasm.main(rom);
+wasm.main(basic, char, editor, kernal);

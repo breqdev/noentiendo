@@ -10,7 +10,7 @@ pub mod pet;
 pub use brooke::BrookeSystemFactory;
 pub use easy::EasySystemFactory;
 pub use klaus::KlausSystemFactory;
-pub use pet::PetSystemFactory;
+pub use pet::{PetSystemFactory, PetSystemRoms};
 
 pub trait SystemFactory<RomRegistry> {
   fn create(roms: RomRegistry, platform: Arc<dyn PlatformProvider>) -> System;
