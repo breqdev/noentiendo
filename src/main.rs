@@ -1,6 +1,6 @@
 #[cfg(not(target_arch = "wasm32"))]
 use libnoentiendo::{
-  platform::{Platform, TextPlatform, WinitPlatform},
+  platform::{SyncPlatform, TextPlatform, WinitPlatform},
   systems::pet::PetSystemRoms,
   systems::{
     BrookeSystemFactory, EasySystemFactory, KlausSystemFactory, PetSystemFactory, SystemFactory,
@@ -28,7 +28,7 @@ struct Args {
 fn main() {
   let args = Args::parse();
 
-  let mut platform: Box<dyn Platform> = match args.platform.as_str() {
+  let mut platform: Box<dyn SyncPlatform> = match args.platform.as_str() {
     "text" => Box::new(TextPlatform::new()),
     "winit" => Box::new(WinitPlatform::new()),
     _ => panic!("Unknown platform"),

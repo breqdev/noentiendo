@@ -1,6 +1,5 @@
-use crate::platform::{Color, Platform, PlatformProvider, WindowConfig};
+use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::system::System;
-use async_trait::async_trait;
 use rand;
 use std::io::Write;
 use std::sync::Arc;
@@ -15,8 +14,13 @@ impl TextPlatform {
   }
 }
 
-#[async_trait(?Send)]
 impl Platform for TextPlatform {
+  fn provider(&self) -> Arc<dyn PlatformProvider> {
+    Arc::new(TextPlatformProvider::new())
+  }
+}
+
+impl SyncPlatform for TextPlatform {
   fn run(&mut self, mut system: System) {
     system.reset();
 
@@ -49,14 +53,6 @@ impl Platform for TextPlatform {
         last_report = now;
       }
     }
-  }
-
-  async fn run_async(&mut self, _system: System) {
-    unimplemented!()
-  }
-
-  fn provider(&self) -> Arc<dyn PlatformProvider> {
-    Arc::new(TextPlatformProvider::new())
   }
 }
 

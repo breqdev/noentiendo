@@ -25,7 +25,7 @@ pub async fn main(
 ) {
   console_error_panic_hook::set_once();
 
-  use platform::{CanvasPlatform, Platform};
+  use platform::{AsyncPlatform, CanvasPlatform, Platform};
   use systems::{PetSystemFactory, SystemFactory};
 
   let mut platform = CanvasPlatform::new();

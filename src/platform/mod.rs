@@ -16,11 +16,17 @@ pub use self::text::{TextPlatform, TextPlatformProvider};
 #[cfg(not(target_arch = "wasm32"))]
 pub use self::winit::{WinitPlatform, WinitPlatformProvider};
 
-#[async_trait(?Send)]
 pub trait Platform {
-  fn run(&mut self, system: System);
-  async fn run_async(&mut self, system: System);
   fn provider(&self) -> Arc<dyn PlatformProvider>;
+}
+
+pub trait SyncPlatform: Platform {
+  fn run(&mut self, system: System);
+}
+
+#[async_trait(?Send)]
+pub trait AsyncPlatform: Platform {
+  async fn run_async(&mut self, system: System);
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]

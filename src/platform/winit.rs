@@ -1,6 +1,5 @@
-use crate::platform::{scancodes, Color, Platform, PlatformProvider, WindowConfig};
+use crate::platform::{scancodes, Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::system::System;
-use async_trait::async_trait;
 use instant::Instant;
 use pixels::{Pixels, SurfaceTexture};
 use rand;
@@ -74,8 +73,13 @@ impl WinitPlatform {
   }
 }
 
-#[async_trait(?Send)]
 impl Platform for WinitPlatform {
+  fn provider(&self) -> Arc<dyn PlatformProvider> {
+    self.provider.clone()
+  }
+}
+
+impl SyncPlatform for WinitPlatform {
   fn run(&mut self, mut system: System) {
     let event_loop = EventLoop::new();
 
@@ -191,14 +195,6 @@ impl Platform for WinitPlatform {
         _ => (),
       }
     });
-  }
-
-  async fn run_async(&mut self, _system: System) {
-    unimplemented!("Winit on desktop can only run synchronously")
-  }
-
-  fn provider(&self) -> Arc<dyn PlatformProvider> {
-    self.provider.clone()
   }
 }
 

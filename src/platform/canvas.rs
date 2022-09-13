@@ -1,4 +1,4 @@
-use crate::platform::{scancodes, Color, Platform, PlatformProvider, WindowConfig};
+use crate::platform::{scancodes, AsyncPlatform, Color, Platform, PlatformProvider, WindowConfig};
 use crate::system::System;
 use async_trait::async_trait;
 use instant::Instant;
@@ -89,7 +89,7 @@ fn run_system(mut system: System) {
   let mut duration = Duration::ZERO;
 
   while duration < Duration::from_millis(20) {
-    duration += system.tick();
+    duration += Duration::from_secs_f64(system.tick());
   }
 
   let closure = Closure::once_into_js(move || {
@@ -105,12 +105,14 @@ fn run_system(mut system: System) {
     .unwrap();
 }
 
-#[async_trait(?Send)]
 impl Platform for CanvasPlatform {
-  fn run(&mut self, _system: System) {
-    unimplemented!("WebAssembly cannot run synchronously, to avoid blocking the main thread");
+  fn provider(&self) -> Arc<dyn PlatformProvider> {
+    self.provider.clone()
   }
+}
 
+#[async_trait(?Send)]
+impl AsyncPlatform for CanvasPlatform {
   async fn run_async(&mut self, mut system: System) {
     let event_loop = EventLoop::new();
 
@@ -219,10 +221,6 @@ impl Platform for CanvasPlatform {
         _ => (),
       }
     });
-  }
-
-  fn provider(&self) -> Arc<dyn PlatformProvider> {
-    self.provider.clone()
   }
 }
 
