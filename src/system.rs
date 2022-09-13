@@ -126,8 +126,25 @@ impl System {
 
   pub fn tick(&mut self) -> Duration {
     let opcode = self.fetch();
+
     match self.execute(opcode) {
-      Ok(()) => {}
+      Ok(cycles) => {
+        self.cycle_count += cycles as u64;
+
+        let info = self.get_info();
+
+        match self.memory.poll(&info) {
+          ActiveInterrupt::None => (),
+          ActiveInterrupt::NMI => self.interrupt(false, false),
+          ActiveInterrupt::IRQ => self.interrupt(true, false),
+        }
+
+        if self.cycles_per_second == 0 {
+          Duration::from_secs(0)
+        } else {
+          Duration::from_secs_f64(cycles as f64 / self.cycles_per_second as f64)
+        }
+      }
       Err(_) => {
         panic!(
           "Failed to execute instruction {:02x} at {:04x}",
@@ -135,21 +152,6 @@ impl System {
           self.registers.pc.address()
         );
       }
-    }
-    self.cycle_count += 1;
-
-    let info = self.get_info();
-
-    match self.memory.poll(&info) {
-      ActiveInterrupt::None => (),
-      ActiveInterrupt::NMI => self.interrupt(false, false),
-      ActiveInterrupt::IRQ => self.interrupt(true, false),
-    }
-
-    if self.cycles_per_second == 0 {
-      Duration::from_secs(0)
-    } else {
-      Duration::from_secs_f64(1.0 / self.cycles_per_second as f64)
     }
   }
 }

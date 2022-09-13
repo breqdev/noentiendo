@@ -3,57 +3,57 @@ use crate::registers::{flags, ALU};
 use crate::system::{InterruptHandler, MemoryIO, Stack, System};
 
 pub trait Execute {
-  fn execute(&mut self, opcode: u8) -> Result<(), ()>;
+  fn execute(&mut self, opcode: u8) -> Result<u8, ()>;
 }
 
 impl Execute for System {
-  fn execute(&mut self, opcode: u8) -> Result<(), ()> {
+  fn execute(&mut self, opcode: u8) -> Result<u8, ()> {
     match opcode {
       // === LOAD ===
       0xA1 | 0xA5 | 0xA9 | 0xAD | 0xB1 | 0xB5 | 0xB9 | 0xBD => {
         // LDA
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a = value;
         self.registers.sr.set_nz(value);
-        Ok(())
+        Ok(cycles)
       }
 
       0xA2 | 0xA6 | 0xAE | 0xB6 | 0xBE => {
         // LDX
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.x = value;
         self.registers.sr.set_nz(value);
-        Ok(())
+        Ok(cycles)
       }
 
       0xA0 | 0xA4 | 0xAC | 0xB4 | 0xBC => {
         // LDY
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.y = value;
         self.registers.sr.set_nz(value);
-        Ok(())
+        Ok(cycles)
       }
 
       // === STORE ===
       0x81 | 0x85 | 0x8D | 0x91 | 0x95 | 0x99 | 0x9D => {
         // STA
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         self.write(address, self.registers.a);
-        Ok(())
+        Ok(cycles)
       }
 
       // STX
       0x86 | 0x8E | 0x96 => {
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         self.write(address, self.registers.x);
-        Ok(())
+        Ok(cycles)
       }
 
       // STY
       0x84 | 0x8C | 0x94 => {
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         self.write(address, self.registers.y);
-        Ok(())
+        Ok(cycles)
       }
 
       // === TRANSFER ===
@@ -61,61 +61,61 @@ impl Execute for System {
         // TAX
         self.registers.x = self.registers.a;
         self.registers.sr.set_nz(self.registers.a);
-        Ok(())
+        Ok(2)
       }
       0xA8 => {
         // TAY
         self.registers.y = self.registers.a;
         self.registers.sr.set_nz(self.registers.a);
-        Ok(())
+        Ok(2)
       }
       0xBA => {
         // TSX
         self.registers.x = self.registers.sp.get();
         self.registers.sr.set_nz(self.registers.sp.get());
-        Ok(())
+        Ok(2)
       }
       0x8A => {
         // TXA
         self.registers.a = self.registers.x;
         self.registers.sr.set_nz(self.registers.x);
-        Ok(())
+        Ok(2)
       }
       0x9A => {
         // TXS
         self.registers.sp.set(self.registers.x);
-        Ok(())
+        Ok(2)
       }
       0x98 => {
         // TYA
         self.registers.a = self.registers.y;
         self.registers.sr.set_nz(self.registers.y);
-        Ok(())
+        Ok(2)
       }
 
       // === STACK ===
       0x48 => {
         // PHA
         self.push(self.registers.a);
-        Ok(())
+        Ok(3)
       }
       0x08 => {
         // PHP
         self.push(self.registers.sr.get() | flags::BREAK);
-        Ok(())
+        Ok(3)
       }
       0x68 => {
         // PLA
         let value = self.pop();
         self.registers.a = value;
         self.registers.sr.set_nz(value);
-        Ok(())
+        Ok(4)
       }
       0x28 => {
         // PLP
         let status = self.pop();
         self.registers.sr.load(status);
-        Ok(())
+        Ok(4)
       }
 
       // === SHIFT ===
@@ -126,18 +126,18 @@ impl Execute for System {
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
         self.registers.sr.set_nz(self.registers.a);
-        Ok(())
+        Ok(2)
       }
       0x06 | 0x0E | 0x16 | 0x1E => {
         // ASL
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = value << 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
         self.registers.sr.set_nz(result);
         self.write(address, result);
-        Ok(())
+        Ok(cycles + 2)
       }
 
       0x4A => {
@@ -147,18 +147,18 @@ impl Execute for System {
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
         self.registers.sr.set_nz(self.registers.a);
-        Ok(())
+        Ok(2)
       }
       0x46 | 0x4E | 0x56 | 0x5E => {
         // LSR
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = value >> 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
         self.registers.sr.set_nz(result);
         self.write(address, result);
-        Ok(())
+        Ok(cycles + 2)
       }
 
       0x2A => {
@@ -169,18 +169,18 @@ impl Execute for System {
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
         self.registers.sr.set_nz(result);
         self.registers.a = result;
-        Ok(())
+        Ok(2)
       }
       0x26 | 0x2E | 0x36 | 0x3E => {
         // ROL
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
         self.registers.sr.set_nz(result);
         self.write(address, result);
-        Ok(())
+        Ok(cycles + 2)
       }
 
       0x6A => {
@@ -191,140 +191,140 @@ impl Execute for System {
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
         self.registers.sr.set_nz(result);
         self.registers.a = result;
-        Ok(())
+        Ok(2)
       }
       0x66 | 0x6E | 0x76 | 0x7E => {
         // ROR
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = value >> 1 | (self.registers.sr.read(flags::CARRY) as u8) << 7;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
         self.registers.sr.set_nz(result);
         self.write(address, result);
-        Ok(())
+        Ok(2)
       }
 
       // === LOGIC ===
       0x21 | 0x25 | 0x29 | 0x2D | 0x31 | 0x35 | 0x39 | 0x3D => {
         // AND
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a &= value;
         self.registers.sr.set_nz(self.registers.a);
-        Ok(())
+        Ok(cycles)
       }
 
       0x24 | 0x2C => {
         // BIT
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.sr.write(flags::NEGATIVE, value & 0x80 != 0);
         self.registers.sr.write(flags::OVERFLOW, value & 0x40 != 0);
         self
           .registers
           .sr
           .write(flags::ZERO, value & self.registers.a == 0);
-        Ok(())
+        Ok(cycles)
       }
 
       0x41 | 0x45 | 0x49 | 0x4D | 0x51 | 0x55 | 0x59 | 0x5D => {
         // EOR
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a ^= value;
         self.registers.sr.set_nz(self.registers.a);
-        Ok(())
+        Ok(cycles)
       }
 
       0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => {
         // ORA
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a |= value;
         self.registers.sr.set_nz(self.registers.a);
-        Ok(())
+        Ok(cycles)
       }
 
       // === ARITHMETIC ===
       0x61 | 0x65 | 0x69 | 0x6D | 0x71 | 0x75 | 0x79 | 0x7D => {
         // ADC
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_add(value);
-        Ok(())
+        Ok(cycles)
       }
 
       0xC1 | 0xC5 | 0xC9 | 0xCD | 0xD1 | 0xD5 | 0xD9 | 0xDD => {
         // CMP
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_compare(self.registers.a, value);
-        Ok(())
+        Ok(cycles)
       }
 
       0xE0 | 0xE4 | 0xEC => {
         // CPX
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_compare(self.registers.x, value);
-        Ok(())
+        Ok(cycles)
       }
 
       0xC0 | 0xC4 | 0xCC => {
         // CPY
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_compare(self.registers.y, value);
-        Ok(())
+        Ok(cycles)
       }
 
       0xE1 | 0xE5 | 0xE9 | 0xED | 0xF1 | 0xF5 | 0xF9 | 0xFD => {
         // SBC
-        let value = self.fetch_operand_value(opcode);
+        let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_subtract(value);
-        Ok(())
+        Ok(cycles)
       }
 
       // === INCREMENT ===
       0xC6 | 0xCE | 0xD6 | 0xDE => {
         // DEC
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = value.wrapping_sub(1);
         self.registers.sr.set_nz(result);
         self.write(address, result);
-        Ok(())
+        Ok(cycles + 2)
       }
 
       0xCA => {
         // DEX
         self.registers.x = self.registers.x.wrapping_sub(1);
         self.registers.sr.set_nz(self.registers.x);
-        Ok(())
+        Ok(2)
       }
 
       0x88 => {
         // DEY
         self.registers.y = self.registers.y.wrapping_sub(1);
         self.registers.sr.set_nz(self.registers.y);
-        Ok(())
+        Ok(2)
       }
 
       0xE6 | 0xEE | 0xF6 | 0xFE => {
         // INC
-        let address = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = value.wrapping_add(1);
         self.registers.sr.set_nz(result);
         self.write(address, result);
-        Ok(())
+        Ok(cycles + 2)
       }
 
       0xE8 => {
         // INX
         self.registers.x = self.registers.x.wrapping_add(1);
         self.registers.sr.set_nz(self.registers.x);
-        Ok(())
+        Ok(2)
       }
 
       0xC8 => {
         // INY
         self.registers.y = self.registers.y.wrapping_add(1);
         self.registers.sr.set_nz(self.registers.y);
-        Ok(())
+        Ok(2)
       }
 
       // === CONTROL ===
@@ -332,28 +332,28 @@ impl Execute for System {
         // BRK
         self.registers.pc.increment();
         self.interrupt(true, true);
-        Ok(())
+        Ok(7)
       }
       0x4C | 0x6C => {
         // JMP
-        let address = match opcode {
-          0x4C => self.fetch_word(),
+        let (address, cycles) = match opcode {
+          0x4C => (self.fetch_word(), 3),
           0x6C => {
             let indirect = self.fetch_word();
-            self.read_word(indirect)
+            (self.read_word(indirect), 5)
           }
           _ => unreachable!(),
         };
 
         self.registers.pc.load(address);
-        Ok(())
+        Ok(cycles)
       }
       0x20 => {
         // JSR absolute
         let address = self.fetch_word();
         self.push_word(self.registers.pc.address().wrapping_sub(1));
         self.registers.pc.load(address);
-        Ok(())
+        Ok(6)
       }
       0x40 => {
         // RTI
@@ -361,13 +361,13 @@ impl Execute for System {
         self.registers.sr.load(status);
         let dest = self.pop_word();
         self.registers.pc.load(dest);
-        Ok(())
+        Ok(6)
       }
       0x60 => {
         // RTS
         let dest = self.pop_word().wrapping_add(1);
         self.registers.pc.load(dest);
-        Ok(())
+        Ok(6)
       }
 
       // === BRANCH ===
@@ -388,9 +388,10 @@ impl Execute for System {
 
         if condition {
           self.registers.pc.offset(offset);
+          Ok(3)
+        } else {
+          Ok(2)
         }
-
-        Ok(())
       }
 
       // === FLAGS ===
@@ -403,7 +404,7 @@ impl Execute for System {
           _ => unreachable!(),
         });
 
-        Ok(())
+        Ok(2)
       }
 
       0x38 | 0xF8 | 0x78 => {
@@ -414,13 +415,13 @@ impl Execute for System {
           _ => unreachable!(),
         });
 
-        Ok(())
+        Ok(2)
       }
 
       // === NOP ===
       0xEA => {
         // NOP
-        Ok(())
+        Ok(2)
       }
 
       _ => {
