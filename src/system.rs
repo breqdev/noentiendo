@@ -2,7 +2,6 @@ use crate::execute::Execute;
 use crate::fetch::Fetch;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::registers::{flags, Registers};
-use std::time::Duration;
 
 pub struct System {
   pub registers: Registers,
@@ -124,7 +123,7 @@ impl System {
     }
   }
 
-  pub fn tick(&mut self) -> Duration {
+  pub fn tick(&mut self) -> f64 {
     let opcode = self.fetch();
 
     match self.execute(opcode) {
@@ -140,9 +139,9 @@ impl System {
         }
 
         if self.cycles_per_second == 0 {
-          Duration::from_secs(0)
+          0.0
         } else {
-          Duration::from_secs_f64(cycles as f64 / self.cycles_per_second as f64)
+          cycles as f64 / self.cycles_per_second as f64
         }
       }
       Err(_) => {

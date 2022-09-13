@@ -105,6 +105,11 @@ impl Platform for WinitPlatform {
 
     system.reset();
 
+    let start = Instant::now();
+    let mut last_tick = start;
+    let mut last_report = start;
+    let mut outstanding_ticks = 0.0;
+
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::Poll;
 
@@ -127,9 +132,23 @@ impl Platform for WinitPlatform {
         Event::MainEventsCleared => {
           let now = Instant::now();
 
-          let mut duration = Duration::ZERO;
-          while duration < Duration::from_millis(7) {
-            duration += system.tick();
+          outstanding_ticks += (now - last_tick).as_secs_f64();
+          let mut frame_ticks = 0.0;
+
+          while outstanding_ticks > 0.0 && frame_ticks < Duration::from_millis(30).as_secs_f64() {
+            let ticks = system.tick();
+            outstanding_ticks -= ticks;
+            frame_ticks += ticks;
+          }
+
+          last_tick = now;
+
+          if now - last_report > Duration::from_secs(1) {
+            println!(
+              "cycles per second: {}",
+              system.get_info().cycle_count as f64 / (now - start).as_secs_f64()
+            );
+            last_report = now;
           }
 
           if *dirty.lock().unwrap() {

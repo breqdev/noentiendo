@@ -114,6 +114,6 @@ impl SystemFactory<RomFile> for EasySystemFactory {
       .map(0x0600, Box::new(high_ram))
       .map(0x8000, Box::new(rom));
 
-    System::new(Box::new(memory), 10_000)
+    System::new(Box::new(memory), 20_000)
   }
 }

@@ -29,7 +29,7 @@ impl Platform for TextPlatform {
       let mut duration = Duration::ZERO;
       if system.get_info().cycles_per_second > 0 {
         while duration < Duration::from_millis(16) {
-          duration += system.tick();
+          duration += Duration::from_secs_f64(system.tick());
         }
       } else {
         for _ in 0..1000 {

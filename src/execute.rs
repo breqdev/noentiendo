@@ -202,7 +202,7 @@ impl Execute for System {
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
         self.registers.sr.set_nz(result);
         self.write(address, result);
-        Ok(2)
+        Ok(cycles)
       }
 
       // === LOGIC ===
