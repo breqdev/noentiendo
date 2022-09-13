@@ -6,7 +6,6 @@ use pixels::{Pixels, SurfaceTexture};
 use rand;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use std::time::Duration;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
@@ -106,21 +105,8 @@ impl Platform for WinitPlatform {
 
     system.reset();
 
-    thread::spawn(move || {
-      let mut last_tick = Instant::now();
-      loop {
-        let duration = system.tick();
-        let now = Instant::now();
-        let elapsed = now - last_tick;
-        if elapsed < duration {
-          thread::sleep(duration - elapsed);
-        }
-        last_tick = now;
-      }
-    });
-
     event_loop.run(move |event, _, control_flow| {
-      *control_flow = ControlFlow::WaitUntil(Instant::now() + Duration::from_millis(17));
+      *control_flow = ControlFlow::Poll;
 
       if input.update(&event) {
         if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
@@ -139,40 +125,49 @@ impl Platform for WinitPlatform {
 
       match event {
         Event::MainEventsCleared => {
+          let now = Instant::now();
+
+          let mut duration = Duration::ZERO;
+          while duration < Duration::from_millis(7) {
+            duration += system.tick();
+          }
+
           if *dirty.lock().unwrap() {
             window.request_redraw();
           }
+
+          *control_flow = ControlFlow::WaitUntil(now + Duration::from_millis(17));
         }
         Event::RedrawRequested(_) => {
           *dirty.lock().unwrap() = false;
           pixels.lock().unwrap().as_ref().unwrap().render().unwrap();
         }
-        Event::WindowEvent {
-          event:
-            WindowEvent::KeyboardInput {
-              input:
-                winit::event::KeyboardInput {
-                  virtual_keycode: Some(key),
-                  state,
-                  ..
-                },
-              ..
-            },
-          ..
-        } => match state {
-          ElementState::Pressed => {
-            let key = virtual_key_to_ascii(key);
-            if let Some(key) = key {
-              key_state.lock().unwrap()[key as usize] = true;
-              *last_key.lock().unwrap() = key;
+        Event::WindowEvent { event, .. } => match event {
+          WindowEvent::KeyboardInput {
+            input:
+              winit::event::KeyboardInput {
+                virtual_keycode: Some(key),
+                state,
+                ..
+              },
+            ..
+          } => match state {
+            ElementState::Pressed => {
+              let key = virtual_key_to_ascii(key);
+              if let Some(key) = key {
+                key_state.lock().unwrap()[key as usize] = true;
+                *last_key.lock().unwrap() = key;
+              }
             }
-          }
-          ElementState::Released => {
-            let key = virtual_key_to_ascii(key);
-            if let Some(key) = key {
-              key_state.lock().unwrap()[key as usize] = false;
+            ElementState::Released => {
+              let key = virtual_key_to_ascii(key);
+              if let Some(key) = key {
+                key_state.lock().unwrap()[key as usize] = false;
+              }
             }
-          }
+          },
+          WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+          _ => (),
         },
         _ => (),
       }
