@@ -20,11 +20,17 @@
 
       #canvas {
         width: 100px;
+        outline: none;
+        opacity: 0.5;
+      }
+
+      #canvas:focus {
+        opacity: 1;
       }
     </style>
   </head>
   <body>
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" tabindex="0"></canvas>
     <script src="./bootstrap.js"></script>
   </body>
 </html>
