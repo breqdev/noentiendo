@@ -38,8 +38,8 @@ impl PetVram {
       data: vec![0; VRAM_SIZE],
       platform,
       character_rom: character_rom.get_data(),
-      foreground: Color::new(255, 255, 255),
-      background: Color::new(0, 0, 255),
+      foreground: Color::new(0, 255, 0),
+      background: Color::new(0, 0, 0),
     }
   }
 }

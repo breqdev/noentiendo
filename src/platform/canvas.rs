@@ -8,11 +8,13 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use winit::dpi::LogicalSize;
-use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::platform::web::WindowExtWebSys;
-use winit::window::WindowBuilder;
+use winit::{
+  dpi::LogicalSize,
+  event::{ElementState, Event, VirtualKeyCode, WindowEvent},
+  event_loop::{ControlFlow, EventLoop},
+  platform::web::WindowBuilderExtWebSys,
+  window::WindowBuilder,
+};
 use winit_input_helper::WinitInputHelper;
 
 #[cfg(target_arch = "wasm32")]
@@ -114,6 +116,15 @@ impl Platform for CanvasPlatform {
 
     let config = self.get_config();
 
+    let canvas = web_sys::window()
+      .unwrap()
+      .document()
+      .unwrap()
+      .get_element_by_id("canvas")
+      .unwrap()
+      .dyn_into::<web_sys::HtmlCanvasElement>()
+      .unwrap();
+
     let window = Arc::new(
       WindowBuilder::new()
         .with_title("noentiendo")
@@ -121,20 +132,10 @@ impl Platform for CanvasPlatform {
           config.width as f64 * config.scale,
           config.height as f64 * config.scale,
         ))
+        .with_canvas(Some(canvas))
         .build(&event_loop)
         .unwrap(),
     );
-
-    // Attach winit canvas to body element
-    web_sys::window()
-      .and_then(|win| win.document())
-      .and_then(|doc| doc.body())
-      .and_then(|body| {
-        body
-          .append_child(&web_sys::Element::from(window.canvas()))
-          .ok()
-      })
-      .expect("couldn't append canvas to document body");
 
     let inner_size = window.inner_size();
 

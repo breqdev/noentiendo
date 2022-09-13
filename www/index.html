@@ -3,12 +3,28 @@
   <head>
     <meta charset="utf-8" />
     <title>Hello wasm-pack!</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #666;
+      }
+
+      #canvas {
+        width: 100px;
+      }
+    </style>
   </head>
   <body>
-    <noscript>
-      This page contains webassembly and javascript content, please enable
-      javascript in your browser.
-    </noscript>
+    <canvas id="canvas"></canvas>
     <script src="./bootstrap.js"></script>
   </body>
 </html>
