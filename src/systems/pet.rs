@@ -185,12 +185,12 @@ const KEYBOARD_MAPPING: [[char; 8]; 10] = [
   ['Z', 'C', 'B', 'M', ';', scancodes::RETURN, '1', '3'],
   ['X', 'V', 'N', ',', '?', '_', '2', '+'],
   [
-    scancodes::LSHIFT,
+    scancodes::LSUPER, // use super key instead of shift key for graphics characters
     '@',
     ']',
     '_',
     '>',
-    scancodes::RSHIFT,
+    scancodes::RSUPER,
     '0',
     '-',
   ],

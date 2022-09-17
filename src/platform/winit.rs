@@ -46,10 +46,10 @@ fn virtual_key_to_ascii(code: VirtualKeyCode, shift: bool) -> Option<u8> {
       VirtualKeyCode::Return => Some(scancodes::RETURN as u8),
       VirtualKeyCode::Back => Some(scancodes::BACKSPACE as u8),
 
-      // remap shift to windows for now
-      // TODO: this should be patched at the system level for the PET
-      VirtualKeyCode::LWin => Some(scancodes::LSHIFT as u8),
-      VirtualKeyCode::RWin => Some(scancodes::RSHIFT as u8),
+      VirtualKeyCode::LShift => Some(scancodes::LSHIFT as u8),
+      VirtualKeyCode::RShift => Some(scancodes::RSHIFT as u8),
+      VirtualKeyCode::LWin => Some(scancodes::LSUPER as u8),
+      VirtualKeyCode::RWin => Some(scancodes::RSUPER as u8),
       _ => {
         if !shift {
           match code {
