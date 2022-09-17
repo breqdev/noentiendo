@@ -12,24 +12,77 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
-fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
+fn virtual_key_to_ascii(code: VirtualKeyCode, shift: bool) -> Option<u8> {
   if (code as u8) <= 36 {
     let code = code as u8;
-    Some(match code {
-      0..=8 => '1' as u8 + code,
-      9 => '0' as u8,
-      10..=36 => 'A' as u8 + code - 10,
-      _ => unreachable!(),
-    })
+    if code >= 10 {
+      Some('A' as u8 + code - 10)
+    } else {
+      if shift {
+        match code {
+          0 => Some('!' as u8),
+          1 => Some('@' as u8),
+          2 => Some('#' as u8),
+          3 => Some('$' as u8),
+          4 => Some('%' as u8),
+          5 => Some('^' as u8),
+          6 => Some('&' as u8),
+          7 => Some('*' as u8),
+          8 => Some('(' as u8),
+          9 => Some(')' as u8),
+          _ => None,
+        }
+      } else {
+        if code == 9 {
+          Some('0' as u8)
+        } else {
+          Some('1' as u8 + code)
+        }
+      }
+    }
   } else {
     match code {
       VirtualKeyCode::Space => Some(' ' as u8),
       VirtualKeyCode::Return => Some(scancodes::RETURN as u8),
       VirtualKeyCode::Back => Some(scancodes::BACKSPACE as u8),
-      VirtualKeyCode::LShift => Some(scancodes::LSHIFT as u8),
-      VirtualKeyCode::RShift => Some(scancodes::RSHIFT as u8),
-      VirtualKeyCode::Apostrophe => Some('"' as u8), // should be ', but PET has separate keys
-      _ => None,
+
+      // remap shift to windows for now
+      // TODO: this should be patched at the system level for the PET
+      VirtualKeyCode::LWin => Some(scancodes::LSHIFT as u8),
+      VirtualKeyCode::RWin => Some(scancodes::RSHIFT as u8),
+      _ => {
+        if !shift {
+          match code {
+            VirtualKeyCode::Grave => Some('`' as u8),
+            VirtualKeyCode::Minus => Some('-' as u8),
+            VirtualKeyCode::Equals => Some('=' as u8),
+            VirtualKeyCode::LBracket => Some('[' as u8),
+            VirtualKeyCode::RBracket => Some(']' as u8),
+            VirtualKeyCode::Backslash => Some('\\' as u8),
+            VirtualKeyCode::Semicolon => Some(';' as u8),
+            VirtualKeyCode::Apostrophe => Some('\'' as u8),
+            VirtualKeyCode::Comma => Some(',' as u8),
+            VirtualKeyCode::Period => Some('.' as u8),
+            VirtualKeyCode::Slash => Some('/' as u8),
+            _ => None,
+          }
+        } else {
+          match code {
+            VirtualKeyCode::Grave => Some('~' as u8),
+            VirtualKeyCode::Minus => Some('_' as u8),
+            VirtualKeyCode::Equals => Some('+' as u8),
+            VirtualKeyCode::LBracket => Some('{' as u8),
+            VirtualKeyCode::RBracket => Some('}' as u8),
+            VirtualKeyCode::Backslash => Some('|' as u8),
+            VirtualKeyCode::Semicolon => Some(':' as u8),
+            VirtualKeyCode::Apostrophe => Some('"' as u8),
+            VirtualKeyCode::Comma => Some('<' as u8),
+            VirtualKeyCode::Period => Some('>' as u8),
+            VirtualKeyCode::Slash => Some('?' as u8),
+            _ => None,
+          }
+        }
+      }
     }
   }
 }
@@ -171,19 +224,20 @@ impl SyncPlatform for WinitPlatform {
               winit::event::KeyboardInput {
                 virtual_keycode: Some(key),
                 state,
+                modifiers,
                 ..
               },
             ..
           } => match state {
             ElementState::Pressed => {
-              let key = virtual_key_to_ascii(key);
+              let key = virtual_key_to_ascii(key, modifiers.shift());
               if let Some(key) = key {
                 key_state.lock().unwrap()[key as usize] = true;
                 *last_key.lock().unwrap() = key;
               }
             }
             ElementState::Released => {
-              let key = virtual_key_to_ascii(key);
+              let key = virtual_key_to_ascii(key, modifiers.shift());
               if let Some(key) = key {
                 key_state.lock().unwrap()[key as usize] = false;
               }
