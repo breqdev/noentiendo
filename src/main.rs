@@ -1,9 +1,9 @@
 #[cfg(not(target_arch = "wasm32"))]
 use libnoentiendo::{
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
-  systems::pet::PetSystemRoms,
   systems::{
-    BrookeSystemFactory, EasySystemFactory, KlausSystemFactory, PetSystemFactory, SystemFactory,
+    BrookeSystemFactory, EasySystemFactory, KlausSystemFactory, PetSystemFactory, PetSystemRoms,
+    SystemFactory, Vic20SystemFactory, Vic20SystemRoms,
   },
 };
 
@@ -44,6 +44,7 @@ fn main() {
     "easy" => EasySystemFactory::create(romfile.unwrap(), platform.provider()),
     "klaus" => KlausSystemFactory::create(romfile.unwrap(), platform.provider()),
     "pet" => PetSystemFactory::create(PetSystemRoms::from_disk(), platform.provider()),
+    "vic" => Vic20SystemFactory::create(Vic20SystemRoms::from_disk(), platform.provider()),
     _ => panic!("Unknown system"),
   };
 
