@@ -35,8 +35,9 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
 
     let characters = BlockMemory::from_file(0x1000, roms.character);
 
-    let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
+    let io = NullMemory::new();
 
+    let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
 
     let memory = BranchMemory::new()
@@ -44,6 +45,7 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
       .map(0x1000, Box::new(main_ram))
       .map(0x2000, Box::new(expansion_ram))
       .map(0x8000, Box::new(characters))
+      .map(0x9000, Box::new(io))
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 
