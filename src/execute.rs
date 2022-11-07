@@ -345,11 +345,6 @@ impl Execute for System {
           _ => unreachable!(),
         };
 
-        // println!(
-        //   "JMP from {:04x} to {:04x}",
-        //   self.registers.pc.address(),
-        //   address
-        // );
         self.registers.pc.load(address);
         Ok(cycles)
       }
@@ -358,7 +353,6 @@ impl Execute for System {
         let address = self.fetch_word();
         self.push_word(self.registers.pc.address().wrapping_sub(1));
 
-        println!("JSR {}", address);
         self.registers.pc.load(address);
         Ok(6)
       }

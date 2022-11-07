@@ -49,6 +49,6 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 
-    System::new(Box::new(memory), 1_000_000)
+    System::new(Box::new(memory), 1_000)
   }
 }

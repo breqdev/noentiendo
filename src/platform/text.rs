@@ -24,7 +24,7 @@ impl SyncPlatform for TextPlatform {
   fn run(&mut self, mut system: System) {
     system.reset();
 
-    system.registers.pc.load(0x0400); // Klaus tests
+    // system.registers.pc.load(0x0400); // Klaus tests
 
     let mut last_tick = Instant::now();
     let mut last_report = last_tick;
@@ -47,7 +47,7 @@ impl SyncPlatform for TextPlatform {
       }
       last_tick = now;
 
-      if now - last_report > std::time::Duration::from_secs(1) {
+      if now - last_report > std::time::Duration::from_secs_f64(0.1) {
         let pc = system.registers.pc.address();
         println!("Program Counter: {:02x}", pc);
         last_report = now;
