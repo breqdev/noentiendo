@@ -1,0 +1,73 @@
+use crate::memory::{BlockMemory, BranchMemory, NullMemory, RomFile};
+use crate::platform::PlatformProvider;
+use crate::system::System;
+use crate::systems::SystemFactory;
+use std::sync::{Arc, Mutex};
+
+mod character;
+mod chip;
+mod color;
+mod vram;
+use chip::VicChip;
+use vram::VicVram;
+
+const WIDTH: u32 = 22;
+const HEIGHT: u32 = 23;
+const CHAR_WIDTH: u32 = 8;
+const CHAR_HEIGHT: u32 = 8;
+const VRAM_SIZE: usize = 512; // 6 extra bytes to make mapping easier
+
+pub struct Vic20SystemRoms {
+  pub character: RomFile,
+  pub basic: RomFile,
+  pub kernal: RomFile,
+}
+
+impl Vic20SystemRoms {
+  #[cfg(not(target_arch = "wasm32"))]
+  pub fn from_disk() -> Self {
+    let character = RomFile::from_file("vic/char.bin");
+    let basic = RomFile::from_file("vic/basic.bin");
+    let kernal = RomFile::from_file("vic/kernal.bin");
+
+    Self {
+      character,
+      basic,
+      kernal,
+    }
+  }
+}
+
+pub struct Vic20SystemFactory {}
+
+impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
+  fn create(roms: Vic20SystemRoms, platform: Arc<dyn PlatformProvider>) -> System {
+    let low_ram = BlockMemory::ram(0x0400);
+    let main_ram = BlockMemory::ram(0x0E00);
+
+    let vic_chip = Arc::new(Mutex::new(VicChip::new(roms.character)));
+
+    let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
+    let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
+
+    let vram = VicVram::new(platform.clone(), vic_chip.clone());
+    let characters = { vic_chip.lock().unwrap().characters() };
+    let colors = { vic_chip.lock().unwrap().colors() };
+
+    let memory = BranchMemory::new()
+      .map(0x0000, Box::new(low_ram))
+      .map(0x0400, Box::new(NullMemory::new()))
+      .map(0x1000, Box::new(main_ram))
+      .map(0x1E00, Box::new(vram))
+      .map(0x2000, Box::new(NullMemory::new()))
+      // .map(0x2000, Box::new(expansion_ram))
+      .map(0x8000, characters)
+      // .map(0x9000, SharedMemory::new(Box::new(vic_chip)))
+      .map(0x9000, Box::new(NullMemory::new()))
+      .map(0x9600, colors)
+      .map(0xC000, Box::new(basic_rom))
+      .map(0xE000, Box::new(kernel_rom));
+
+    System::new(Box::new(memory), 1_000_000)
+  }
+}
