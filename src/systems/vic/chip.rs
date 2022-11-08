@@ -308,7 +308,7 @@ impl VicChipIO {
 
 impl Memory for VicChipIO {
   fn read(&mut self, address: u16) -> u8 {
-    let mut chip = self.chip.lock().unwrap();
+    let chip = self.chip.lock().unwrap();
 
     match address % 0xF {
       0x0 => chip.left_draw_offset | (chip.scan_mode as u8) << 7,
