@@ -13,12 +13,6 @@ use chip::{VicChip, VicChipIO};
 use color::VicColorRam;
 use vram::VicVram;
 
-const WIDTH: u32 = 22;
-const HEIGHT: u32 = 23;
-const CHAR_WIDTH: u32 = 8;
-const CHAR_HEIGHT: u32 = 8;
-const VRAM_SIZE: usize = 512; // 6 extra bytes to make mapping easier
-
 pub struct Vic20SystemRoms {
   pub character: RomFile,
   pub basic: RomFile,

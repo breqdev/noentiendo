@@ -2,12 +2,6 @@ use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::systems::vic::VicChip;
 use std::sync::{Arc, Mutex};
 
-const WIDTH: u32 = 22;
-const HEIGHT: u32 = 23;
-const CHAR_WIDTH: u32 = 8;
-const CHAR_HEIGHT: u32 = 8;
-const VRAM_SIZE: usize = 512; // 6 extra bytes to make mapping easier
-
 pub struct VicVram {
   chip: Arc<Mutex<VicChip>>,
 }
