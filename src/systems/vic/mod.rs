@@ -8,7 +8,9 @@ mod character;
 mod chip;
 mod color;
 mod vram;
-use chip::VicChip;
+use character::VicCharacterRam;
+use chip::{VicChip, VicChipIO};
+use color::VicColorRam;
 use vram::VicVram;
 
 const WIDTH: u32 = 22;
@@ -45,14 +47,15 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
-    let vic_chip = Arc::new(Mutex::new(VicChip::new(roms.character)));
+    let vic_chip = Arc::new(Mutex::new(VicChip::new(platform, roms.character)));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
 
-    let vram = VicVram::new(platform.clone(), vic_chip.clone());
-    let characters = { vic_chip.lock().unwrap().characters() };
-    let colors = { vic_chip.lock().unwrap().colors() };
+    let vram = VicVram::new(vic_chip.clone());
+    let characters = VicCharacterRam::new(vic_chip.clone());
+    let colors = VicColorRam::new(vic_chip.clone());
+    let chip_io = VicChipIO::new(vic_chip.clone());
 
     let memory = BranchMemory::new()
       .map(0x0000, Box::new(low_ram))
@@ -61,10 +64,10 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
       .map(0x1E00, Box::new(vram))
       .map(0x2000, Box::new(NullMemory::new()))
       // .map(0x2000, Box::new(expansion_ram))
-      .map(0x8000, characters)
-      // .map(0x9000, SharedMemory::new(Box::new(vic_chip)))
+      .map(0x8000, Box::new(characters))
+      .map(0x9000, Box::new(chip_io))
       .map(0x9000, Box::new(NullMemory::new()))
-      .map(0x9600, colors)
+      .map(0x9600, Box::new(colors))
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 

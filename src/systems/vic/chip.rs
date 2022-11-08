@@ -1,5 +1,5 @@
-use crate::memory::{ActiveInterrupt, BlockMemory, Memory, RomFile, SharedMemory, SystemInfo};
-use crate::platform::Color;
+use crate::memory::{ActiveInterrupt, BlockMemory, Memory, RomFile, SystemInfo};
+use crate::platform::{Color, PlatformProvider, WindowConfig};
 use std::sync::{Arc, Mutex};
 
 const WIDTH: u32 = 22;
@@ -67,9 +67,12 @@ impl VicChipLightPen {
 
 // Source: http://tinyvga.com/6561
 pub struct VicChip {
+  platform: Arc<dyn PlatformProvider>,
+
   // Associated Memory
-  characters: SharedMemory,
-  colors: SharedMemory,
+  vram: BlockMemory,
+  characters: BlockMemory,
+  colors: BlockMemory,
 
   // Registers
 
@@ -117,10 +120,20 @@ pub struct VicChip {
 }
 
 impl VicChip {
-  pub fn new(characters: RomFile) -> Self {
+  pub fn new(platform: Arc<dyn PlatformProvider>, characters: RomFile) -> Self {
+    platform.request_window(WindowConfig::new(
+      WIDTH * CHAR_WIDTH,
+      HEIGHT * CHAR_HEIGHT,
+      2.0,
+    ));
+
     Self {
-      characters: SharedMemory::new(Box::new(BlockMemory::from_file(0x1000, characters))),
-      colors: SharedMemory::new(Box::new(BlockMemory::ram(0x0200))),
+      platform,
+
+      // Associated Memory
+      vram: BlockMemory::ram(VRAM_SIZE),
+      characters: BlockMemory::from_file(0x1000, characters),
+      colors: BlockMemory::ram(0x0200),
 
       scan_mode: false,
       left_draw_offset: 12,
@@ -172,11 +185,7 @@ impl VicChip {
     self.character_table_values = 0;
   }
 
-  pub fn characters(&self) -> Box<dyn Memory> {
-    Box::new(self.characters.clone())
-  }
-
-  pub fn get_character(&mut self, value: u8) -> Vec<u8> {
+  fn get_character(&mut self, value: u8) -> Vec<u8> {
     let character_index = (value as u16) * 8;
 
     let mut character = vec![0; 8];
@@ -191,11 +200,7 @@ impl VicChip {
     character
   }
 
-  pub fn colors(&self) -> Box<dyn Memory> {
-    Box::new(self.colors.clone())
-  }
-
-  pub fn get_foreground(&mut self, address: u16) -> Color {
+  fn get_foreground(&mut self, address: u16) -> Color {
     let value = self.colors.read(address);
     match value {
       0b000 => Color::new(0, 0, 0),
@@ -210,7 +215,7 @@ impl VicChip {
     }
   }
 
-  pub fn get_background(&self) -> Color {
+  fn get_background(&self) -> Color {
     match self.background_color {
       0b0000 => Color::new(0, 0, 0),
       0b0001 => Color::new(255, 255, 255),
@@ -231,10 +236,74 @@ impl VicChip {
       _ => panic!("Invalid color value: {}", self.background_color),
     }
   }
+
+  fn redraw(&mut self, address: u16) {
+    if address >= (HEIGHT * WIDTH) as u16 {
+      return; // ignore writes to the extra bytes
+    }
+
+    let column = (address % WIDTH as u16) as u32;
+    let row = (address / WIDTH as u16) as u32;
+
+    let value = self.read_vram(address);
+    let character = self.get_character(value);
+
+    for line in 0..CHAR_HEIGHT {
+      let line_data = character[line as usize];
+      for pixel in 0..CHAR_WIDTH {
+        let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
+          self.get_foreground(address)
+        } else {
+          self.get_background()
+        };
+
+        self
+          .platform
+          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+      }
+    }
+  }
+
+  pub fn read_vram(&mut self, address: u16) -> u8 {
+    self.vram.read(address)
+  }
+
+  pub fn write_vram(&mut self, address: u16, value: u8) {
+    self.vram.write(address, value);
+    self.redraw(address);
+  }
+
+  pub fn read_character(&mut self, address: u16) -> u8 {
+    self.characters.read(address)
+  }
+
+  pub fn write_character(&mut self, address: u16, value: u8) {
+    self.characters.write(address, value);
+
+    // Redraw the entire screen
+    for i in 0..(WIDTH * HEIGHT) {
+      self.redraw(i as u16);
+    }
+  }
+
+  pub fn read_color(&mut self, address: u16) -> u8 {
+    self.colors.read(address)
+  }
+
+  pub fn write_color(&mut self, address: u16, value: u8) {
+    self.colors.write(address, value);
+    self.redraw(address);
+  }
 }
 
-struct VicChipIO {
+pub struct VicChipIO {
   chip: Arc<Mutex<VicChip>>,
+}
+
+impl VicChipIO {
+  pub fn new(chip: Arc<Mutex<VicChip>>) -> Self {
+    Self { chip }
+  }
 }
 
 impl Memory for VicChipIO {
