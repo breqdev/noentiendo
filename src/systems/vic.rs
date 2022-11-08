@@ -1,10 +1,16 @@
 use crate::memory::{
-  ActiveInterrupt, BlockMemory, BranchMemory, Memory, RomFile, SharedMemory, SystemInfo, CallbackMemory,
+  ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, RomFile, SharedMemory, SystemInfo,
 };
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
+
+const WIDTH: u32 = 22;
+const HEIGHT: u32 = 23;
+const CHAR_WIDTH: u32 = 8;
+const CHAR_HEIGHT: u32 = 8;
+const VRAM_SIZE: usize = 512; // 6 extra bytes to make mapping easier
 
 pub struct Vic20SystemRoms {
   pub character: RomFile,
@@ -87,9 +93,6 @@ impl VicChipLightPen {
 // Source: http://tinyvga.com/6561
 struct VicChip {
   // Associated Memory
-  platform: Arc<dyn PlatformProvider>,
-  vram: SharedMemory,
-  vram_vec: Vec<u8>,
   characters: SharedMemory,
   colors: SharedMemory,
 
@@ -139,29 +142,18 @@ struct VicChip {
 }
 
 impl VicChip {
-  fn new(platform: Arc<dyn PlatformProvider>, characters: RomFile) -> Self {
-    platform.request_window(WindowConfig::new(23 * 8, 22 * 8, 2.0));
-
-    let vram = CallbackMemory::new(
-      Box::new(|address| {
-        self.vram.read(address)
-      })
-    )
-
+  fn new(characters: RomFile) -> Self {
     Self {
-      platform,
-      vram: SharedMemory::new(Box::new()),
-      vram_vec: vec![0; 0x0200],
       characters: SharedMemory::new(Box::new(BlockMemory::from_file(0x1000, characters))),
       colors: SharedMemory::new(Box::new(BlockMemory::ram(0x0200))),
 
       scan_mode: false,
       left_draw_offset: 12,
       top_draw_offset: 38,
-      column_count: 22,
+      column_count: WIDTH as u8,
       vram_line_9: true,
       raster_counter: 0,
-      row_count: 23,
+      row_count: HEIGHT as u8,
       double_size_chars: false,
       vram_address_top: 15,
       light_pen: VicChipLightPen::new(),
@@ -180,16 +172,64 @@ impl VicChip {
     }
   }
 
-  fn vram(&self) -> Box<dyn Memory> {
-    Box::new(self.vram.clone())
-  }
-
   fn characters(&self) -> Box<dyn Memory> {
     Box::new(self.characters.clone())
   }
 
+  fn get_character(&mut self, value: u8) -> Vec<u8> {
+    let character_index = (value as u16) * 8;
+
+    let mut character = vec![0; 8];
+    for i in 0..8 {
+      character[i] = self.characters.read(character_index + i as u16);
+    }
+
+    if value & 0x80 != 0 {
+      character = character.iter().map(|&x| !x).collect();
+    }
+
+    character
+  }
+
   fn colors(&self) -> Box<dyn Memory> {
     Box::new(self.colors.clone())
+  }
+
+  fn get_foreground(&mut self, address: u16) -> Color {
+    let value = self.colors.read(address);
+    match value {
+      0b000 => Color::new(0, 0, 0),
+      0b001 => Color::new(255, 255, 255),
+      0b010 => Color::new(255, 0, 0),
+      0b011 => Color::new(0, 255, 255),
+      0b100 => Color::new(255, 0, 255),
+      0b101 => Color::new(0, 255, 0),
+      0b110 => Color::new(0, 0, 255),
+      0b111 => Color::new(255, 255, 0),
+      _ => panic!("Invalid color value: {}", value),
+    }
+  }
+
+  fn get_background(&self) -> Color {
+    match self.background_color {
+      0b0000 => Color::new(0, 0, 0),
+      0b0001 => Color::new(255, 255, 255),
+      0b0010 => Color::new(255, 0, 0),
+      0b0011 => Color::new(0, 255, 255),
+      0b0100 => Color::new(255, 0, 255),
+      0b0101 => Color::new(0, 255, 0),
+      0b0110 => Color::new(0, 0, 255),
+      0b0111 => Color::new(255, 255, 0),
+      0b1000 => Color::new(255, 127, 0),
+      0b1001 => Color::new(255, 192, 128),
+      0b1010 => Color::new(255, 128, 128),
+      0b1011 => Color::new(128, 255, 255),
+      0b1100 => Color::new(255, 128, 255),
+      0b1101 => Color::new(128, 255, 128),
+      0b1110 => Color::new(128, 128, 255),
+      0b1111 => Color::new(255, 255, 128),
+      _ => panic!("Invalid color value: {}", self.background_color),
+    }
   }
 }
 
@@ -292,6 +332,72 @@ impl Memory for VicChip {
   }
 }
 
+struct VicVram {
+  data: Vec<u8>,
+  platform: Arc<dyn PlatformProvider>,
+  chip: Arc<Mutex<VicChip>>,
+}
+
+impl VicVram {
+  fn new(platform: Arc<dyn PlatformProvider>, chip: Arc<Mutex<VicChip>>) -> VicVram {
+    platform.request_window(WindowConfig::new(
+      WIDTH * CHAR_WIDTH,
+      HEIGHT * CHAR_HEIGHT,
+      2.0,
+    ));
+
+    VicVram {
+      platform,
+      data: vec![0; 0x0200],
+      chip,
+    }
+  }
+}
+
+impl Memory for VicVram {
+  fn read(&mut self, address: u16) -> u8 {
+    self.data[address as usize]
+  }
+
+  fn write(&mut self, address: u16, value: u8) {
+    println!("written to vram");
+    self.data[address as usize] = value;
+
+    if address >= (HEIGHT * WIDTH) as u16 {
+      return; // ignore writes to the extra bytes
+    }
+
+    let column = (address % WIDTH as u16) as u32;
+    let row = (address / WIDTH as u16) as u32;
+
+    let character = self.chip.lock().unwrap().get_character(value);
+
+    for line in 0..CHAR_HEIGHT {
+      let line_data = character[line as usize];
+      for pixel in 0..CHAR_WIDTH {
+        let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
+          // self.chip.lock().unwrap().get_foreground(address)
+          Color::new(0, 0, 0)
+        } else {
+          self.chip.lock().unwrap().get_background()
+        };
+
+        self
+          .platform
+          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+      }
+    }
+  }
+
+  fn reset(&mut self) {
+    self.data = vec![0; 0x0200];
+  }
+
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+    ActiveInterrupt::None
+  }
+}
+
 pub struct Vic20SystemFactory {}
 
 impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
@@ -299,22 +405,25 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
-    let vic_chip = VicChip::new(platform, roms.character);
+    let vic_chip = Arc::new(Mutex::new(VicChip::new(roms.character)));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
 
-    let vram = vic_chip.vram();
-    let characters = vic_chip.characters();
-    let colors = vic_chip.colors();
+    let vram = VicVram::new(platform.clone(), vic_chip.clone());
+    let characters = { vic_chip.lock().unwrap().characters() };
+    let colors = { vic_chip.lock().unwrap().colors() };
 
     let memory = BranchMemory::new()
       .map(0x0000, Box::new(low_ram))
+      .map(0x0400, Box::new(NullMemory::new()))
       .map(0x1000, Box::new(main_ram))
-      .map(0x1E00, vram)
+      .map(0x1E00, Box::new(vram))
+      .map(0x2000, Box::new(NullMemory::new()))
       // .map(0x2000, Box::new(expansion_ram))
       .map(0x8000, characters)
-      .map(0x9000, Box::new(vic_chip))
+      // .map(0x9000, SharedMemory::new(Box::new(vic_chip)))
+      .map(0x9000, Box::new(NullMemory::new()))
       .map(0x9600, colors)
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));

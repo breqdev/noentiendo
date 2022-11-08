@@ -3,11 +3,13 @@ mod branch;
 mod null;
 pub mod pia;
 mod romfile;
+mod shared;
 
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
 pub use null::NullMemory;
 pub use romfile::RomFile;
+pub use shared::SharedMemory;
 
 pub enum ActiveInterrupt {
   None,

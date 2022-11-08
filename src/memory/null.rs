@@ -10,18 +10,18 @@ impl NullMemory {
 
 impl Memory for NullMemory {
   fn read(&mut self, _address: u16) -> u8 {
-    println!(
-      "attempted to read from null memory at address {:04x}",
-      _address
-    );
+    // println!(
+    //   "attempted to read from null memory at address {:04x}",
+    //   _address
+    // );
     0
   }
 
   fn write(&mut self, _address: u16, _value: u8) {
-    println!(
-      "attempted to write to null memory at address {:04x}",
-      _address
-    );
+    // println!(
+    //   "attempted to write to null memory at address {:04x}",
+    //   _address
+    // );
   }
 
   fn reset(&mut self) {}
