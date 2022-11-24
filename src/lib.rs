@@ -20,13 +20,13 @@ use js_sys::Uint8Array;
 pub async fn main(
   basic: Uint8Array,
   character: Uint8Array,
-  editor: Uint8Array,
+  // editor: Uint8Array,
   kernal: Uint8Array,
 ) {
   console_error_panic_hook::set_once();
 
   use platform::{AsyncPlatform, CanvasPlatform, Platform};
-  use systems::{PetSystemFactory, SystemFactory};
+  use systems::{SystemFactory, Vic20SystemFactory, Vic20SystemRoms};
 
   let mut platform = CanvasPlatform::new();
   // platform
@@ -36,17 +36,23 @@ pub async fn main(
   // let romfile = memory::RomFile::from_uint8array(&rom);
   let basic = memory::RomFile::from_uint8array(&basic);
   let character = memory::RomFile::from_uint8array(&character);
-  let editor = memory::RomFile::from_uint8array(&editor);
+  // let editor = memory::RomFile::from_uint8array(&editor);
   let kernal = memory::RomFile::from_uint8array(&kernal);
 
-  let roms = systems::PetSystemRoms {
+  // let roms = systems::PetSystemRoms {
+  //   character,
+  //   basic,
+  //   editor,
+  //   kernal,
+  // };
+
+  let roms = Vic20SystemRoms {
     character,
     basic,
-    editor,
     kernal,
   };
 
-  let system = PetSystemFactory::create(roms, platform.provider());
+  let system = Vic20SystemFactory::create(roms, platform.provider());
 
   platform.run_async(system).await;
 }
