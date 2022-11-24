@@ -1,4 +1,4 @@
-use crate::memory::pia::{PIA, NullPort};
+use crate::memory::pia::{NullPort, PIA};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, RomFile};
 use crate::platform::PlatformProvider;
 use crate::system::System;
@@ -43,8 +43,8 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
     let main_ram = BlockMemory::ram(0x0E00);
 
     let vic_chip = Arc::new(Mutex::new(VicChip::new(platform, roms.character)));
-    let via1 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
-    let via2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let via1 = PIA::new(Box::new(NullPort::with_warnings("VIA1 Port A")), Box::new(NullPort::with_warnings("VIA1 Port B")));
+    let via2 = PIA::new(Box::new(NullPort::with_warnings("VIA2 Port A")), Box::new(NullPort::with_warnings("VIA2 Port B")));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);

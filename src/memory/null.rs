@@ -1,27 +1,37 @@
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
-pub struct NullMemory {}
+pub struct NullMemory {
+  warn: Option<&'static str>,
+}
 
 impl NullMemory {
   pub fn new() -> Self {
-    Self {}
+    Self { warn: None }
+  }
+
+  pub fn with_warnings(message: &'static str) -> Self {
+    Self { warn: Some(message) }
   }
 }
 
 impl Memory for NullMemory {
   fn read(&mut self, _address: u16) -> u8 {
-    // println!(
-    //   "attempted to read from null memory at address {:04x}",
-    //   _address
-    // );
+    if let Some(message) = self.warn {
+      println!(
+        "attempted to read from {} at address {:04x}",
+        message, _address
+      );
+    }
     0
   }
 
   fn write(&mut self, _address: u16, _value: u8) {
-    // println!(
-    //   "attempted to write to null memory at address {:04x}",
-    //   _address
-    // );
+    if let Some(message) = self.warn {
+      println!(
+        "attempted to write to {} at address {:04x}",
+        message, _address
+      );
+    }
   }
 
   fn reset(&mut self) {}
