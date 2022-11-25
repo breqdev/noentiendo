@@ -10,7 +10,9 @@ impl NullMemory {
   }
 
   pub fn with_warnings(message: &'static str) -> Self {
-    Self { warn: Some(message) }
+    Self {
+      warn: Some(message),
+    }
   }
 }
 

@@ -1,6 +1,7 @@
+use crate::memory::pia::PIA;
 use crate::memory::{
-  pia::{NullPort, Port, PIA},
-  ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, RomFile, SystemInfo,
+  ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort, Port, RomFile,
+  SystemInfo,
 };
 use crate::platform::{scancodes, Color, PlatformProvider, WindowConfig};
 use crate::system::System;

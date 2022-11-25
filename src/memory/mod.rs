@@ -2,12 +2,15 @@ mod block;
 mod branch;
 mod null;
 pub mod pia;
+pub mod ports;
 mod romfile;
 mod shared;
+pub mod via;
 
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
 pub use null::NullMemory;
+pub use ports::{NullPort, Port};
 pub use romfile::RomFile;
 pub use shared::SharedMemory;
 
