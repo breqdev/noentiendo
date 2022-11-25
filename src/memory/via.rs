@@ -40,7 +40,6 @@ impl PortRegisters {
 struct Timer {
   latch: u16,
   counter: u16,
-  control: u8,
   interrupt: bool,
 }
 
@@ -49,7 +48,6 @@ impl Timer {
     Self {
       latch: 0,
       counter: 0,
-      control: 0,
       interrupt: false,
     }
   }
@@ -149,7 +147,7 @@ impl Memory for VIA {
     self.b.reset();
   }
 
-  fn poll(&mut self, info: &super::SystemInfo) -> super::ActiveInterrupt {
+  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
     let a = self.a.poll(info);
     let b = self.b.poll(info);
 
