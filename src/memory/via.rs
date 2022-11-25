@@ -6,6 +6,7 @@ struct PortRegisters {
   port: Box<dyn Port>,
   writes: u8, // if the DDR is write, allow reading the current written value
   ddr: u8, // data direction register, each bit controls whether the line is an input (0) or output (1)
+  latch_enabled: bool,
 }
 
 impl PortRegisters {
@@ -14,6 +15,7 @@ impl PortRegisters {
       port,
       writes: 0,
       ddr: 0,
+      latch_enabled: false,
     }
   }
 
@@ -41,6 +43,9 @@ struct Timer {
   latch: u16,
   counter: u16,
   interrupt: bool,
+  continuous: bool, // if false, the timer will fire once; if true, it will load the latch into the counter and keep going
+  pulse_counting: bool, // if true, the timer will output a set number of pulses on PB6
+  output_enable: bool, // if true, the timer will output a pulse on PB7
 }
 
 impl Timer {
@@ -49,6 +54,42 @@ impl Timer {
       latch: 0,
       counter: 0,
       interrupt: false,
+      continuous: false,
+      pulse_counting: false,
+      output_enable: false,
+    }
+  }
+}
+
+pub mod sr_control_bits {
+  pub const SHIFT_DISABLED: u8 = 0b000;
+  pub const SHIFT_IN_BY_T2: u8 = 0b001;
+  pub const SHIFT_IN_BY_SYSTEM_CLOCK: u8 = 0b010;
+  pub const SHIFT_IN_BY_EXTERNAL_CLOCK: u8 = 0b011; // PB6?
+
+  pub const SHIFT_OUT_FREE_RUN: u8 = 0b100; // runs by T2, but disables the counter to run forever
+  pub const SHIFT_OUT_BY_T2: u8 = 0b101;
+  pub const SHIFT_OUT_BY_SYSTEM_CLOCK: u8 = 0b110;
+  pub const SHIFT_OUT_BY_EXTERNAL_CLOCK: u8 = 0b111; // PB6?
+
+  pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000; // 1 = 0->1, 0 = 1->0
+  pub const C2_ACTIVE_TRANSITION_FLAG: u8 = 0b01000000;
+  pub const C2_DIRECTION: u8 = 0b00100000; // 1 = output, 0 = input
+  pub const C2_CONTROL: u8 = 0b00011000; // ???
+  pub const DDR_SELECT: u8 = 0b00000100; // enable accessing DDR
+  pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
+}
+
+struct ShiftRegister {
+  data: u8,
+  control: u8,
+}
+
+impl ShiftRegister {
+  pub fn new() -> Self {
+    Self {
+      data: 0,
+      control: 0,
     }
   }
 }
@@ -58,10 +99,8 @@ pub struct VIA {
   b: PortRegisters,
   t1: Timer,
   t2: Timer,
-  sr: u8,  // shift register
-  acr: u8, // auxiliary control register
+  sr: ShiftRegister,
   pcr: u8, // peripheral control register
-  ifr: u8, // interrupt flag register
   ier: u8, // interrupt enable register
 }
 
@@ -72,10 +111,8 @@ impl VIA {
       b: PortRegisters::new(b),
       t1: Timer::new(),
       t2: Timer::new(),
-      sr: 0,
-      acr: 0,
+      sr: ShiftRegister::new(),
       pcr: 0,
-      ifr: 0,
       ier: 0,
     }
   }
@@ -100,10 +137,30 @@ impl Memory for VIA {
         (self.t2.counter & 0xff) as u8
       }
       0x09 => ((self.t2.counter >> 8) & 0xff) as u8,
-      0x0a => self.sr,
-      0x0b => self.acr,
+      0x0a => self.sr.data,
+      0x0b => {
+        (self.t1.output_enable as u8) << 7
+          | (self.t1.continuous as u8) << 6
+          | (self.t2.pulse_counting as u8) << 5
+          | self.sr.control << 2
+          | (self.b.latch_enabled as u8) << 1
+          | (self.a.latch_enabled as u8)
+      }
       0x0c => self.pcr,
-      0x0d => self.ifr,
+      0x0d => {
+        let mut value = 0;
+        if self.t1.interrupt {
+          value |= 0b01000000;
+        }
+        if self.t2.interrupt {
+          value |= 0b00100000;
+        }
+
+        if (value & self.ier) != 0 {
+          value |= 0b10000000; // master flag
+        }
+        value
+      }
       0x0e => self.ier,
       0x0f => self.a.read(),
       _ => unreachable!(),
@@ -132,10 +189,24 @@ impl Memory for VIA {
         self.t2.counter = (self.t2.latch & 0x00ff) | ((value as u16) << 8);
         self.t2.interrupt = false;
       }
-      0x0a => self.sr = value,
-      0x0b => self.acr = value,
+      0x0a => self.sr.data = value,
+      0x0b => {
+        self.t1.output_enable = (value & 0b10000000) != 0;
+        self.t1.continuous = (value & 0b01000000) != 0;
+        self.t2.pulse_counting = (value & 0b00100000) != 0;
+        self.sr.control = (value & 0b00011100) >> 2;
+        self.b.latch_enabled = (value & 0b00000010) != 0;
+        self.a.latch_enabled = (value & 0b00000001) != 0;
+      }
       0x0c => self.pcr = value,
-      0x0d => self.ifr &= !value,
+      0x0d => {
+        if (value & 0b01000000) != 0 {
+          self.t1.interrupt = false;
+        }
+        if (value & 0b00100000) != 0 {
+          self.t2.interrupt = false;
+        }
+      }
       0x0e => self.ier = value,
       0x0f => self.a.write(value),
       _ => unreachable!(),
