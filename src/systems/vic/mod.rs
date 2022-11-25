@@ -1,5 +1,5 @@
-use crate::memory::pia::{NullPort, PIA};
-use crate::memory::{BlockMemory, BranchMemory, NullMemory, RomFile};
+use crate::memory::pia::{NullPort, PIA, Port};
+use crate::memory::{BlockMemory, BranchMemory, NullMemory, RomFile, SystemInfo};
 use crate::platform::PlatformProvider;
 use crate::system::System;
 use crate::systems::SystemFactory;
@@ -12,6 +12,7 @@ mod vram;
 use character::VicCharacterRam;
 use chip::{VicChip, VicChipIO};
 use color::VicColorRam;
+use instant::{Instant, Duration};
 use vram::VicVram;
 
 pub struct Vic20SystemRoms {
@@ -35,6 +36,57 @@ impl Vic20SystemRoms {
   }
 }
 
+pub struct Vic20DummyPort {
+  last_draw_instant: Option<Instant>,
+  last_draw_cycle: u64,
+}
+
+impl Vic20DummyPort {
+  pub fn new() -> Self {
+    Self {
+      last_draw_instant: None,
+      last_draw_cycle: 0,
+    }
+  }
+}
+
+impl Port for Vic20DummyPort {
+  fn read(&mut self) -> u8 {
+    0
+  }
+
+  fn write(&mut self, _value: u8) {
+
+  }
+
+  fn poll(&mut self, info: &SystemInfo) -> bool {
+    let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
+
+    match self.last_draw_instant {
+      Some(last_draw) => {
+        if (last_draw.elapsed() > Duration::from_millis(17))
+          && (info.cycle_count > self.last_draw_cycle + min_elapsed)
+        {
+          self.last_draw_cycle = info.cycle_count;
+          self.last_draw_instant = Some(Instant::now());
+          true
+          // false
+        } else {
+          false
+        }
+      }
+      None => {
+        self.last_draw_instant = Some(Instant::now());
+        false
+      }
+    }
+  }
+
+  fn reset(&mut self) {
+
+  }
+}
+
 pub struct Vic20SystemFactory {}
 
 impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
@@ -44,7 +96,7 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
 
     let vic_chip = Arc::new(Mutex::new(VicChip::new(platform, roms.character)));
     let via1 = PIA::new(Box::new(NullPort::with_warnings("VIA1 Port A")), Box::new(NullPort::with_warnings("VIA1 Port B")));
-    let via2 = PIA::new(Box::new(NullPort::with_warnings("VIA2 Port A")), Box::new(NullPort::with_warnings("VIA2 Port B")));
+    let via2 = PIA::new(Box::new(Vic20DummyPort::new()), Box::new(NullPort::with_warnings("VIA2 Port B")));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
