@@ -1,4 +1,5 @@
 use crate::memory::pia::PIA;
+use crate::memory::via::VIA;
 use crate::memory::{
   ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort, Port, RomFile,
   SystemInfo,
@@ -262,7 +263,7 @@ impl SystemFactory<PetSystemRoms> for PetSystemFactory {
     let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), platform);
     let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
     let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
-    let via = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let kernel_rom = BlockMemory::from_file(0x1000, roms.kernal);
 

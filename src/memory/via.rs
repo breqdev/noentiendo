@@ -59,6 +59,20 @@ impl Timer {
       output_enable: false,
     }
   }
+
+  pub fn poll(&mut self, info: &SystemInfo) -> bool {
+    self.counter = self.counter.wrapping_sub(1);
+
+    if self.counter == 0 {
+      if self.continuous {
+        self.counter = self.latch
+      }
+
+      true
+    } else {
+      false
+    }
+  }
 }
 
 pub mod sr_control_bits {
@@ -120,6 +134,7 @@ impl VIA {
 
 impl Memory for VIA {
   fn read(&mut self, address: u16) -> u8 {
+    println!("VIA read: {:04X}", address);
     match address % 0x10 {
       0x00 => self.b.read(),
       0x01 => self.a.read(), // TODO: controls handshake?
@@ -168,6 +183,7 @@ impl Memory for VIA {
   }
 
   fn write(&mut self, address: u16, value: u8) {
+    println!("VIA write: {:04X} = {:02X}", address, value);
     match address % 0x10 {
       0x00 => self.b.write(value),
       0x01 => self.a.write(value), // TODO: controls handshake?
@@ -219,13 +235,14 @@ impl Memory for VIA {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    let a = self.a.poll(info);
-    let b = self.b.poll(info);
-
-    if a || b {
-      ActiveInterrupt::IRQ
-    } else {
-      ActiveInterrupt::None
+    if self.t1.poll(info) && (self.ier & 0b01000000) != 0 {
+      return ActiveInterrupt::IRQ;
     }
+
+    if self.t2.poll(info) && (self.ier & 0b00100000) != 0 {
+      return ActiveInterrupt::IRQ;
+    }
+
+    ActiveInterrupt::None
   }
 }
