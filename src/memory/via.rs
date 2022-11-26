@@ -207,6 +207,7 @@ impl Memory for VIA {
       }
       0x0a => self.sr.data = value,
       0x0b => {
+        println!("VIA: register control: {:02X}", value);
         self.t1.output_enable = (value & 0b10000000) != 0;
         self.t1.continuous = (value & 0b01000000) != 0;
         self.t2.pulse_counting = (value & 0b00100000) != 0;
@@ -223,7 +224,10 @@ impl Memory for VIA {
           self.t2.interrupt = false;
         }
       }
-      0x0e => self.ier = value,
+      0x0e => {
+        println!("VIA: interrupt enable: {:02X}", value);
+        self.ier = value
+      },
       0x0f => self.a.write(value),
       _ => unreachable!(),
     }
@@ -236,10 +240,12 @@ impl Memory for VIA {
 
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
     if self.t1.poll(info) && (self.ier & 0b01000000) != 0 {
+      println!("Timer 1 interrupt!");
       return ActiveInterrupt::IRQ;
     }
 
     if self.t2.poll(info) && (self.ier & 0b00100000) != 0 {
+      println!("Timer 2 interrupt!");
       return ActiveInterrupt::IRQ;
     }
 

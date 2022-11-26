@@ -155,8 +155,8 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
 
     let vic_chip = Arc::new(Mutex::new(VicChip::new(platform.clone(), roms.character)));
     let via1 = VIA::new(
-      Box::new(NullPort::with_warnings("VIA1 Port A")),
-      Box::new(NullPort::with_warnings("VIA1 Port B")),
+      Box::new(NullPort::new()),
+      Box::new(NullPort::new()),
     );
 
     let b = VicVia2PortB::new();
