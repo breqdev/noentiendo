@@ -239,7 +239,7 @@ impl Memory for VIA {
       0x0e => {
         println!("VIA: interrupt enable: {:02X}", value);
         self.ier = value
-      },
+      }
       0x0f => self.a.write(value),
       _ => unreachable!(),
     }

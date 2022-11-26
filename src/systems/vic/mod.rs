@@ -154,10 +154,7 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
     let main_ram = BlockMemory::ram(0x0E00);
 
     let vic_chip = Arc::new(Mutex::new(VicChip::new(platform.clone(), roms.character)));
-    let via1 = VIA::new(
-      Box::new(NullPort::new()),
-      Box::new(NullPort::new()),
-    );
+    let via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let b = VicVia2PortB::new();
     let a = VicVia2PortA::new(b.get_keyboard_col(), platform);

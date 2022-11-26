@@ -132,10 +132,12 @@ impl System {
 
         let info = self.get_info();
 
-        match self.memory.poll(&info) {
-          ActiveInterrupt::None => (),
-          ActiveInterrupt::NMI => self.interrupt(false, false),
-          ActiveInterrupt::IRQ => self.interrupt(true, false),
+        for _ in 0..cycles {
+          match self.memory.poll(&info) {
+            ActiveInterrupt::None => (),
+            ActiveInterrupt::NMI => self.interrupt(false, false),
+            ActiveInterrupt::IRQ => self.interrupt(true, false),
+          }
         }
 
         if self.cycles_per_second == 0 {
