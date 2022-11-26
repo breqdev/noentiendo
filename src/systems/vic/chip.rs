@@ -324,7 +324,7 @@ impl Memory for VicChipIO {
         let value = chip.character_table_values | (chip.vram_address_top << 4);
         println!("Reading from VIC Chip 0x5: {:02X}", value);
         value
-        },
+      }
       0x6 => chip.light_pen.read_x(),
       0x7 => chip.light_pen.read_y(),
       0x8 => chip.potentiometer_1,

@@ -134,7 +134,7 @@ impl VIA {
 
 impl Memory for VIA {
   fn read(&mut self, address: u16) -> u8 {
-    println!("VIA read: {:04X}", address);
+    // println!("VIA read: {:04X}", address);
     match address % 0x10 {
       0x00 => self.b.read(),
       0x01 => self.a.read(), // TODO: controls handshake?
@@ -183,7 +183,7 @@ impl Memory for VIA {
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    println!("VIA write: {:04X} = {:02X}", address, value);
+    // println!("VIA write: {:04X} = {:02X}", address, value);
     match address % 0x10 {
       0x00 => self.b.write(value),
       0x01 => self.a.write(value), // TODO: controls handshake?

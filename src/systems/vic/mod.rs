@@ -1,6 +1,6 @@
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, RomFile, SystemInfo};
-use crate::platform::PlatformProvider;
+use crate::platform::{scancodes, PlatformProvider};
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
@@ -12,7 +12,6 @@ mod vram;
 use character::VicCharacterRam;
 use chip::{VicChip, VicChipIO};
 use color::VicColorRam;
-use instant::{Duration, Instant};
 use vram::VicVram;
 
 pub struct Vic20SystemRoms {
@@ -36,48 +35,112 @@ impl Vic20SystemRoms {
   }
 }
 
-pub struct Vic20DummyPort {
-  last_draw_instant: Option<Instant>,
-  last_draw_cycle: u64,
+pub struct VicVia2PortB {
+  keyboard_col: Arc<Mutex<u8>>,
 }
 
-impl Vic20DummyPort {
+impl VicVia2PortB {
   pub fn new() -> Self {
     Self {
-      last_draw_instant: None,
-      last_draw_cycle: 0,
+      keyboard_col: Arc::new(Mutex::new(0)),
+    }
+  }
+
+  pub fn get_keyboard_col(&self) -> Arc<Mutex<u8>> {
+    self.keyboard_col.clone()
+  }
+}
+
+impl Port for VicVia2PortB {
+  fn read(&mut self) -> u8 {
+    *self.keyboard_col.lock().unwrap()
+  }
+
+  fn write(&mut self, value: u8) {
+    *self.keyboard_col.lock().unwrap() = value;
+  }
+
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
+    false
+  }
+
+  fn reset(&mut self) {}
+}
+
+pub struct VicVia2PortA {
+  keyboard_col: Arc<Mutex<u8>>,
+  platform: Arc<dyn PlatformProvider>,
+}
+
+impl VicVia2PortA {
+  pub fn new(keyboard_col: Arc<Mutex<u8>>, platform: Arc<dyn PlatformProvider>) -> Self {
+    Self {
+      keyboard_col,
+      platform,
     }
   }
 }
 
-impl Port for Vic20DummyPort {
+const KEYBOARD_MAPPING: [[char; 8]; 8] = [
+  [
+    '1',
+    scancodes::LEFT_ARROW,
+    scancodes::CONTROL,
+    scancodes::RUN_STOP,
+    ' ',
+    scancodes::COMMODORE,
+    'Q',
+    '2',
+  ],
+  ['3', 'A', 'W', scancodes::LSHIFT, 'Z', 'S', 'E', '4'],
+  ['5', 'R', 'D', 'X', 'C', 'F', 'T', '6'],
+  ['7', 'Y', 'G', 'V', 'B', 'H', 'U', '8'],
+  ['9', 'I', 'J', 'N', 'M', 'K', 'O', '0'],
+  ['+', 'P', 'L', ',', '.', ':', '@', '-'],
+  [
+    '$',
+    '*',
+    ';',
+    '/',
+    scancodes::RSHIFT,
+    '=',
+    scancodes::UP_ARROW,
+    scancodes::HOME,
+  ],
+  [
+    scancodes::BACKSPACE,
+    scancodes::RETURN,
+    scancodes::RIGHT_ARROW,
+    scancodes::DOWN_ARROW,
+    scancodes::F1,
+    scancodes::F3,
+    scancodes::F5,
+    scancodes::F7,
+  ],
+];
+
+impl Port for VicVia2PortA {
   fn read(&mut self) -> u8 {
-    0
+    let col_mask = *self.keyboard_col.lock().unwrap();
+
+    let mut value = 0b1111_1111;
+    for row in 0..8 {
+      for col in 0..8 {
+        if (col_mask & (1 << col)) != 0 {
+          let key = KEYBOARD_MAPPING[row][col];
+          if self.platform.is_pressed(key as u8) {
+            value &= !(1 << row);
+          }
+        }
+      }
+    }
+    value
   }
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, info: &SystemInfo) -> bool {
-    let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
-
-    match self.last_draw_instant {
-      Some(last_draw) => {
-        if (last_draw.elapsed() > Duration::from_millis(17))
-          && (info.cycle_count > self.last_draw_cycle + min_elapsed)
-        {
-          self.last_draw_cycle = info.cycle_count;
-          self.last_draw_instant = Some(Instant::now());
-          true
-          // false
-        } else {
-          false
-        }
-      }
-      None => {
-        self.last_draw_instant = Some(Instant::now());
-        false
-      }
-    }
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
+    false
   }
 
   fn reset(&mut self) {}
@@ -90,15 +153,16 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
-    let vic_chip = Arc::new(Mutex::new(VicChip::new(platform, roms.character)));
+    let vic_chip = Arc::new(Mutex::new(VicChip::new(platform.clone(), roms.character)));
     let via1 = VIA::new(
       Box::new(NullPort::with_warnings("VIA1 Port A")),
       Box::new(NullPort::with_warnings("VIA1 Port B")),
     );
-    let via2 = VIA::new(
-      Box::new(Vic20DummyPort::new()),
-      Box::new(NullPort::with_warnings("VIA2 Port B")),
-    );
+
+    let b = VicVia2PortB::new();
+    let a = VicVia2PortA::new(b.get_keyboard_col(), platform);
+
+    let via2 = VIA::new(Box::new(a), Box::new(b));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
