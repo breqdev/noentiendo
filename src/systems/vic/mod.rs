@@ -134,6 +134,8 @@ impl Port for VicVia2PortA {
         }
       }
     }
+    println!("VIA2 Port A (Keyboard Scan) Read: {:08b}", value);
+
     value
   }
 
