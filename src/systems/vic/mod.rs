@@ -117,9 +117,10 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
       // .map(0x2000, Box::new(expansion_ram))
       .map(0x8000, Box::new(characters))
       .map(0x9000, Box::new(chip_io))
-      .map(0x9010, Box::new(via1))
-      .map(0x9020, Box::new(via2))
-      .map(0x9030, Box::new(NullMemory::new()))
+      .map(0x9010, Box::new(NullMemory::new()))
+      .map(0x9110, Box::new(via1))
+      .map(0x9120, Box::new(via2))
+      .map(0x9130, Box::new(NullMemory::new()))
       .map(0x9600, Box::new(colors))
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
