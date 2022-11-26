@@ -61,12 +61,19 @@ impl Timer {
   }
 
   pub fn poll(&mut self, info: &SystemInfo) -> bool {
-    self.counter = self.counter.wrapping_sub(1);
-
     if self.counter == 0 {
       if self.continuous {
         self.counter = self.latch
+      } else {
+        return false;
       }
+    }
+
+    self.counter = self.counter.wrapping_sub(1);
+
+    if self.counter == 0 {
+      println!("Timer interrupt! Flag set");
+      self.interrupt = true;
 
       true
     } else {
@@ -134,7 +141,7 @@ impl VIA {
 
 impl Memory for VIA {
   fn read(&mut self, address: u16) -> u8 {
-    // println!("VIA read: {:04X}", address);
+    println!("VIA read: {:04X}", address);
     match address % 0x10 {
       0x00 => self.b.read(),
       0x01 => self.a.read(), // TODO: controls handshake?
@@ -142,7 +149,9 @@ impl Memory for VIA {
       0x03 => self.a.ddr,
       0x04 => {
         self.t1.interrupt = false;
-        (self.t1.counter & 0xff) as u8
+        let value = (self.t1.counter & 0xff) as u8;
+        println!("VIA T1 low: {:02X}", value);
+        value
       }
       0x05 => ((self.t1.counter >> 8) & 0xff) as u8,
       0x06 => (self.t1.latch & 0xff) as u8,
@@ -163,8 +172,10 @@ impl Memory for VIA {
       }
       0x0c => self.pcr,
       0x0d => {
+        println!("interrupt flags read");
         let mut value = 0;
         if self.t1.interrupt {
+          println!("T1 interrupt flag read");
           value |= 0b01000000;
         }
         if self.t2.interrupt {
@@ -217,10 +228,11 @@ impl Memory for VIA {
       }
       0x0c => self.pcr = value,
       0x0d => {
-        if (value & 0b01000000) != 0 {
+        if (value & 0b01000000) == 0 {
+          println!("Clearing Timer1 flag");
           self.t1.interrupt = false;
         }
-        if (value & 0b00100000) != 0 {
+        if (value & 0b00100000) == 0 {
           self.t2.interrupt = false;
         }
       }
@@ -240,12 +252,10 @@ impl Memory for VIA {
 
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
     if self.t1.poll(info) && (self.ier & 0b01000000) != 0 {
-      println!("Timer 1 interrupt!");
       return ActiveInterrupt::IRQ;
     }
 
     if self.t2.poll(info) && (self.ier & 0b00100000) != 0 {
-      println!("Timer 2 interrupt!");
       return ActiveInterrupt::IRQ;
     }
 
