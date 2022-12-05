@@ -193,10 +193,6 @@ impl VicChip {
       character[i] = self.characters.read(character_index + i as u16);
     }
 
-    if value & 0x80 != 0 {
-      character = character.iter().map(|&x| !x).collect();
-    }
-
     character
   }
 
@@ -320,11 +316,7 @@ impl Memory for VicChipIO {
           | ((chip.raster_counter & 0b1) as u8) << 7
       }
       0x4 => (chip.raster_counter >> 1) as u8,
-      0x5 => {
-        let value = chip.character_table_values | (chip.vram_address_top << 4);
-        println!("Reading from VIC Chip 0x5: {:02X}", value);
-        value
-      }
+      0x5 => chip.character_table_values | (chip.vram_address_top << 4),
       0x6 => chip.light_pen.read_x(),
       0x7 => chip.light_pen.read_y(),
       0x8 => chip.potentiometer_1,
@@ -358,7 +350,6 @@ impl Memory for VicChipIO {
       }
       0x4 => chip.raster_counter = (chip.raster_counter & 0x1) | ((value as u16) << 1),
       0x5 => {
-        println!("Writing to VIC Chip 0x5: {:02X}", value);
         chip.vram_address_top = (value >> 4) & 0x0F;
         chip.character_table_values = value & 0x0F;
       }
