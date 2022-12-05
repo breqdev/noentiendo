@@ -92,7 +92,7 @@ const KEYBOARD_MAPPING: [[char; 8]; 8] = [
     'Q',
     '2',
   ],
-  ['3', 'A', 'W', scancodes::LSHIFT, 'Z', 'S', 'E', '4'],
+  ['3', 'W', 'A', scancodes::LSHIFT, 'Z', 'S', 'E', '4'],
   ['5', 'R', 'D', 'X', 'C', 'F', 'T', '6'],
   ['7', 'Y', 'G', 'V', 'B', 'H', 'U', '8'],
   ['9', 'I', 'J', 'N', 'M', 'K', 'O', '0'],

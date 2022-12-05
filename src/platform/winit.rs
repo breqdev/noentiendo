@@ -50,6 +50,8 @@ fn virtual_key_to_ascii(code: VirtualKeyCode, shift: bool) -> Option<u8> {
       VirtualKeyCode::RShift => Some(scancodes::RSHIFT as u8),
       VirtualKeyCode::LWin => Some(scancodes::LSUPER as u8),
       VirtualKeyCode::RWin => Some(scancodes::RSUPER as u8),
+      VirtualKeyCode::LAlt => Some(scancodes::COMMODORE as u8),
+
       _ => {
         if !shift {
           match code {
