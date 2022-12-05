@@ -126,7 +126,7 @@ impl Port for VicVia2PortA {
     let mut value = 0b1111_1111;
     for row in 0..8 {
       for col in 0..8 {
-        if (col_mask & (1 << col)) != 0 {
+        if (!col_mask & (1 << col)) != 0 {
           let key = KEYBOARD_MAPPING[row][col];
           if self.platform.is_pressed(key as u8) {
             value &= !(1 << row);
