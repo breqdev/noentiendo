@@ -60,7 +60,7 @@ impl Timer {
     }
   }
 
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
+  pub fn poll(&mut self, _info: &SystemInfo) -> bool {
     if self.counter == 0 {
       if self.continuous {
         self.counter = self.latch
