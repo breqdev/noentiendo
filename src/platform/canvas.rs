@@ -40,6 +40,7 @@ fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
       VirtualKeyCode::Back => Some(scancodes::BACKSPACE as u8),
       VirtualKeyCode::LShift => Some(scancodes::LSHIFT as u8),
       VirtualKeyCode::RShift => Some(scancodes::RSHIFT as u8),
+      VirtualKeyCode::LAlt => Some(scancodes::COMMODORE as u8),
       VirtualKeyCode::Apostrophe => Some('"' as u8), // should be ', but PET has separate keys
       _ => None,
     }
