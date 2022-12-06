@@ -7,15 +7,14 @@ use std::fs::File;
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::Read;
 
+/// Represents a predefined, immutable ROM file.
+/// Useful for storing character, BASIC, kernal, etc. ROMs.
 pub struct RomFile {
   data: Vec<u8>,
 }
 
 impl RomFile {
-  pub fn new() -> Self {
-    Self { data: Vec::new() }
-  }
-
+  /// Creates a ROM file by loading the contents of a file.
   #[cfg(not(target_arch = "wasm32"))]
   pub fn from_file(path: &str) -> Self {
     let mut file = File::open(path).map_err(|e| e.to_string()).unwrap();
@@ -27,6 +26,7 @@ impl RomFile {
     Self { data }
   }
 
+  /// Creates a ROM file by loading the contents of a Uint8Array.
   #[cfg(target_arch = "wasm32")]
   pub fn from_uint8array(array: &Uint8Array) -> Self {
     let mut data = Vec::new();
@@ -36,6 +36,7 @@ impl RomFile {
     Self { data }
   }
 
+  /// Returns the contents of the ROM file.
   pub fn get_data(self) -> Vec<u8> {
     self.data
   }

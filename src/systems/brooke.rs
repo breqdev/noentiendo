@@ -5,6 +5,8 @@ use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::Arc;
 
+/// A Memory implementation that can be used to read from or write to
+/// STDIN/STDOUT.
 struct MappedStdIO {
   provider: Arc<dyn PlatformProvider>,
 }
@@ -16,9 +18,10 @@ impl MappedStdIO {
 }
 
 impl Memory for MappedStdIO {
-  // 0x00: u8 as dec
-  // 0x01: char
-  // 0x02: u8 as hex
+  /// Read from STDIN. The mode is controlled by the address.
+  /// 0x00: u8 as dec
+  /// 0x01: char
+  /// 0x02: u8 as hex
   fn read(&mut self, address: u16) -> u8 {
     let input = self.provider.input();
 
@@ -34,6 +37,10 @@ impl Memory for MappedStdIO {
     }
   }
 
+  /// Write to STDOUT. The mode is controlled by the address.
+  /// 0x00: u8 as dec
+  /// 0x01: char
+  /// 0x02: u8 as hex
   fn write(&mut self, address: u16, value: u8) {
     match address & 0x03 {
       0x00 => self.provider.print(&format!("{}\n", value)),
@@ -54,6 +61,7 @@ impl Memory for MappedStdIO {
   }
 }
 
+/// A system which only operates in text mode, for basic testing.
 pub struct BrookeSystemFactory {}
 
 impl SystemFactory<RomFile> for BrookeSystemFactory {

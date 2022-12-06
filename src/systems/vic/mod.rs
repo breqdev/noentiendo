@@ -14,13 +14,20 @@ use chip::{VicChip, VicChipIO};
 use color::VicColorRam;
 use vram::VicVram;
 
+/// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
+  /// Character ROM. Used to generate the 8x8 character bitmaps.
   pub character: RomFile,
+
+  /// Basic ROM. Contains the BASIC interpreter.
   pub basic: RomFile,
+
+  /// Kernal ROM. Contains the operating system and editor functions.
   pub kernal: RomFile,
 }
 
 impl Vic20SystemRoms {
+  /// Load the ROM files from files.
   #[cfg(not(target_arch = "wasm32"))]
   pub fn from_disk() -> Self {
     let character = RomFile::from_file("vic/char.bin");
@@ -35,6 +42,8 @@ impl Vic20SystemRoms {
   }
 }
 
+/// Port B on the second VIA chip.
+/// This is used to set the active columns on the keyboard matrix.
 pub struct VicVia2PortB {
   keyboard_col: Arc<Mutex<u8>>,
 }
@@ -46,6 +55,7 @@ impl VicVia2PortB {
     }
   }
 
+  /// Return a reference to the keyboard column's current value.
   pub fn get_keyboard_col(&self) -> Arc<Mutex<u8>> {
     self.keyboard_col.clone()
   }
@@ -67,12 +77,16 @@ impl Port for VicVia2PortB {
   fn reset(&mut self) {}
 }
 
+/// Port A on the second VIA chip.
+/// This is used to read the active rows on the keyboard matrix.
 pub struct VicVia2PortA {
   keyboard_col: Arc<Mutex<u8>>,
   platform: Arc<dyn PlatformProvider>,
 }
 
 impl VicVia2PortA {
+  /// Create a new instance of the port, with the given keyboard column,
+  /// reading the key status from the given platform.
   pub fn new(keyboard_col: Arc<Mutex<u8>>, platform: Arc<dyn PlatformProvider>) -> Self {
     Self {
       keyboard_col,
@@ -81,6 +95,7 @@ impl VicVia2PortA {
   }
 }
 
+/// The keyboard matrix in a VIC-20 system.
 const KEYBOARD_MAPPING: [[char; 8]; 8] = [
   [
     '1',
@@ -147,6 +162,7 @@ impl Port for VicVia2PortA {
   fn reset(&mut self) {}
 }
 
+/// The VIC-20 system by Commodore.
 pub struct Vic20SystemFactory {}
 
 impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {

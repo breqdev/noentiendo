@@ -2,6 +2,7 @@ use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::systems::vic::VicChip;
 use std::sync::{Arc, Mutex};
 
+/// The Character RAM used by the MOS 6560 VIC.
 pub struct VicCharacterRam {
   chip: Arc<Mutex<VicChip>>,
 }

@@ -228,9 +228,7 @@ impl Memory for VIA {
           self.t2.interrupt = false;
         }
       }
-      0x0e => {
-        self.ier = value
-      }
+      0x0e => self.ier = value,
       0x0f => self.a.write(value),
       _ => unreachable!(),
     }

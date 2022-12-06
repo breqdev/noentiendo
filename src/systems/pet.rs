@@ -17,9 +17,14 @@ const CHAR_WIDTH: u32 = 8;
 const CHAR_HEIGHT: u32 = 8;
 const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
-// Commodore PET-style column screen memory
-// (see https://www.chibiakumas.com/6502/platform4.php#LessonP38 for details)
-
+/// Commodore PET-style column screen memory.
+/// This is a 40x25 character display with no color support.
+/// Writing a character code to the screen memory will display that character
+/// at the position corresponding to the address.
+/// The characters are defined in a separate character ROM not accessible to
+/// the rest of the system.
+/// (see <https://www.chibiakumas.com/6502/platform4.php#LessonP38> for details)
+/// Note that this emulates a 40-column pet, not an 80-column "Business" pet.
 pub struct PetVram {
   data: Vec<u8>,
   platform: Arc<dyn PlatformProvider>,
@@ -102,6 +107,10 @@ impl Memory for PetVram {
   }
 }
 
+/// Port A on the first PIA.
+/// This is used for generating the 60Hz interrupt (which is fired when the
+/// screen drawing reaches the last line), and for setting the active
+/// row of the keyboard matrix.
 pub struct PetPia1PortA {
   keyboard_row: Arc<Mutex<u8>>,
   last_draw_instant: Option<Instant>,
@@ -163,6 +172,8 @@ impl Port for PetPia1PortA {
   }
 }
 
+/// Port B on the first PIA.
+/// This is used for reading the keyboard matrix.
 pub struct PetPia1PortB {
   keyboard_row: Arc<Mutex<u8>>,
   platform: Arc<dyn PlatformProvider>,
@@ -177,6 +188,8 @@ impl PetPia1PortB {
   }
 }
 
+/// The keyboard matrix for the PET's "Graphics" keyboard.
+/// Note that the "Business" keyboard has a different (more traditional) layout.
 const KEYBOARD_MAPPING: [[char; 8]; 10] = [
   ['!', '#', '%', '&', '(', '_', '_', '_'],
   ['"', '$', '\'', '\\', ')', '_', '_', scancodes::BACKSPACE],
@@ -221,10 +234,18 @@ impl Port for PetPia1PortB {
   fn reset(&mut self) {}
 }
 
+/// The set of ROM files required to run a PET system.
 pub struct PetSystemRoms {
+  /// Character ROM. Used to generate the 8x8 character bitmaps.
   pub character: RomFile,
+
+  /// Basic ROM. Contains the BASIC interpreter.
   pub basic: RomFile,
+
+  /// Editor ROM. Contains the screen editor functions.
   pub editor: RomFile,
+
+  /// Kernal ROM. Contains the operating system.
   pub kernal: RomFile,
 }
 
@@ -245,6 +266,7 @@ impl PetSystemRoms {
   }
 }
 
+/// The Commodore PET system.
 pub struct PetSystemFactory {}
 
 impl SystemFactory<PetSystemRoms> for PetSystemFactory {

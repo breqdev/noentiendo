@@ -2,6 +2,9 @@ use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::systems::vic::VicChip;
 use std::sync::{Arc, Mutex};
 
+/// Represents the video/screen RAM used by the MOS 6560 VIC.
+/// Each address corresponds to a pixel on the screen.
+/// Addresses are laid out left-to-right, top-to-bottom.
 pub struct VicVram {
   chip: Arc<Mutex<VicChip>>,
 }

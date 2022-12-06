@@ -1,14 +1,17 @@
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
+/// Memory that does nothing when read or written to.
 pub struct NullMemory {
   warn: Option<&'static str>,
 }
 
 impl NullMemory {
+  /// Create a new NullMemory that will not warn when read or written to.
   pub fn new() -> Self {
     Self { warn: None }
   }
 
+  /// Create a new NullMemory that will warn when read or written to.
   pub fn with_warnings(message: &'static str) -> Self {
     Self {
       warn: Some(message),

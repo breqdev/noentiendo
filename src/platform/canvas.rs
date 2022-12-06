@@ -24,6 +24,8 @@ extern "C" {
   fn alert(message: &str);
 }
 
+/// Map a virtual key code from Winit into an ASCII character or predefined
+/// scancode.
 fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   if (code as u8) <= 36 {
     let code = code as u8;
@@ -47,6 +49,10 @@ fn virtual_key_to_ascii(code: VirtualKeyCode) -> Option<u8> {
   }
 }
 
+/// A platform implementation for the web.
+/// This draws to a canvas element in the DOM and uses the web's keyboard
+/// events. It ticks forward the emulator time on a specified interval.
+/// This platform runs asynchronously (using the JS event loop).
 pub struct CanvasPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
