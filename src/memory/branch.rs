@@ -1,16 +1,23 @@
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
+/// Maps several Memory objects into a single contiguous address space.
+/// Each mapped object is assigned a starting address, and reads and writes
+/// will have the starting address subtracted from them before being passed
+/// to the underlying Memory object.
 pub struct BranchMemory {
   mapping: Vec<(usize, Box<dyn Memory>)>,
 }
 
 impl BranchMemory {
+  /// Create a new BranchMemory with no mappings.
   pub fn new() -> Self {
     Self {
       mapping: Vec::new(),
     }
   }
 
+  /// Map a new Memory object to the given starting address in this mapping.
+  /// Returns this BranchMemory for chaining.
   pub fn map(mut self, address: usize, memory: Box<dyn Memory>) -> Self {
     self.mapping.push((address, memory));
 

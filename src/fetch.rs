@@ -1,14 +1,21 @@
 use crate::system::{MemoryIO, System};
 
+/// Fetch values or addresses from memory, optionally dependent on the current
+/// opcode.
 pub trait Fetch {
-  // Fetch immediate values
+  /// Fetch an immediate 1-byte value at the current program counter, and
+  /// increment the program counter.
   fn fetch(&mut self) -> u8;
+
+  /// Fetch an immediate 2-byte value (little-endian).
   fn fetch_word(&mut self) -> u16;
 
-  // Fetch operand value based on the opcode
+  /// Fetch the next operand value, based on the current opcode.
+  /// Panics if the opcode is not valid for this operation.
   fn fetch_operand_value(&mut self, opcode: u8) -> (u8, u8);
 
-  // Fetch operand address based on the opcode
+  /// Fetch the next operand address, based on the current opcode.
+  /// Panics if the opcode is not valid for this operation.
   fn fetch_operand_address(&mut self, opcode: u8) -> (u16, u8);
 }
 

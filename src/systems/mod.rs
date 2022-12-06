@@ -14,6 +14,7 @@ pub use klaus::KlausSystemFactory;
 pub use pet::{PetSystemFactory, PetSystemRoms};
 pub use vic::{Vic20SystemFactory, Vic20SystemRoms};
 
+/// A factory for creating a system from a set of ROM files and a platform.
 pub trait SystemFactory<RomRegistry> {
   fn create(roms: RomRegistry, platform: Arc<dyn PlatformProvider>) -> System;
 }

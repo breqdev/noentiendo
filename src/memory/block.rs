@@ -1,5 +1,8 @@
 use crate::memory::{ActiveInterrupt, Memory, RomFile, SystemInfo};
 
+/// Represents a simple block of contiguous memory, with no additional hardware.
+/// This can be used to represent both RAM and ROM.
+/// Reading from this memory is side-effect free.
 pub struct BlockMemory {
   size: usize,
   data: Vec<u8>,
@@ -7,6 +10,8 @@ pub struct BlockMemory {
 }
 
 impl BlockMemory {
+  /// Create a BlockMemory of the given size which clears its contents when
+  /// reset.
   pub fn ram(size: usize) -> Self {
     Self {
       size,
@@ -15,6 +20,8 @@ impl BlockMemory {
     }
   }
 
+  /// Create a BlockMemory of the given size which does not clear its contents
+  /// when reset.
   pub fn rom(size: usize) -> Self {
     Self {
       size,
@@ -23,6 +30,8 @@ impl BlockMemory {
     }
   }
 
+  /// Create a BlockMemory of the given size which loads its contents from the
+  /// given file when reset.
   pub fn from_file(size: usize, file: RomFile) -> Self {
     let mut data = vec![0; size];
     let file_data = file.get_data();

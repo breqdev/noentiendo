@@ -3,6 +3,7 @@ use crate::fetch::Fetch;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::registers::{flags, Registers};
 
+/// The MOS 6502 CPU and its associated memory.
 pub struct System {
   pub registers: Registers,
   memory: Box<dyn Memory>,
@@ -10,10 +11,18 @@ pub struct System {
   cycle_count: u64,
 }
 
+/// Read and write from the system's memory.
 pub trait MemoryIO {
+  /// Read a byte from the given address in memory.
   fn read(&mut self, address: u16) -> u8;
+
+  /// Write a byte to the given address in memory.
   fn write(&mut self, address: u16, value: u8);
+
+  /// Read a word (little-endian) from the given address in memory.
   fn read_word(&mut self, address: u16) -> u16;
+
+  /// Write a word (little-endian) to the given address in memory.
   fn write_word(&mut self, address: u16, value: u16);
 }
 
@@ -38,11 +47,18 @@ impl MemoryIO for System {
   }
 }
 
+/// Push and pop values from the stack.
 pub trait Stack {
+  /// Push a byte onto the stack.
   fn push(&mut self, value: u8);
+
+  /// Pop a byte from the stack.
   fn pop(&mut self) -> u8;
 
+  /// Push a word (little-endian) onto the stack.
   fn push_word(&mut self, value: u16);
+
+  /// Pop a word (little-endian) from the stack.
   fn pop_word(&mut self) -> u16;
 }
 
@@ -70,6 +86,8 @@ impl Stack for System {
   }
 }
 
+/// Handle interrupts by setting the applicable flags, pushing the program counter
+/// onto the stack, and loading the interrupt vector into the program counter.
 pub trait InterruptHandler {
   fn interrupt(&mut self, maskable: bool, set_brk: bool);
 }
@@ -116,6 +134,7 @@ impl System {
     self.registers.pc.load(pc_address);
   }
 
+  /// Return a SystemInfo struct containing the current system status.
   pub fn get_info(&self) -> SystemInfo {
     SystemInfo {
       cycles_per_second: self.cycles_per_second,
@@ -123,6 +142,7 @@ impl System {
     }
   }
 
+  /// Execute a single instruction.
   pub fn tick(&mut self) -> f64 {
     let opcode = self.fetch();
 

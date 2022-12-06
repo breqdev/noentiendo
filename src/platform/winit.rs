@@ -12,6 +12,8 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
+/// Map a virtual key code from Winit into an ASCII character or predefined
+/// scancode.
 fn virtual_key_to_ascii(code: VirtualKeyCode, shift: bool) -> Option<u8> {
   if (code as u8) <= 36 {
     let code = code as u8;
@@ -89,6 +91,8 @@ fn virtual_key_to_ascii(code: VirtualKeyCode, shift: bool) -> Option<u8> {
   }
 }
 
+/// A platform implementation for desktop platforms using Winit and Pixels.
+/// This platform runs synchronously.
 pub struct WinitPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,

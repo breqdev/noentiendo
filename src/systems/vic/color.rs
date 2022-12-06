@@ -2,6 +2,9 @@ use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::systems::vic::VicChip;
 use std::sync::{Arc, Mutex};
 
+/// Represents the color RAM used by the MOS 6560 VIC.
+/// Each position corresponds to a pixel in the VIC's video RAM.
+/// The value at each position is an index into the VIC's color palette.
 pub struct VicColorRam {
   chip: Arc<Mutex<VicChip>>,
 }

@@ -3,6 +3,7 @@ use crate::registers::{flags, ALU};
 use crate::system::{InterruptHandler, MemoryIO, Stack, System};
 
 pub trait Execute {
+  /// Execute the given opcode, returning either the number of cycles used or an error.
   fn execute(&mut self, opcode: u8) -> Result<u8, ()>;
 }
 

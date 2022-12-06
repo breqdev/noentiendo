@@ -6,6 +6,10 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+/// Represents a platform which exclusively operates over text mode,
+/// without any visible graphical output. This reads from and writes to the
+/// terminal.
+/// This platform runs synchronously.
 pub struct TextPlatform {}
 
 impl TextPlatform {

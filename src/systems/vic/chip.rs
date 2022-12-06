@@ -8,6 +8,7 @@ const CHAR_WIDTH: u32 = 8;
 const CHAR_HEIGHT: u32 = 8;
 const VRAM_SIZE: usize = 512; // 6 extra bytes to make mapping easier
 
+/// One of the speakers available on the MOS 6560 VIC.
 struct VicChipSpeaker {
   on: bool,
   note: u8,
@@ -33,6 +34,7 @@ impl VicChipSpeaker {
   }
 }
 
+/// The light pen input available on the MOS 6560 VIC.
 struct VicChipLightPen {
   x: u8,
   y: u8,
@@ -66,6 +68,10 @@ impl VicChipLightPen {
 }
 
 // Source: http://tinyvga.com/6561
+
+/// The MOS 6560 VIC (Video Interface Chip).
+/// Uses VRAM memory, character memory, and color memory to draw the screen.
+/// Also handles the speakers and light pen.
 pub struct VicChip {
   platform: Arc<dyn PlatformProvider>,
 
@@ -185,6 +191,10 @@ impl VicChip {
     self.character_table_values = 0;
   }
 
+  /// Get the bits in the character at the given value.
+  /// The character is 8 bits wide and 8 bits tall, so this returns a vec![0; 8].
+  /// Each byte is a horizontal row, which are ordered from top to bottom.
+  /// Bits are ordered with the MSB at the left and the LSB at the right.
   fn get_character(&mut self, value: u8) -> Vec<u8> {
     let character_index = (value as u16) * 8;
 
@@ -196,6 +206,7 @@ impl VicChip {
     character
   }
 
+  /// Get the foreground color to be shown at the given character position.
   fn get_foreground(&mut self, address: u16) -> Color {
     let value = self.colors.read(address);
     match value {
@@ -211,6 +222,7 @@ impl VicChip {
     }
   }
 
+  /// Get the current background color being shown.
   fn get_background(&self) -> Color {
     match self.background_color {
       0b0000 => Color::new(0, 0, 0),
@@ -233,6 +245,7 @@ impl VicChip {
     }
   }
 
+  /// Redraw the character at the specified address.
   fn redraw(&mut self, address: u16) {
     if address >= (HEIGHT * WIDTH) as u16 {
       return; // ignore writes to the extra bytes
@@ -292,6 +305,7 @@ impl VicChip {
   }
 }
 
+/// Represents the I/O mapping for the MOS 6560 VIC.
 pub struct VicChipIO {
   chip: Arc<Mutex<VicChip>>,
 }
