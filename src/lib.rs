@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 mod execute;
 mod fetch;
 pub mod memory;
@@ -5,6 +7,7 @@ pub mod platform;
 mod registers;
 pub mod system;
 pub mod systems;
+
 
 #[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;
