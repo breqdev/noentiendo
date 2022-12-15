@@ -8,7 +8,6 @@ mod registers;
 pub mod system;
 pub mod systems;
 
-
 #[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;
 

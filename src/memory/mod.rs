@@ -31,7 +31,7 @@ pub struct SystemInfo {
 
 /// Represents a contiguous block of memory which can be read, written,
 /// reset, and polled to see if an interrupt has been triggered.
-pub trait Memory: Send {
+pub trait Memory {
   /// Read a byte from this memory at the given address.
   /// Implementations may trigger side effects as a result of this read.
   fn read(&mut self, address: u16) -> u8;
