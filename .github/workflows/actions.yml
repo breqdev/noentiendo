@@ -1,4 +1,4 @@
-on: [push, pull_request]
+on: [push]
 
 name: noentiendo CI
 
@@ -84,8 +84,8 @@ jobs:
       - name: Copy files
         run: |
           mkdir pages
-          cp -r www/dist pages
-          cp -r target/doc pages/doc
+          cp -r www/dist/* pages
+          cp -r target/doc pages
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
