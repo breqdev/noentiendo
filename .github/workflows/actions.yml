@@ -41,8 +41,6 @@ jobs:
         with:
           command: test
 
-
-jobs:
   web:
     name: Deploy Web
     runs-on: ubuntu-latest
