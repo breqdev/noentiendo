@@ -783,6 +783,7 @@ dependencies = [
  "console_log",
  "instant",
  "js-sys",
+ "log",
  "pixels",
  "rand",
  "wasm-bindgen",

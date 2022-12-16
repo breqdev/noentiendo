@@ -14,6 +14,18 @@ use chip::{VicChip, VicChipIO};
 use color::VicColorRam;
 use vram::VicVram;
 
+#[cfg(target_arch = "wasm32")]
+use js_sys::Reflect;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsValue;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+
+#[cfg(target_arch = "wasm32")]
+use js_sys::Uint8Array;
+
 /// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
   /// Character ROM. Used to generate the 8x8 character bitmaps.
@@ -38,6 +50,28 @@ impl Vic20SystemRoms {
       character,
       basic,
       kernal,
+    }
+  }
+
+  #[cfg(target_arch = "wasm32")]
+  pub fn from_jsvalue(value: &JsValue) -> Self {
+    let character = Reflect::get(value, &JsValue::from_str("char"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
+    let basic = Reflect::get(value, &JsValue::from_str("basic"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
+    let kernal = Reflect::get(value, &JsValue::from_str("kernal"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
+
+    Self {
+      character: RomFile::from_uint8array(&character),
+      basic: RomFile::from_uint8array(&basic),
+      kernal: RomFile::from_uint8array(&kernal),
     }
   }
 }

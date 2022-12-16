@@ -11,6 +11,18 @@ use instant::Instant;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+#[cfg(target_arch = "wasm32")]
+use js_sys::Reflect;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsValue;
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+
+#[cfg(target_arch = "wasm32")]
+use js_sys::Uint8Array;
+
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
 const CHAR_WIDTH: u32 = 8;
@@ -262,6 +274,33 @@ impl PetSystemRoms {
       basic,
       editor,
       kernal,
+    }
+  }
+
+  #[cfg(target_arch = "wasm32")]
+  pub fn from_jsvalue(value: &JsValue) -> Self {
+    let character = Reflect::get(value, &JsValue::from_str("char"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
+    let basic = Reflect::get(value, &JsValue::from_str("basic"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
+    let editor = Reflect::get(value, &JsValue::from_str("editor"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
+    let kernal = Reflect::get(value, &JsValue::from_str("kernal"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
+
+    Self {
+      character: RomFile::from_uint8array(&character),
+      basic: RomFile::from_uint8array(&basic),
+      editor: RomFile::from_uint8array(&editor),
+      kernal: RomFile::from_uint8array(&kernal),
     }
   }
 }

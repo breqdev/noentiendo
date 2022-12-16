@@ -15,46 +15,34 @@ extern crate console_error_panic_hook;
 use wasm_bindgen::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
-use js_sys::Uint8Array;
-
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub async fn main(
-  basic: Uint8Array,
-  character: Uint8Array,
-  // editor: Uint8Array,
-  kernal: Uint8Array,
-) {
+pub fn main(roms: JsValue, system: JsValue) {
   console_error_panic_hook::set_once();
 
+  use js_sys::Reflect;
   use platform::{AsyncPlatform, CanvasPlatform, Platform};
-  use systems::{SystemFactory, Vic20SystemFactory, Vic20SystemRoms};
+  use systems::{
+    PetSystemFactory, PetSystemRoms, SystemFactory, Vic20SystemFactory, Vic20SystemRoms,
+  };
+  use wasm_bindgen_futures::spawn_local;
+
+  console_log::init().unwrap();
 
   let mut platform = CanvasPlatform::new();
-  // platform
-  //   .provider()
-  //   .request_window(platform::WindowConfig::new(1, 1, 2.0));
 
-  // let romfile = memory::RomFile::from_uint8array(&rom);
-  let basic = memory::RomFile::from_uint8array(&basic);
-  let character = memory::RomFile::from_uint8array(&character);
-  // let editor = memory::RomFile::from_uint8array(&editor);
-  let kernal = memory::RomFile::from_uint8array(&kernal);
+  let pet_object = Reflect::get(&roms, &JsValue::from_str("pet")).unwrap();
+  let vic_object = Reflect::get(&roms, &JsValue::from_str("vic")).unwrap();
 
-  // let roms = systems::PetSystemRoms {
-  //   character,
-  //   basic,
-  //   editor,
-  //   kernal,
-  // };
+  let pet_roms = PetSystemRoms::from_jsvalue(&pet_object);
+  let vic_roms = Vic20SystemRoms::from_jsvalue(&vic_object);
 
-  let roms = Vic20SystemRoms {
-    character,
-    basic,
-    kernal,
+  let system = match system.as_string().unwrap().as_str() {
+    "pet" => PetSystemFactory::create(pet_roms, platform.provider()),
+    "vic" => Vic20SystemFactory::create(vic_roms, platform.provider()),
+    _ => panic!("Unknown system"),
   };
 
-  let system = Vic20SystemFactory::create(roms, platform.provider());
-
-  platform.run_async(system).await;
+  spawn_local(async move {
+    platform.run_async(system).await;
+  });
 }
