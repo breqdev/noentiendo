@@ -1,0 +1,94 @@
+on: [push]
+
+name: noentiendo CI
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build for Desktop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Check syntax
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Run build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  web:
+    name: Deploy Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack
+
+      - name: Build WASM module
+        run: wasm-pack build
+
+      - name: Webpack build
+        run: |
+          cd www
+          npm install
+          npm run build
+
+      - name: Build documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --no-deps
+
+      - name: Copy files
+        run: |
+          mkdir pages
+          cp -r www/dist/* pages
+          cp -r target/doc pages
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          folder: pages
