@@ -36,4 +36,14 @@ let roms = {
   },
 };
 
-wasm.main(roms, "pet");
+document.getElementById("pet").addEventListener("click", () => {
+  document.getElementById("buttonRow").remove();
+
+  wasm.main(roms, "pet");
+});
+
+document.getElementById("vic").addEventListener("click", () => {
+  document.getElementById("buttonRow").remove();
+
+  wasm.main(roms, "vic");
+});
