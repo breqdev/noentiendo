@@ -17,7 +17,7 @@ use wasm_bindgen::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn main(roms: JsValue, system: JsValue) {
+pub fn main(roms: &JsValue, system: &JsValue) {
   console_error_panic_hook::set_once();
 
   use js_sys::Reflect;
