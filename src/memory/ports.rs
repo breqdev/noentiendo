@@ -2,7 +2,7 @@ use crate::memory::SystemInfo;
 
 /// A Port that can be read from, written to, reset, or polled for interrupts.
 /// Used in the MOS 6520 PIA and the 6522 VIA.
-pub trait Port: Send {
+pub trait Port {
   /// Read a byte from the port. This is implementation-defined, and may have
   /// side effects.
   fn read(&mut self) -> u8;

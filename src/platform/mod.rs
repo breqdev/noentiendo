@@ -80,7 +80,7 @@ impl WindowConfig {
   }
 }
 
-pub trait PlatformProvider: Send + Sync {
+pub trait PlatformProvider {
   /// Request that the platform create a window of the specified size,
   /// with the specified scale factor.
   fn request_window(&self, config: WindowConfig);

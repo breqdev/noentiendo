@@ -3,14 +3,12 @@ mod branch;
 mod null;
 pub mod pia;
 pub mod ports;
-mod romfile;
 pub mod via;
 
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
 pub use null::NullMemory;
 pub use ports::{NullPort, Port};
-pub use romfile::RomFile;
 
 /// Represents the state of the interrupts on the system.
 pub enum ActiveInterrupt {
@@ -31,7 +29,7 @@ pub struct SystemInfo {
 
 /// Represents a contiguous block of memory which can be read, written,
 /// reset, and polled to see if an interrupt has been triggered.
-pub trait Memory: Send {
+pub trait Memory {
   /// Read a byte from this memory at the given address.
   /// Implementations may trigger side effects as a result of this read.
   fn read(&mut self, address: u16) -> u8;

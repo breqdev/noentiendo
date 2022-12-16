@@ -1,5 +1,6 @@
-use crate::memory::{ActiveInterrupt, BlockMemory, Memory, RomFile, SystemInfo};
+use crate::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
+use crate::roms::RomFile;
 use std::sync::{Arc, Mutex};
 
 const WIDTH: u32 = 22;

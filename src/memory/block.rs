@@ -1,4 +1,5 @@
-use crate::memory::{ActiveInterrupt, Memory, RomFile, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::roms::RomFile;
 
 /// Represents a simple block of contiguous memory, with no additional hardware.
 /// This can be used to represent both RAM and ROM.
