@@ -1,10 +1,10 @@
 use crate::memory::pia::PIA;
 use crate::memory::via::VIA;
 use crate::memory::{
-  ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort, Port, RomFile,
-  SystemInfo,
+  ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort, Port, SystemInfo,
 };
 use crate::platform::{scancodes, Color, PlatformProvider, WindowConfig};
+use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use instant::Instant;
@@ -264,6 +264,8 @@ pub struct PetSystemRoms {
 impl PetSystemRoms {
   #[cfg(not(target_arch = "wasm32"))]
   pub fn from_disk() -> Self {
+    use crate::roms::DiskLoadable;
+
     let character = RomFile::from_file("pet/char.bin");
     let basic = RomFile::from_file("pet/basic.bin");
     let editor = RomFile::from_file("pet/editor.bin");
@@ -279,6 +281,8 @@ impl PetSystemRoms {
 
   #[cfg(target_arch = "wasm32")]
   pub fn from_jsvalue(value: &JsValue) -> Self {
+    use crate::roms::JsValueLoadable;
+
     let character = Reflect::get(value, &JsValue::from_str("char"))
       .unwrap()
       .dyn_into::<Uint8Array>()

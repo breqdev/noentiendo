@@ -1,6 +1,7 @@
 use crate::memory::via::VIA;
-use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, RomFile, SystemInfo};
+use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::{scancodes, PlatformProvider};
+use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
@@ -42,6 +43,8 @@ impl Vic20SystemRoms {
   /// Load the ROM files from files.
   #[cfg(not(target_arch = "wasm32"))]
   pub fn from_disk() -> Self {
+    use crate::roms::DiskLoadable;
+
     let character = RomFile::from_file("vic/char.bin");
     let basic = RomFile::from_file("vic/basic.bin");
     let kernal = RomFile::from_file("vic/kernal.bin");
@@ -55,6 +58,8 @@ impl Vic20SystemRoms {
 
   #[cfg(target_arch = "wasm32")]
   pub fn from_jsvalue(value: &JsValue) -> Self {
+    use crate::roms::JsValueLoadable;
+
     let character = Reflect::get(value, &JsValue::from_str("char"))
       .unwrap()
       .dyn_into::<Uint8Array>()

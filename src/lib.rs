@@ -5,6 +5,7 @@ mod fetch;
 pub mod memory;
 pub mod platform;
 mod registers;
+pub mod roms;
 pub mod system;
 pub mod systems;
 

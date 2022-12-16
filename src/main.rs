@@ -1,6 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use libnoentiendo::{
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
+  roms::DiskLoadable,
   systems::{
     BrookeSystemFactory, EasySystemFactory, KlausSystemFactory, PetSystemFactory, PetSystemRoms,
     SystemFactory, Vic20SystemFactory, Vic20SystemRoms,
@@ -36,7 +37,7 @@ fn main() {
 
   let romfile = match args.rom_path.as_str() {
     "" => None,
-    _ => Some(libnoentiendo::memory::RomFile::from_file(&args.rom_path)),
+    _ => Some(libnoentiendo::roms::RomFile::from_file(&args.rom_path)),
   };
 
   let system = match args.system.as_str() {

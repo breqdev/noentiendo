@@ -1,5 +1,6 @@
-use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, RomFile, SystemInfo};
+use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
+use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::Arc;
