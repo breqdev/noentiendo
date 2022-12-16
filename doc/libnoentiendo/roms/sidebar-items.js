@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["RomFile","Represents a predefined, immutable ROM file. Useful for storing character, BASIC, kernal, etc. ROMs."]],"trait":[["DiskLoadable",""]]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["KlausSystemFactory","A system used to run Klaus Dormann’s 6502 CPU test suite."]]};

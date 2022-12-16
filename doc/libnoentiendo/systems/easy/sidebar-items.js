@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["EasySystemFactory","A port of the “Easy6502” system from https://skilldrick.github.io/easy6502/"]]};
