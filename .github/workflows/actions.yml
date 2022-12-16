@@ -1,10 +1,50 @@
 on: [push, pull_request]
 
-name: Web Deploy
+name: noentiendo CI
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build for Desktop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Check syntax
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Run build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+
 
 jobs:
   web:
-    name: Web
+    name: Deploy Web
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -34,6 +74,7 @@ jobs:
       - name: Webpack build
         run: |
           cd www
+          npm install
           npm run build
 
       - name: Build documentation
