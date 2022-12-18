@@ -1,7 +1,7 @@
+use crate::keyboard::{KeyPosition, KeyState};
 use crate::system::System;
 #[cfg(target_arch = "wasm32")]
 mod canvas;
-pub mod scancodes;
 #[cfg(not(target_arch = "wasm32"))]
 mod text;
 #[cfg(not(target_arch = "wasm32"))]
@@ -88,12 +88,8 @@ pub trait PlatformProvider {
   /// Set the given pixel on the screen to the given color.
   fn set_pixel(&self, x: u32, y: u32, color: Color);
 
-  /// Check if the key corresponding to the specified ASCII code or scancode
-  /// is currently pressed.
-  fn is_pressed(&self, key: u8) -> bool;
-
-  /// Get the most recent key that the user pressed.
-  fn get_last_key(&self) -> u8;
+  /// Get the current state of the keyboard.
+  fn get_key_state(&self) -> KeyState<KeyPosition>;
 
   /// Display the given string to the user, "out-of-band" from any other
   /// graphics. This is used for text-mode systems. Implementations may choose

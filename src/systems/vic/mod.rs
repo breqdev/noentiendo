@@ -1,6 +1,7 @@
+use crate::keyboard::KeyAdapter;
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-use crate::platform::{scancodes, PlatformProvider};
+use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
@@ -9,10 +10,12 @@ use std::sync::{Arc, Mutex};
 mod character;
 mod chip;
 mod color;
+mod keyboard;
 mod vram;
 use character::VicCharacterRam;
 use chip::{VicChip, VicChipIO};
 use color::VicColorRam;
+use keyboard::{Vic20KeyboardAdapter, KEYBOARD_MAPPING};
 use vram::VicVram;
 
 #[cfg(target_arch = "wasm32")]
@@ -134,55 +137,19 @@ impl VicVia2PortA {
   }
 }
 
-/// The keyboard matrix in a VIC-20 system.
-const KEYBOARD_MAPPING: [[char; 8]; 8] = [
-  [
-    '1',
-    scancodes::LEFT_ARROW,
-    scancodes::CONTROL,
-    scancodes::RUN_STOP,
-    ' ',
-    scancodes::COMMODORE,
-    'Q',
-    '2',
-  ],
-  ['3', 'W', 'A', scancodes::LSHIFT, 'Z', 'S', 'E', '4'],
-  ['5', 'R', 'D', 'X', 'C', 'F', 'T', '6'],
-  ['7', 'Y', 'G', 'V', 'B', 'H', 'U', '8'],
-  ['9', 'I', 'J', 'N', 'M', 'K', 'O', '0'],
-  ['+', 'P', 'L', ',', '.', ':', '@', '-'],
-  [
-    '$',
-    '*',
-    ';',
-    '/',
-    scancodes::RSHIFT,
-    '=',
-    scancodes::UP_ARROW,
-    scancodes::HOME,
-  ],
-  [
-    scancodes::BACKSPACE,
-    scancodes::RETURN,
-    scancodes::RIGHT_ARROW,
-    scancodes::DOWN_ARROW,
-    scancodes::F1,
-    scancodes::F3,
-    scancodes::F5,
-    scancodes::F7,
-  ],
-];
-
 impl Port for VicVia2PortA {
   fn read(&mut self) -> u8 {
     let col_mask = *self.keyboard_col.lock().unwrap();
 
     let mut value = 0b1111_1111;
+
+    let state = Vic20KeyboardAdapter::map(&self.platform.get_key_state());
+
     for row in 0..8 {
       for col in 0..8 {
         if (!col_mask & (1 << col)) != 0 {
           let key = KEYBOARD_MAPPING[row][col];
-          if self.platform.is_pressed(key as u8) {
+          if state.is_pressed(key) {
             value &= !(1 << row);
           }
         }

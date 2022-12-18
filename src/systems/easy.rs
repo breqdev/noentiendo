@@ -90,7 +90,11 @@ impl Memory for EasyIO {
   fn read(&mut self, address: u16) -> u8 {
     match address % 2 {
       0 => self.platform.random(),
-      _ => self.platform.get_last_key(),
+      _ => {
+        // self.platform.get_last_key()
+        // TODO: get this working again
+        0
+      }
     }
   }
 

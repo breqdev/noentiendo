@@ -1,3 +1,4 @@
+use crate::keyboard::{KeyPosition, KeyState};
 use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::system::System;
 use rand;
@@ -73,12 +74,8 @@ impl PlatformProvider for TextPlatformProvider {
 
   fn set_pixel(&self, _x: u32, _y: u32, _color: Color) {}
 
-  fn is_pressed(&self, _key: u8) -> bool {
-    false
-  }
-
-  fn get_last_key(&self) -> u8 {
-    0
+  fn get_key_state(&self) -> KeyState<KeyPosition> {
+    KeyState::new()
   }
 
   fn print(&self, text: &str) {
