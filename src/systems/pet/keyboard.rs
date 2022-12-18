@@ -240,7 +240,7 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
         Home => PetKeys::ClrHome,
         DownArrow => PetKeys::CursorUpDown,
         RightArrow => PetKeys::CursorLeftRight,
-        Delete => PetKeys::InsertDelete,
+        Backspace => PetKeys::InsertDelete,
 
         Char('q') | Char('Q') => PetKeys::Q,
         Char('w') | Char('W') => PetKeys::W,
