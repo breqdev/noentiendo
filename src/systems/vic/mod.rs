@@ -1,6 +1,7 @@
+use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-use crate::platform::{scancodes, PlatformProvider};
+use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
@@ -9,10 +10,12 @@ use std::sync::{Arc, Mutex};
 mod character;
 mod chip;
 mod color;
+mod keyboard;
 mod vram;
 use character::VicCharacterRam;
 use chip::{VicChip, VicChipIO};
 use color::VicColorRam;
+use keyboard::{Vic20KeyboardAdapter, KEYBOARD_MAPPING};
 use vram::VicVram;
 
 #[cfg(target_arch = "wasm32")]
@@ -26,6 +29,8 @@ use wasm_bindgen::JsCast;
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
+
+use self::keyboard::Vic20SymbolAdapter;
 
 /// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
@@ -120,69 +125,44 @@ impl Port for VicVia2PortB {
 /// This is used to read the active rows on the keyboard matrix.
 pub struct VicVia2PortA {
   keyboard_col: Arc<Mutex<u8>>,
+  mapping_strategy: KeyMappingStrategy,
   platform: Arc<dyn PlatformProvider>,
 }
 
 impl VicVia2PortA {
   /// Create a new instance of the port, with the given keyboard column,
   /// reading the key status from the given platform.
-  pub fn new(keyboard_col: Arc<Mutex<u8>>, platform: Arc<dyn PlatformProvider>) -> Self {
+  pub fn new(
+    keyboard_col: Arc<Mutex<u8>>,
+    mapping_strategy: KeyMappingStrategy,
+    platform: Arc<dyn PlatformProvider>,
+  ) -> Self {
     Self {
       keyboard_col,
+      mapping_strategy,
       platform,
     }
   }
 }
-
-/// The keyboard matrix in a VIC-20 system.
-const KEYBOARD_MAPPING: [[char; 8]; 8] = [
-  [
-    '1',
-    scancodes::LEFT_ARROW,
-    scancodes::CONTROL,
-    scancodes::RUN_STOP,
-    ' ',
-    scancodes::COMMODORE,
-    'Q',
-    '2',
-  ],
-  ['3', 'W', 'A', scancodes::LSHIFT, 'Z', 'S', 'E', '4'],
-  ['5', 'R', 'D', 'X', 'C', 'F', 'T', '6'],
-  ['7', 'Y', 'G', 'V', 'B', 'H', 'U', '8'],
-  ['9', 'I', 'J', 'N', 'M', 'K', 'O', '0'],
-  ['+', 'P', 'L', ',', '.', ':', '@', '-'],
-  [
-    '$',
-    '*',
-    ';',
-    '/',
-    scancodes::RSHIFT,
-    '=',
-    scancodes::UP_ARROW,
-    scancodes::HOME,
-  ],
-  [
-    scancodes::BACKSPACE,
-    scancodes::RETURN,
-    scancodes::RIGHT_ARROW,
-    scancodes::DOWN_ARROW,
-    scancodes::F1,
-    scancodes::F3,
-    scancodes::F5,
-    scancodes::F7,
-  ],
-];
 
 impl Port for VicVia2PortA {
   fn read(&mut self) -> u8 {
     let col_mask = *self.keyboard_col.lock().unwrap();
 
     let mut value = 0b1111_1111;
+
+    let state = match &self.mapping_strategy {
+      KeyMappingStrategy::Physical => Vic20KeyboardAdapter::map(&self.platform.get_key_state()),
+      KeyMappingStrategy::Symbolic => {
+        Vic20SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
+      }
+    };
+
     for row in 0..8 {
       for col in 0..8 {
         if (!col_mask & (1 << col)) != 0 {
           let key = KEYBOARD_MAPPING[row][col];
-          if self.platform.is_pressed(key as u8) {
+          if state.is_pressed(key) {
             value &= !(1 << row);
           }
         }
@@ -201,11 +181,20 @@ impl Port for VicVia2PortA {
   fn reset(&mut self) {}
 }
 
+/// Configuration for a VIC-20 system.
+pub struct Vic20SystemConfig {
+  pub mapping: KeyMappingStrategy,
+}
+
 /// The VIC-20 system by Commodore.
 pub struct Vic20SystemFactory {}
 
-impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
-  fn create(roms: Vic20SystemRoms, platform: Arc<dyn PlatformProvider>) -> System {
+impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
+  fn create(
+    roms: Vic20SystemRoms,
+    config: Vic20SystemConfig,
+    platform: Arc<dyn PlatformProvider>,
+  ) -> System {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
@@ -213,7 +202,7 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
     let via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let b = VicVia2PortB::new();
-    let a = VicVia2PortA::new(b.get_keyboard_col(), platform);
+    let a = VicVia2PortA::new(b.get_keyboard_col(), config.mapping, platform);
 
     let via2 = VIA::new(Box::new(a), Box::new(b));
 

@@ -2,6 +2,7 @@
 
 mod execute;
 mod fetch;
+pub mod keyboard;
 pub mod memory;
 pub mod platform;
 mod registers;
@@ -21,9 +22,11 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   console_error_panic_hook::set_once();
 
   use js_sys::Reflect;
+  use keyboard::KeyMappingStrategy;
   use platform::{AsyncPlatform, CanvasPlatform, Platform};
   use systems::{
-    PetSystemFactory, PetSystemRoms, SystemFactory, Vic20SystemFactory, Vic20SystemRoms,
+    pet::PetSystemConfig, vic::Vic20SystemConfig, PetSystemFactory, PetSystemRoms, SystemFactory,
+    Vic20SystemFactory, Vic20SystemRoms,
   };
   use wasm_bindgen_futures::spawn_local;
 
@@ -38,8 +41,20 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   let vic_roms = Vic20SystemRoms::from_jsvalue(&vic_object);
 
   let system = match system.as_string().unwrap().as_str() {
-    "pet" => PetSystemFactory::create(pet_roms, platform.provider()),
-    "vic" => Vic20SystemFactory::create(vic_roms, platform.provider()),
+    "pet" => PetSystemFactory::create(
+      pet_roms,
+      PetSystemConfig {
+        mapping: KeyMappingStrategy::Symbolic,
+      },
+      platform.provider(),
+    ),
+    "vic" => Vic20SystemFactory::create(
+      vic_roms,
+      Vic20SystemConfig {
+        mapping: KeyMappingStrategy::Symbolic,
+      },
+      platform.provider(),
+    ),
     _ => panic!("Unknown system"),
   };
 

@@ -1,6 +1,9 @@
-use crate::platform::{scancodes, Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
+use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
+mod keyboard;
+use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::system::System;
 use instant::Instant;
+use keyboard::WinitAdapter;
 use pixels::{Pixels, SurfaceTexture};
 use rand;
 use std::io::Write;
@@ -12,85 +15,6 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
-/// Map a virtual key code from Winit into an ASCII character or predefined
-/// scancode.
-fn virtual_key_to_ascii(code: VirtualKeyCode, shift: bool) -> Option<u8> {
-  if (code as u8) <= 36 {
-    let code = code as u8;
-    if code >= 10 {
-      Some('A' as u8 + code - 10)
-    } else {
-      if shift {
-        match code {
-          0 => Some('!' as u8),
-          1 => Some('@' as u8),
-          2 => Some('#' as u8),
-          3 => Some('$' as u8),
-          4 => Some('%' as u8),
-          5 => Some('^' as u8),
-          6 => Some('&' as u8),
-          7 => Some('*' as u8),
-          8 => Some('(' as u8),
-          9 => Some(')' as u8),
-          _ => None,
-        }
-      } else {
-        if code == 9 {
-          Some('0' as u8)
-        } else {
-          Some('1' as u8 + code)
-        }
-      }
-    }
-  } else {
-    match code {
-      VirtualKeyCode::Space => Some(' ' as u8),
-      VirtualKeyCode::Return => Some(scancodes::RETURN as u8),
-      VirtualKeyCode::Back => Some(scancodes::BACKSPACE as u8),
-
-      VirtualKeyCode::LShift => Some(scancodes::LSHIFT as u8),
-      VirtualKeyCode::RShift => Some(scancodes::RSHIFT as u8),
-      VirtualKeyCode::LWin => Some(scancodes::LSUPER as u8),
-      VirtualKeyCode::RWin => Some(scancodes::RSUPER as u8),
-      VirtualKeyCode::LAlt => Some(scancodes::COMMODORE as u8),
-
-      _ => {
-        if !shift {
-          match code {
-            VirtualKeyCode::Grave => Some('`' as u8),
-            VirtualKeyCode::Minus => Some('-' as u8),
-            VirtualKeyCode::Equals => Some('=' as u8),
-            VirtualKeyCode::LBracket => Some('[' as u8),
-            VirtualKeyCode::RBracket => Some(']' as u8),
-            VirtualKeyCode::Backslash => Some('\\' as u8),
-            VirtualKeyCode::Semicolon => Some(';' as u8),
-            VirtualKeyCode::Apostrophe => Some('\'' as u8),
-            VirtualKeyCode::Comma => Some(',' as u8),
-            VirtualKeyCode::Period => Some('.' as u8),
-            VirtualKeyCode::Slash => Some('/' as u8),
-            _ => None,
-          }
-        } else {
-          match code {
-            VirtualKeyCode::Grave => Some('~' as u8),
-            VirtualKeyCode::Minus => Some('_' as u8),
-            VirtualKeyCode::Equals => Some('+' as u8),
-            VirtualKeyCode::LBracket => Some('{' as u8),
-            VirtualKeyCode::RBracket => Some('}' as u8),
-            VirtualKeyCode::Backslash => Some('|' as u8),
-            VirtualKeyCode::Semicolon => Some(':' as u8),
-            VirtualKeyCode::Apostrophe => Some('"' as u8),
-            VirtualKeyCode::Comma => Some('<' as u8),
-            VirtualKeyCode::Period => Some('>' as u8),
-            VirtualKeyCode::Slash => Some('?' as u8),
-            _ => None,
-          }
-        }
-      }
-    }
-  }
-}
-
 /// A platform implementation for desktop platforms using Winit and Pixels.
 /// This platform runs synchronously.
 pub struct WinitPlatform {
@@ -98,8 +22,7 @@ pub struct WinitPlatform {
   pixels: Arc<Mutex<Option<Pixels>>>,
   provider: Arc<WinitPlatformProvider>,
   dirty: Arc<Mutex<bool>>,
-  key_state: Arc<Mutex<[bool; 256]>>,
-  last_key: Arc<Mutex<u8>>,
+  key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
 }
 
 impl WinitPlatform {
@@ -107,8 +30,7 @@ impl WinitPlatform {
     let config = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(None));
     let dirty = Arc::new(Mutex::new(false));
-    let key_state = Arc::new(Mutex::new([false; 256]));
-    let last_key = Arc::new(Mutex::new(0));
+    let key_state = Arc::new(Mutex::new(KeyState::new()));
 
     Self {
       provider: Arc::new(WinitPlatformProvider::new(
@@ -116,13 +38,11 @@ impl WinitPlatform {
         pixels.clone(),
         dirty.clone(),
         key_state.clone(),
-        last_key.clone(),
       )),
       config,
       pixels,
       dirty,
       key_state,
-      last_key,
     }
   }
 
@@ -164,7 +84,6 @@ impl SyncPlatform for WinitPlatform {
     let pixels = self.pixels.clone();
     let dirty = self.dirty.clone();
     let key_state = self.key_state.clone();
-    let last_key = self.last_key.clone();
 
     system.reset();
 
@@ -230,23 +149,15 @@ impl SyncPlatform for WinitPlatform {
               winit::event::KeyboardInput {
                 virtual_keycode: Some(key),
                 state,
-                modifiers,
                 ..
               },
             ..
           } => match state {
             ElementState::Pressed => {
-              let key = virtual_key_to_ascii(key, modifiers.shift());
-              if let Some(key) = key {
-                key_state.lock().unwrap()[key as usize] = true;
-                *last_key.lock().unwrap() = key;
-              }
+              key_state.lock().unwrap().press(key);
             }
             ElementState::Released => {
-              let key = virtual_key_to_ascii(key, modifiers.shift());
-              if let Some(key) = key {
-                key_state.lock().unwrap()[key as usize] = false;
-              }
+              key_state.lock().unwrap().release(key);
             }
           },
           WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
@@ -262,8 +173,7 @@ pub struct WinitPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
   dirty: Arc<Mutex<bool>>,
-  key_state: Arc<Mutex<[bool; 256]>>,
-  last_key: Arc<Mutex<u8>>,
+  key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
 }
 
 impl WinitPlatformProvider {
@@ -271,15 +181,13 @@ impl WinitPlatformProvider {
     config: Arc<Mutex<Option<WindowConfig>>>,
     pixels: Arc<Mutex<Option<Pixels>>>,
     dirty: Arc<Mutex<bool>>,
-    key_state: Arc<Mutex<[bool; 256]>>,
-    last_key: Arc<Mutex<u8>>,
+    key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
   ) -> Self {
     Self {
       config,
       pixels,
       dirty,
       key_state,
-      last_key,
     }
   }
   fn get_config(&self) -> WindowConfig {
@@ -312,12 +220,8 @@ impl PlatformProvider for WinitPlatformProvider {
     *self.dirty.lock().unwrap() = true;
   }
 
-  fn is_pressed(&self, key: u8) -> bool {
-    self.key_state.lock().unwrap()[key as usize]
-  }
-
-  fn get_last_key(&self) -> u8 {
-    self.last_key.lock().unwrap().clone()
+  fn get_key_state(&self) -> KeyState<KeyPosition> {
+    WinitAdapter::map(&self.key_state.lock().unwrap())
   }
 
   fn print(&self, text: &str) {

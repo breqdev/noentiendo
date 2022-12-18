@@ -1,4 +1,5 @@
-use crate::platform::{scancodes, AsyncPlatform, Color, Platform, PlatformProvider, WindowConfig};
+use crate::platform::KeyState;
+use crate::platform::{AsyncPlatform, Color, Platform, PlatformProvider, WindowConfig};
 use crate::system::System;
 use async_trait::async_trait;
 use js_sys::Math;
@@ -7,37 +8,15 @@ use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent};
+mod keyboard;
+use crate::keyboard::{KeyAdapter, KeyPosition};
+use keyboard::JavaScriptAdapter;
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
   fn prompt(message: &str) -> String;
   fn alert(message: &str);
-}
-
-/// Map a JavaScript keycode (e.g. "KeyA") into an ASCII character or predefined
-/// scancode.
-fn js_keycode_to_ascii(code: &str) -> Option<u8> {
-  if code.starts_with("Digit") {
-    let value = code.chars().nth(5).unwrap();
-    Some(value as u8)
-  } else if code.starts_with("Key") {
-    let char = code.chars().nth(3).unwrap();
-    Some(char.to_ascii_uppercase() as u8)
-  } else {
-    match code {
-      "Space" => Some(' ' as u8),
-      "Quote" => Some('"' as u8),
-      "Enter" => Some(scancodes::RETURN as u8),
-      "Backspace" => Some(scancodes::BACKSPACE as u8),
-      "ShiftLeft" => Some(scancodes::LSHIFT as u8),
-      "ShiftRight" => Some(scancodes::RSHIFT as u8),
-      "MetaLeft" => Some(scancodes::LSUPER as u8),
-      "MetaRight" => Some(scancodes::RSUPER as u8),
-      "AltLeft" => Some(scancodes::COMMODORE as u8),
-      _ => None,
-    }
-  }
 }
 
 /// A platform implementation for the web.
@@ -49,8 +28,7 @@ pub struct CanvasPlatform {
   canvas: Arc<Mutex<Option<HtmlCanvasElement>>>,
   framebuffer: Arc<Mutex<Option<Vec<u8>>>>,
   provider: Arc<CanvasPlatformProvider>,
-  key_state: Arc<Mutex<[bool; 256]>>,
-  last_key: Arc<Mutex<u8>>,
+  key_state: Arc<Mutex<KeyState<String>>>,
 }
 
 impl CanvasPlatform {
@@ -58,8 +36,7 @@ impl CanvasPlatform {
     let config = Arc::new(Mutex::new(None));
     let canvas = Arc::new(Mutex::new(None));
     let framebuffer = Arc::new(Mutex::new(None));
-    let key_state = Arc::new(Mutex::new([false; 256]));
-    let last_key = Arc::new(Mutex::new(0));
+    let key_state = Arc::new(Mutex::new(KeyState::new()));
 
     Self {
       provider: Arc::new(CanvasPlatformProvider::new(
@@ -67,13 +44,11 @@ impl CanvasPlatform {
         canvas.clone(),
         framebuffer.clone(),
         key_state.clone(),
-        last_key.clone(),
       )),
       config,
       canvas,
       framebuffer,
       key_state,
-      last_key,
     }
   }
 
@@ -151,14 +126,10 @@ impl AsyncPlatform for CanvasPlatform {
 
     {
       let key_state = self.key_state.clone();
-      let last_key = self.last_key.clone();
 
       let keydown = Closure::<dyn FnMut(_)>::new(move |event: KeyboardEvent| {
-        if let Some(key) = js_keycode_to_ascii(&event.code()) {
-          event.prevent_default();
-          key_state.lock().unwrap()[key as usize] = true;
-          *last_key.lock().unwrap() = key;
-        }
+        event.prevent_default();
+        key_state.lock().unwrap().press(event.code());
       });
 
       web_sys::window()
@@ -172,10 +143,8 @@ impl AsyncPlatform for CanvasPlatform {
       let key_state = self.key_state.clone();
 
       let keyup = Closure::<dyn FnMut(_)>::new(move |event: KeyboardEvent| {
-        if let Some(key) = js_keycode_to_ascii(&event.code()) {
-          event.prevent_default();
-          key_state.lock().unwrap()[key as usize] = false;
-        }
+        event.prevent_default();
+        key_state.lock().unwrap().release(event.code())
       });
 
       web_sys::window()
@@ -200,8 +169,7 @@ pub struct CanvasPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   canvas: Arc<Mutex<Option<HtmlCanvasElement>>>,
   framebuffer: Arc<Mutex<Option<Vec<u8>>>>,
-  key_state: Arc<Mutex<[bool; 256]>>,
-  last_key: Arc<Mutex<u8>>,
+  key_state: Arc<Mutex<KeyState<String>>>,
 }
 
 impl CanvasPlatformProvider {
@@ -209,15 +177,13 @@ impl CanvasPlatformProvider {
     config: Arc<Mutex<Option<WindowConfig>>>,
     canvas: Arc<Mutex<Option<HtmlCanvasElement>>>,
     framebuffer: Arc<Mutex<Option<Vec<u8>>>>,
-    key_state: Arc<Mutex<[bool; 256]>>,
-    last_key: Arc<Mutex<u8>>,
+    key_state: Arc<Mutex<KeyState<String>>>,
   ) -> Self {
     Self {
       config,
       canvas,
       framebuffer,
       key_state,
-      last_key,
     }
   }
   fn get_config(&self) -> WindowConfig {
@@ -272,12 +238,8 @@ impl PlatformProvider for CanvasPlatformProvider {
     );
   }
 
-  fn is_pressed(&self, key: u8) -> bool {
-    self.key_state.lock().unwrap()[key as usize]
-  }
-
-  fn get_last_key(&self) -> u8 {
-    self.last_key.lock().unwrap().clone()
+  fn get_key_state(&self) -> KeyState<KeyPosition> {
+    JavaScriptAdapter::map(&self.key_state.lock().unwrap())
   }
 
   fn print(&self, text: &str) {

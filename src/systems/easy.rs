@@ -1,3 +1,4 @@
+use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
@@ -90,7 +91,21 @@ impl Memory for EasyIO {
   fn read(&mut self, address: u16) -> u8 {
     match address % 2 {
       0 => self.platform.random(),
-      _ => self.platform.get_last_key(),
+      _ => {
+        let state = self.platform.get_key_state();
+
+        if state.is_pressed(KeyPosition::W) {
+          return b'W';
+        } else if state.is_pressed(KeyPosition::A) {
+          return b'A';
+        } else if state.is_pressed(KeyPosition::S) {
+          return b'S';
+        } else if state.is_pressed(KeyPosition::D) {
+          return b'D';
+        } else {
+          return 0;
+        }
+      }
     }
   }
 
@@ -107,8 +122,8 @@ impl Memory for EasyIO {
 /// <https://skilldrick.github.io/easy6502/>
 pub struct EasySystemFactory {}
 
-impl SystemFactory<RomFile> for EasySystemFactory {
-  fn create(rom: RomFile, platform: Arc<dyn PlatformProvider>) -> System {
+impl SystemFactory<RomFile, ()> for EasySystemFactory {
+  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
     let zero_page = BlockMemory::ram(0x0100);
     let io = EasyIO::new(platform.clone());
     let stack_ram = BlockMemory::ram(0x0100);
