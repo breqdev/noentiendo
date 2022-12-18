@@ -122,8 +122,8 @@ impl Memory for EasyIO {
 /// <https://skilldrick.github.io/easy6502/>
 pub struct EasySystemFactory {}
 
-impl SystemFactory<RomFile> for EasySystemFactory {
-  fn create(rom: RomFile, platform: Arc<dyn PlatformProvider>) -> System {
+impl SystemFactory<RomFile, ()> for EasySystemFactory {
+  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
     let zero_page = BlockMemory::ram(0x0100);
     let io = EasyIO::new(platform.clone());
     let stack_ram = BlockMemory::ram(0x0100);

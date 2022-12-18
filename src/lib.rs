@@ -2,7 +2,7 @@
 
 mod execute;
 mod fetch;
-mod keyboard;
+pub mod keyboard;
 pub mod memory;
 pub mod platform;
 mod registers;

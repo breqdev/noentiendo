@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyAdapter, SymbolAdapter};
+use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
@@ -125,15 +125,21 @@ impl Port for VicVia2PortB {
 /// This is used to read the active rows on the keyboard matrix.
 pub struct VicVia2PortA {
   keyboard_col: Arc<Mutex<u8>>,
+  mapping_strategy: KeyMappingStrategy,
   platform: Arc<dyn PlatformProvider>,
 }
 
 impl VicVia2PortA {
   /// Create a new instance of the port, with the given keyboard column,
   /// reading the key status from the given platform.
-  pub fn new(keyboard_col: Arc<Mutex<u8>>, platform: Arc<dyn PlatformProvider>) -> Self {
+  pub fn new(
+    keyboard_col: Arc<Mutex<u8>>,
+    mapping_strategy: KeyMappingStrategy,
+    platform: Arc<dyn PlatformProvider>,
+  ) -> Self {
     Self {
       keyboard_col,
+      mapping_strategy,
       platform,
     }
   }
@@ -145,7 +151,12 @@ impl Port for VicVia2PortA {
 
     let mut value = 0b1111_1111;
 
-    let state = Vic20SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()));
+    let state = match &self.mapping_strategy {
+      KeyMappingStrategy::Physical => Vic20KeyboardAdapter::map(&self.platform.get_key_state()),
+      KeyMappingStrategy::Symbolic => {
+        Vic20SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
+      }
+    };
 
     for row in 0..8 {
       for col in 0..8 {
@@ -170,11 +181,20 @@ impl Port for VicVia2PortA {
   fn reset(&mut self) {}
 }
 
+/// Configuration for a VIC-20 system.
+pub struct Vic20SystemConfig {
+  pub mapping: KeyMappingStrategy,
+}
+
 /// The VIC-20 system by Commodore.
 pub struct Vic20SystemFactory {}
 
-impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
-  fn create(roms: Vic20SystemRoms, platform: Arc<dyn PlatformProvider>) -> System {
+impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
+  fn create(
+    roms: Vic20SystemRoms,
+    config: Vic20SystemConfig,
+    platform: Arc<dyn PlatformProvider>,
+  ) -> System {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
@@ -182,7 +202,7 @@ impl SystemFactory<Vic20SystemRoms> for Vic20SystemFactory {
     let via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let b = VicVia2PortB::new();
-    let a = VicVia2PortA::new(b.get_keyboard_col(), platform);
+    let a = VicVia2PortA::new(b.get_keyboard_col(), config.mapping, platform);
 
     let via2 = VIA::new(Box::new(a), Box::new(b));
 

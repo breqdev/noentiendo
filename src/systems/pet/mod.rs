@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyAdapter, SymbolAdapter};
+use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::pia::PIA;
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
@@ -13,7 +13,7 @@ use vram::PetVram;
 mod roms;
 pub use roms::PetSystemRoms;
 mod keyboard;
-use keyboard::{PetSymbolAdapter, KEYBOARD_MAPPING};
+use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
 
 /// Port A on the first PIA.
 /// This is used for generating the 60Hz interrupt (which is fired when the
@@ -84,13 +84,19 @@ impl Port for PetPia1PortA {
 /// This is used for reading the keyboard matrix.
 pub struct PetPia1PortB {
   keyboard_row: Arc<Mutex<u8>>,
+  mapping_strategy: KeyMappingStrategy,
   platform: Arc<dyn PlatformProvider>,
 }
 
 impl PetPia1PortB {
-  pub fn new(keyboard_row: Arc<Mutex<u8>>, platform: Arc<dyn PlatformProvider>) -> Self {
+  pub fn new(
+    keyboard_row: Arc<Mutex<u8>>,
+    mapping_strategy: KeyMappingStrategy,
+    platform: Arc<dyn PlatformProvider>,
+  ) -> Self {
     Self {
       keyboard_row,
+      mapping_strategy,
       platform,
     }
   }
@@ -102,7 +108,12 @@ impl Port for PetPia1PortB {
     let row = KEYBOARD_MAPPING[row as usize % 10];
     let mut value = 0b1111_1111;
 
-    let state = PetSymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()));
+    let state = match &self.mapping_strategy {
+      KeyMappingStrategy::Physical => PetKeyboardAdapter::map(&self.platform.get_key_state()),
+      KeyMappingStrategy::Symbolic => {
+        PetSymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
+      }
+    };
 
     for i in 0..8 {
       if state.is_pressed(row[i]) {
@@ -121,11 +132,20 @@ impl Port for PetPia1PortB {
   fn reset(&mut self) {}
 }
 
+/// Configuration for a Commodore PET system.
+pub struct PetSystemConfig {
+  pub mapping: KeyMappingStrategy,
+}
+
 /// The Commodore PET system.
 pub struct PetSystemFactory {}
 
-impl SystemFactory<PetSystemRoms> for PetSystemFactory {
-  fn create(roms: PetSystemRoms, platform: Arc<dyn PlatformProvider>) -> System {
+impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
+  fn create(
+    roms: PetSystemRoms,
+    config: PetSystemConfig,
+    platform: Arc<dyn PlatformProvider>,
+  ) -> System {
     let ram = BlockMemory::ram(0x8000);
     let vram = PetVram::new(roms.character, platform.clone());
 
@@ -137,7 +157,7 @@ impl SystemFactory<PetSystemRoms> for PetSystemFactory {
     let editor_rom = BlockMemory::from_file(0x1000, roms.editor);
 
     let port_a = PetPia1PortA::new();
-    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), platform);
+    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), config.mapping, platform);
     let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
     let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
     let via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));

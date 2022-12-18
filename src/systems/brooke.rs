@@ -65,8 +65,8 @@ impl Memory for MappedStdIO {
 /// A system which only operates in text mode, for basic testing.
 pub struct BrookeSystemFactory {}
 
-impl SystemFactory<RomFile> for BrookeSystemFactory {
-  fn create(rom: RomFile, platform: Arc<dyn PlatformProvider>) -> System {
+impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
+  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new(platform);
     let rom = BlockMemory::from_file(0x8000, rom);

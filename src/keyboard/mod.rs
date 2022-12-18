@@ -47,3 +47,17 @@ pub trait KeyAdapter<F: PartialEq, T: PartialEq> {
   /// equivalent keyboard state with symbols of type `T`.
   fn map(state: &KeyState<F>) -> KeyState<T>;
 }
+
+/// Represents different approaches to mapping key states, to allow the user to
+/// indicate their preference.
+pub enum KeyMappingStrategy {
+  /// Preserve physical keys one-to-one. This is most compatible, but the
+  /// resulting mapping may be less intuitive. For instance, symbols may
+  /// not be mapped as expected.
+  Physical,
+
+  /// Preserve symbols one-to-one. This is more intuitive, but may cause issues
+  /// with some software. This approach will rewrite the state of the modifier
+  /// keys to convey the symbols being pressed.
+  Symbolic,
+}
