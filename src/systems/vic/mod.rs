@@ -1,4 +1,4 @@
-use crate::keyboard::KeyAdapter;
+use crate::keyboard::{KeyAdapter, SymbolAdapter};
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
@@ -29,6 +29,8 @@ use wasm_bindgen::JsCast;
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
+
+use self::keyboard::Vic20SymbolAdapter;
 
 /// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
@@ -143,7 +145,7 @@ impl Port for VicVia2PortA {
 
     let mut value = 0b1111_1111;
 
-    let state = Vic20KeyboardAdapter::map(&self.platform.get_key_state());
+    let state = Vic20SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()));
 
     for row in 0..8 {
       for col in 0..8 {

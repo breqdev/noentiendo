@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
+use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
 /// The keys found on a VIC-20 keyboard.
 /// Source: http://sleepingelephant.com/denial/wiki/index.php?title=Keyboard
@@ -194,6 +194,129 @@ impl KeyAdapter<KeyPosition, Vic20Keys> for Vic20KeyboardAdapter {
 
         _ => continue,
       });
+    }
+
+    mapped
+  }
+}
+
+/// An adapter that maps keyboard symbols to keys on the VIC-20 keyboard.
+pub struct Vic20SymbolAdapter {}
+
+impl KeyAdapter<KeySymbol, Vic20Keys> for Vic20SymbolAdapter {
+  fn map(state: &KeyState<KeySymbol>) -> KeyState<Vic20Keys> {
+    let mut mapped = KeyState::new();
+
+    for symbol in state.pressed() {
+      use KeySymbol::*;
+
+      mapped.press(match symbol {
+        // TODO: Left Arrow
+        Char('1') => Vic20Keys::Digit1,
+        Char('2') => Vic20Keys::Digit2,
+        Char('3') => Vic20Keys::Digit3,
+        Char('4') => Vic20Keys::Digit4,
+        Char('5') => Vic20Keys::Digit5,
+        Char('6') => Vic20Keys::Digit6,
+        Char('7') => Vic20Keys::Digit7,
+        Char('8') => Vic20Keys::Digit8,
+        Char('9') => Vic20Keys::Digit9,
+        Char('0') => Vic20Keys::Digit0,
+        Char('+') => Vic20Keys::Plus,
+        Char('-') => Vic20Keys::Minus,
+        Char('£') => Vic20Keys::Pound,
+        // TODO: ClrHome
+        Backspace => Vic20Keys::InsertDelete,
+
+        LControl | RControl => Vic20Keys::Control,
+        Char('q') | Char('Q') => Vic20Keys::Q,
+        Char('w') | Char('W') => Vic20Keys::W,
+        Char('e') | Char('E') => Vic20Keys::E,
+        Char('r') | Char('R') => Vic20Keys::R,
+        Char('t') | Char('T') => Vic20Keys::T,
+        Char('y') | Char('Y') => Vic20Keys::Y,
+        Char('u') | Char('U') => Vic20Keys::U,
+        Char('i') | Char('I') => Vic20Keys::I,
+        Char('o') | Char('O') => Vic20Keys::O,
+        Char('p') | Char('P') => Vic20Keys::P,
+        Char('@') => Vic20Keys::At,
+        Char('*') => Vic20Keys::Asterisk,
+        // TODO: UpArrow
+        // TODO: Restore
+
+        // TODO: RunStop
+        CapsLock => Vic20Keys::ShiftLock,
+        Char('a') | Char('A') => Vic20Keys::A,
+        Char('s') | Char('S') => Vic20Keys::S,
+        Char('d') | Char('D') => Vic20Keys::D,
+        Char('f') | Char('F') => Vic20Keys::F,
+        Char('g') | Char('G') => Vic20Keys::G,
+        Char('h') | Char('H') => Vic20Keys::H,
+        Char('j') | Char('J') => Vic20Keys::J,
+        Char('k') | Char('K') => Vic20Keys::K,
+        Char('l') | Char('L') => Vic20Keys::L,
+        Char(':') => Vic20Keys::Colon,
+        Char(';') => Vic20Keys::Semicolon,
+        Char('=') => Vic20Keys::Equals,
+        Return => Vic20Keys::Return,
+
+        LAlt => Vic20Keys::Commodore,
+        LShift => continue, // Handled separately
+        Char('z') | Char('Z') => Vic20Keys::Z,
+        Char('x') | Char('X') => Vic20Keys::X,
+        Char('c') | Char('C') => Vic20Keys::C,
+        Char('v') | Char('V') => Vic20Keys::V,
+        Char('b') | Char('B') => Vic20Keys::B,
+        Char('n') | Char('N') => Vic20Keys::N,
+        Char('m') | Char('M') => Vic20Keys::M,
+        Char(',') => Vic20Keys::Comma,
+        Char('.') => Vic20Keys::Period,
+        Char('/') => Vic20Keys::Slash,
+        RShift => continue, // Handled separately
+        // TODO: CursorUpDown
+        // TODO: CursorLeftRight
+        Char(' ') => Vic20Keys::Space,
+
+        F1 => Vic20Keys::F1,
+        F3 => Vic20Keys::F3,
+        F5 => Vic20Keys::F5,
+        F7 => Vic20Keys::F7,
+
+        _ => continue,
+      })
+    }
+
+    if mapped.pressed().is_empty() {
+      // If no non-shifted keys were pressed, check for shifted keys.
+      for symbol in state.pressed() {
+        use KeySymbol::*;
+
+        mapped.press(match symbol {
+          Char('!') => Vic20Keys::Digit1,
+          Char('"') => Vic20Keys::Digit2,
+          Char('#') => Vic20Keys::Digit3,
+          Char('$') => Vic20Keys::Digit4,
+          Char('%') => Vic20Keys::Digit5,
+          Char('&') => Vic20Keys::Digit6,
+          Char('\'') => Vic20Keys::Digit7,
+          Char('(') => Vic20Keys::Digit8,
+          Char(')') => Vic20Keys::Digit9,
+
+          Char('[') => Vic20Keys::Colon,
+          Char(']') => Vic20Keys::Semicolon,
+
+          Char('<') => Vic20Keys::Comma,
+          Char('>') => Vic20Keys::Period,
+          Char('?') => Vic20Keys::Slash,
+
+          _ => continue,
+        })
+      }
+
+      // If we added keys, make sure shift is pressed
+      if !mapped.pressed().is_empty() {
+        mapped.press(Vic20Keys::LShift);
+      }
     }
 
     mapped
