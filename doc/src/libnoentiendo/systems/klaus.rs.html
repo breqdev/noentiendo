@@ -27,8 +27,8 @@
 <span class="doccomment">/// A system used to run Klaus Dormann&#39;s 6502 CPU test suite.
 </span><span class="kw">pub struct </span>KlausSystemFactory {}
 
-<span class="kw">impl </span>SystemFactory&lt;RomFile&gt; <span class="kw">for </span>KlausSystemFactory {
-  <span class="kw">fn </span>create(rom: RomFile, _platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
+<span class="kw">impl </span>SystemFactory&lt;RomFile, ()&gt; <span class="kw">for </span>KlausSystemFactory {
+  <span class="kw">fn </span>create(rom: RomFile, _config: (), _platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
     <span class="kw">let </span>rom = BlockMemory::from_file(<span class="number">0x10000</span>, rom);
 
     <span class="kw">let </span>memory = BranchMemory::new().map(<span class="number">0x0000</span>, Box::new(rom));

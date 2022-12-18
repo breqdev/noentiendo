@@ -234,20 +234,10 @@
 <span id="234">234</span>
 <span id="235">235</span>
 <span id="236">236</span>
-<span id="237">237</span>
-<span id="238">238</span>
-<span id="239">239</span>
-<span id="240">240</span>
-<span id="241">241</span>
-<span id="242">242</span>
-<span id="243">243</span>
-<span id="244">244</span>
-<span id="245">245</span>
-<span id="246">246</span>
-<span id="247">247</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::via::VIA;
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
+<span class="kw">use </span><span class="kw">crate</span>::memory::via::VIA;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-<span class="kw">use </span><span class="kw">crate</span>::platform::{scancodes, PlatformProvider};
+<span class="kw">use </span><span class="kw">crate</span>::platform::PlatformProvider;
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
 <span class="kw">use </span><span class="kw">crate</span>::systems::SystemFactory;
@@ -256,10 +246,12 @@
 <span class="kw">mod </span>character;
 <span class="kw">mod </span>chip;
 <span class="kw">mod </span>color;
+<span class="kw">mod </span>keyboard;
 <span class="kw">mod </span>vram;
 <span class="kw">use </span>character::VicCharacterRam;
 <span class="kw">use </span>chip::{VicChip, VicChipIO};
 <span class="kw">use </span>color::VicColorRam;
+<span class="kw">use </span>keyboard::{Vic20KeyboardAdapter, KEYBOARD_MAPPING};
 <span class="kw">use </span>vram::VicVram;
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
@@ -273,6 +265,8 @@
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">use </span>js_sys::Uint8Array;
+
+<span class="kw">use </span><span class="self">self</span>::keyboard::Vic20SymbolAdapter;
 
 <span class="doccomment">/// The set of ROM files required to run a VIC-20 system.
 </span><span class="kw">pub struct </span>Vic20SystemRoms {
@@ -367,69 +361,44 @@
 /// This is used to read the active rows on the keyboard matrix.
 </span><span class="kw">pub struct </span>VicVia2PortA {
   keyboard_col: Arc&lt;Mutex&lt;u8&gt;&gt;,
+  mapping_strategy: KeyMappingStrategy,
   platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
 }
 
 <span class="kw">impl </span>VicVia2PortA {
   <span class="doccomment">/// Create a new instance of the port, with the given keyboard column,
   /// reading the key status from the given platform.
-  </span><span class="kw">pub fn </span>new(keyboard_col: Arc&lt;Mutex&lt;u8&gt;&gt;, platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; <span class="self">Self </span>{
+  </span><span class="kw">pub fn </span>new(
+    keyboard_col: Arc&lt;Mutex&lt;u8&gt;&gt;,
+    mapping_strategy: KeyMappingStrategy,
+    platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
+  ) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{
       keyboard_col,
+      mapping_strategy,
       platform,
     }
   }
 }
-
-<span class="doccomment">/// The keyboard matrix in a VIC-20 system.
-</span><span class="kw">const </span>KEYBOARD_MAPPING: [[char; <span class="number">8</span>]; <span class="number">8</span>] = [
-  [
-    <span class="string">&#39;1&#39;</span>,
-    scancodes::LEFT_ARROW,
-    scancodes::CONTROL,
-    scancodes::RUN_STOP,
-    <span class="string">&#39; &#39;</span>,
-    scancodes::COMMODORE,
-    <span class="string">&#39;Q&#39;</span>,
-    <span class="string">&#39;2&#39;</span>,
-  ],
-  [<span class="string">&#39;3&#39;</span>, <span class="string">&#39;W&#39;</span>, <span class="string">&#39;A&#39;</span>, scancodes::LSHIFT, <span class="string">&#39;Z&#39;</span>, <span class="string">&#39;S&#39;</span>, <span class="string">&#39;E&#39;</span>, <span class="string">&#39;4&#39;</span>],
-  [<span class="string">&#39;5&#39;</span>, <span class="string">&#39;R&#39;</span>, <span class="string">&#39;D&#39;</span>, <span class="string">&#39;X&#39;</span>, <span class="string">&#39;C&#39;</span>, <span class="string">&#39;F&#39;</span>, <span class="string">&#39;T&#39;</span>, <span class="string">&#39;6&#39;</span>],
-  [<span class="string">&#39;7&#39;</span>, <span class="string">&#39;Y&#39;</span>, <span class="string">&#39;G&#39;</span>, <span class="string">&#39;V&#39;</span>, <span class="string">&#39;B&#39;</span>, <span class="string">&#39;H&#39;</span>, <span class="string">&#39;U&#39;</span>, <span class="string">&#39;8&#39;</span>],
-  [<span class="string">&#39;9&#39;</span>, <span class="string">&#39;I&#39;</span>, <span class="string">&#39;J&#39;</span>, <span class="string">&#39;N&#39;</span>, <span class="string">&#39;M&#39;</span>, <span class="string">&#39;K&#39;</span>, <span class="string">&#39;O&#39;</span>, <span class="string">&#39;0&#39;</span>],
-  [<span class="string">&#39;+&#39;</span>, <span class="string">&#39;P&#39;</span>, <span class="string">&#39;L&#39;</span>, <span class="string">&#39;,&#39;</span>, <span class="string">&#39;.&#39;</span>, <span class="string">&#39;:&#39;</span>, <span class="string">&#39;@&#39;</span>, <span class="string">&#39;-&#39;</span>],
-  [
-    <span class="string">&#39;$&#39;</span>,
-    <span class="string">&#39;*&#39;</span>,
-    <span class="string">&#39;;&#39;</span>,
-    <span class="string">&#39;/&#39;</span>,
-    scancodes::RSHIFT,
-    <span class="string">&#39;=&#39;</span>,
-    scancodes::UP_ARROW,
-    scancodes::HOME,
-  ],
-  [
-    scancodes::BACKSPACE,
-    scancodes::RETURN,
-    scancodes::RIGHT_ARROW,
-    scancodes::DOWN_ARROW,
-    scancodes::F1,
-    scancodes::F3,
-    scancodes::F5,
-    scancodes::F7,
-  ],
-];
 
 <span class="kw">impl </span>Port <span class="kw">for </span>VicVia2PortA {
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
     <span class="kw">let </span>col_mask = <span class="kw-2">*</span><span class="self">self</span>.keyboard_col.lock().unwrap();
 
     <span class="kw">let </span><span class="kw-2">mut </span>value = <span class="number">0b1111_1111</span>;
+
+    <span class="kw">let </span>state = <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.mapping_strategy {
+      KeyMappingStrategy::Physical =&gt; Vic20KeyboardAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()),
+      KeyMappingStrategy::Symbolic =&gt; {
+        Vic20SymbolAdapter::map(<span class="kw-2">&amp;</span>SymbolAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()))
+      }
+    };
+
     <span class="kw">for </span>row <span class="kw">in </span><span class="number">0</span>..<span class="number">8 </span>{
       <span class="kw">for </span>col <span class="kw">in </span><span class="number">0</span>..<span class="number">8 </span>{
         <span class="kw">if </span>(!col_mask &amp; (<span class="number">1 </span>&lt;&lt; col)) != <span class="number">0 </span>{
           <span class="kw">let </span>key = KEYBOARD_MAPPING[row][col];
-          <span class="kw">if </span><span class="self">self</span>.platform.is_pressed(key <span class="kw">as </span>u8) {
+          <span class="kw">if </span>state.is_pressed(key) {
             value &amp;= !(<span class="number">1 </span>&lt;&lt; row);
           }
         }
@@ -448,11 +417,20 @@
   <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {}
 }
 
+<span class="doccomment">/// Configuration for a VIC-20 system.
+</span><span class="kw">pub struct </span>Vic20SystemConfig {
+  <span class="kw">pub </span>mapping: KeyMappingStrategy,
+}
+
 <span class="doccomment">/// The VIC-20 system by Commodore.
 </span><span class="kw">pub struct </span>Vic20SystemFactory {}
 
-<span class="kw">impl </span>SystemFactory&lt;Vic20SystemRoms&gt; <span class="kw">for </span>Vic20SystemFactory {
-  <span class="kw">fn </span>create(roms: Vic20SystemRoms, platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
+<span class="kw">impl </span>SystemFactory&lt;Vic20SystemRoms, Vic20SystemConfig&gt; <span class="kw">for </span>Vic20SystemFactory {
+  <span class="kw">fn </span>create(
+    roms: Vic20SystemRoms,
+    config: Vic20SystemConfig,
+    platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
+  ) -&gt; System {
     <span class="kw">let </span>low_ram = BlockMemory::ram(<span class="number">0x0400</span>);
     <span class="kw">let </span>main_ram = BlockMemory::ram(<span class="number">0x0E00</span>);
 
@@ -460,7 +438,7 @@
     <span class="kw">let </span>via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="kw">let </span>b = VicVia2PortB::new();
-    <span class="kw">let </span>a = VicVia2PortA::new(b.get_keyboard_col(), platform);
+    <span class="kw">let </span>a = VicVia2PortA::new(b.get_keyboard_col(), config.mapping, platform);
 
     <span class="kw">let </span>via2 = VIA::new(Box::new(a), Box::new(b));
 

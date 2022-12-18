@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":[["BACKSPACE",""],["COMMODORE",""],["CONTROL",""],["DOWN_ARROW",""],["F1",""],["F2",""],["F3",""],["F4",""],["F5",""],["F6",""],["F7",""],["F8",""],["HOME",""],["LEFT_ARROW",""],["LSHIFT",""],["LSUPER",""],["RETURN",""],["RIGHT_ARROW",""],["RSHIFT",""],["RSUPER",""],["RUN_STOP",""],["UP_ARROW",""]]};

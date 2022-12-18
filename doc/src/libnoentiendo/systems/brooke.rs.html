@@ -146,8 +146,8 @@
 <span class="doccomment">/// A system which only operates in text mode, for basic testing.
 </span><span class="kw">pub struct </span>BrookeSystemFactory {}
 
-<span class="kw">impl </span>SystemFactory&lt;RomFile&gt; <span class="kw">for </span>BrookeSystemFactory {
-  <span class="kw">fn </span>create(rom: RomFile, platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
+<span class="kw">impl </span>SystemFactory&lt;RomFile, ()&gt; <span class="kw">for </span>BrookeSystemFactory {
+  <span class="kw">fn </span>create(rom: RomFile, _config: (), platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
     <span class="kw">let </span>ram = BlockMemory::ram(<span class="number">0x4000</span>);
     <span class="kw">let </span>io = MappedStdIO::new(platform);
     <span class="kw">let </span>rom = BlockMemory::from_file(<span class="number">0x8000</span>, rom);

@@ -51,8 +51,29 @@
 <span id="51">51</span>
 <span id="52">52</span>
 <span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
 </pre><pre class="rust"><code><span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">use </span>libnoentiendo::{
+  keyboard::KeyMappingStrategy,
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
   roms::DiskLoadable,
   systems::{
@@ -76,10 +97,15 @@
 
   <span class="attribute">#[clap(short, long, value_parser, default_value = <span class="string">&quot;text&quot;</span>)]
   </span>platform: String,
+
+  <span class="attribute">#[clap(short, long, value_parser, default_value = <span class="string">&quot;symbolic&quot;</span>)]
+  </span>key_mapping: String,
 }
 
 <span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">fn </span>main() {
+  <span class="kw">use </span>libnoentiendo::systems::{pet::PetSystemConfig, vic::Vic20SystemConfig};
+
   <span class="kw">let </span>args = Args::parse();
 
   <span class="kw">let </span><span class="kw-2">mut </span>platform: Box&lt;<span class="kw">dyn </span>SyncPlatform&gt; = <span class="kw">match </span>args.platform.as_str() {
@@ -93,12 +119,26 @@
     <span class="kw">_ </span>=&gt; <span class="prelude-val">Some</span>(libnoentiendo::roms::RomFile::from_file(<span class="kw-2">&amp;</span>args.rom_path)),
   };
 
+  <span class="kw">let </span>mapping = <span class="kw">match </span>args.key_mapping.as_str() {
+    <span class="string">&quot;symbolic&quot; </span>=&gt; KeyMappingStrategy::Symbolic,
+    <span class="string">&quot;physical&quot; </span>=&gt; KeyMappingStrategy::Physical,
+    <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Unknown key mapping&quot;</span>),
+  };
+
   <span class="kw">let </span>system = <span class="kw">match </span>args.system.as_str() {
-    <span class="string">&quot;brooke&quot; </span>=&gt; BrookeSystemFactory::create(romfile.unwrap(), platform.provider()),
-    <span class="string">&quot;easy&quot; </span>=&gt; EasySystemFactory::create(romfile.unwrap(), platform.provider()),
-    <span class="string">&quot;klaus&quot; </span>=&gt; KlausSystemFactory::create(romfile.unwrap(), platform.provider()),
-    <span class="string">&quot;pet&quot; </span>=&gt; PetSystemFactory::create(PetSystemRoms::from_disk(), platform.provider()),
-    <span class="string">&quot;vic&quot; </span>=&gt; Vic20SystemFactory::create(Vic20SystemRoms::from_disk(), platform.provider()),
+    <span class="string">&quot;brooke&quot; </span>=&gt; BrookeSystemFactory::create(romfile.unwrap(), (), platform.provider()),
+    <span class="string">&quot;easy&quot; </span>=&gt; EasySystemFactory::create(romfile.unwrap(), (), platform.provider()),
+    <span class="string">&quot;klaus&quot; </span>=&gt; KlausSystemFactory::create(romfile.unwrap(), (), platform.provider()),
+    <span class="string">&quot;pet&quot; </span>=&gt; PetSystemFactory::create(
+      PetSystemRoms::from_disk(),
+      PetSystemConfig { mapping },
+      platform.provider(),
+    ),
+    <span class="string">&quot;vic&quot; </span>=&gt; Vic20SystemFactory::create(
+      Vic20SystemRoms::from_disk(),
+      Vic20SystemConfig { mapping },
+      platform.provider(),
+    ),
     <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Unknown system&quot;</span>),
   };
 

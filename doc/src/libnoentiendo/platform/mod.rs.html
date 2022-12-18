@@ -106,14 +106,10 @@
 <span id="106">106</span>
 <span id="107">107</span>
 <span id="108">108</span>
-<span id="109">109</span>
-<span id="110">110</span>
-<span id="111">111</span>
-<span id="112">112</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::system::System;
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
+<span class="kw">use </span><span class="kw">crate</span>::system::System;
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">mod </span>canvas;
-<span class="kw">pub mod </span>scancodes;
 <span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">mod </span>text;
 <span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
@@ -200,12 +196,8 @@
   <span class="doccomment">/// Set the given pixel on the screen to the given color.
   </span><span class="kw">fn </span>set_pixel(<span class="kw-2">&amp;</span><span class="self">self</span>, x: u32, y: u32, color: Color);
 
-  <span class="doccomment">/// Check if the key corresponding to the specified ASCII code or scancode
-  /// is currently pressed.
-  </span><span class="kw">fn </span>is_pressed(<span class="kw-2">&amp;</span><span class="self">self</span>, key: u8) -&gt; bool;
-
-  <span class="doccomment">/// Get the most recent key that the user pressed.
-  </span><span class="kw">fn </span>get_last_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8;
+  <span class="doccomment">/// Get the current state of the keyboard.
+  </span><span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt;;
 
   <span class="doccomment">/// Display the given string to the user, &quot;out-of-band&quot; from any other
   /// graphics. This is used for text-mode systems. Implementations may choose

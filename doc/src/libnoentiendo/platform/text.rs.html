@@ -96,10 +96,8 @@
 <span id="96">96</span>
 <span id="97">97</span>
 <span id="98">98</span>
-<span id="99">99</span>
-<span id="100">100</span>
-<span id="101">101</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
+<span class="kw">use </span><span class="kw">crate</span>::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
 <span class="kw">use </span>rand;
 <span class="kw">use </span>std::io::Write;
@@ -174,13 +172,9 @@
 
   <span class="kw">fn </span>set_pixel(<span class="kw-2">&amp;</span><span class="self">self</span>, _x: u32, _y: u32, _color: Color) {}
 
-  <span class="kw">fn </span>is_pressed(<span class="kw-2">&amp;</span><span class="self">self</span>, _key: u8) -&gt; bool {
-    <span class="bool-val">false
-  </span>}
-
-  <span class="kw">fn </span>get_last_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8 {
-    <span class="number">0
-  </span>}
+  <span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt; {
+    KeyState::new()
+  }
 
   <span class="kw">fn </span>print(<span class="kw-2">&amp;</span><span class="self">self</span>, text: <span class="kw-2">&amp;</span>str) {
     <span class="macro">print!</span>(<span class="string">&quot;{}&quot;</span>, text);

@@ -127,7 +127,23 @@
 <span id="127">127</span>
 <span id="128">128</span>
 <span id="129">129</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
+<span id="140">140</span>
+<span id="141">141</span>
+<span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::KeyPosition;
+<span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
@@ -219,7 +235,21 @@
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; u8 {
     <span class="kw">match </span>address % <span class="number">2 </span>{
       <span class="number">0 </span>=&gt; <span class="self">self</span>.platform.random(),
-      <span class="kw">_ </span>=&gt; <span class="self">self</span>.platform.get_last_key(),
+      <span class="kw">_ </span>=&gt; {
+        <span class="kw">let </span>state = <span class="self">self</span>.platform.get_key_state();
+
+        <span class="kw">if </span>state.is_pressed(KeyPosition::W) {
+          <span class="kw">return </span><span class="string">b&#39;W&#39;</span>;
+        } <span class="kw">else if </span>state.is_pressed(KeyPosition::A) {
+          <span class="kw">return </span><span class="string">b&#39;A&#39;</span>;
+        } <span class="kw">else if </span>state.is_pressed(KeyPosition::S) {
+          <span class="kw">return </span><span class="string">b&#39;S&#39;</span>;
+        } <span class="kw">else if </span>state.is_pressed(KeyPosition::D) {
+          <span class="kw">return </span><span class="string">b&#39;D&#39;</span>;
+        } <span class="kw">else </span>{
+          <span class="kw">return </span><span class="number">0</span>;
+        }
+      }
     }
   }
 
@@ -236,8 +266,8 @@
 /// &lt;https://skilldrick.github.io/easy6502/&gt;
 </span><span class="kw">pub struct </span>EasySystemFactory {}
 
-<span class="kw">impl </span>SystemFactory&lt;RomFile&gt; <span class="kw">for </span>EasySystemFactory {
-  <span class="kw">fn </span>create(rom: RomFile, platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
+<span class="kw">impl </span>SystemFactory&lt;RomFile, ()&gt; <span class="kw">for </span>EasySystemFactory {
+  <span class="kw">fn </span>create(rom: RomFile, _config: (), platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
     <span class="kw">let </span>zero_page = BlockMemory::ram(<span class="number">0x0100</span>);
     <span class="kw">let </span>io = EasyIO::new(platform.clone());
     <span class="kw">let </span>stack_ram = BlockMemory::ram(<span class="number">0x0100</span>);

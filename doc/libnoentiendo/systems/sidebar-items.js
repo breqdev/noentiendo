@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":[["brooke",""],["easy",""],["klaus",""],["pet",""],["vic",""]],"trait":[["SystemFactory","A factory for creating a system from a set of ROM files and a platform."]]};
+window.SIDEBAR_ITEMS = {"mod":[["brooke",""],["easy",""],["klaus",""],["pet",""],["vic",""]],"struct":[["PetSystemRoms","The set of ROM files required to run a PET system."]],"trait":[["SystemFactory","A factory for creating a system from a set of ROM files and a platform."]]};
