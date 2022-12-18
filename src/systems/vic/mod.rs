@@ -2,7 +2,7 @@ use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
-use crate::roms::RomFile;
+use crate::roms::{DiskLoadable, RomFile};
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
@@ -214,6 +214,8 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
     let colors = VicColorRam::new(vic_chip.clone());
     let chip_io = VicChipIO::new(vic_chip.clone());
 
+    let cartridge = BlockMemory::from_file(0x4000, RomFile::from_file("vic/pacman.bin"));
+
     let memory = BranchMemory::new()
       .map(0x0000, Box::new(low_ram))
       .map(0x0400, Box::new(NullMemory::new()))
@@ -228,6 +230,7 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
       .map(0x9120, Box::new(via2))
       .map(0x9130, Box::new(NullMemory::new()))
       .map(0x9600, Box::new(colors))
+      .map(0xA000, Box::new(cartridge))
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 
