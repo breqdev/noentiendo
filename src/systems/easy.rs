@@ -1,3 +1,4 @@
+use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
@@ -91,9 +92,19 @@ impl Memory for EasyIO {
     match address % 2 {
       0 => self.platform.random(),
       _ => {
-        // self.platform.get_last_key()
-        // TODO: get this working again
-        0
+        let state = self.platform.get_key_state();
+
+        if state.is_pressed(KeyPosition::W) {
+          return b'W';
+        } else if state.is_pressed(KeyPosition::A) {
+          return b'A';
+        } else if state.is_pressed(KeyPosition::S) {
+          return b'S';
+        } else if state.is_pressed(KeyPosition::D) {
+          return b'D';
+        } else {
+          return 0;
+        }
       }
     }
   }
