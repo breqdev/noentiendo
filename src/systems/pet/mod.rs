@@ -1,4 +1,4 @@
-use crate::keyboard::KeyAdapter;
+use crate::keyboard::{KeyAdapter, SymbolAdapter};
 use crate::memory::pia::PIA;
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
@@ -13,7 +13,7 @@ use vram::PetVram;
 mod roms;
 pub use roms::PetSystemRoms;
 mod keyboard;
-use keyboard::{PetKeyboardAdapter, KEYBOARD_MAPPING};
+use keyboard::{PetSymbolAdapter, KEYBOARD_MAPPING};
 
 /// Port A on the first PIA.
 /// This is used for generating the 60Hz interrupt (which is fired when the
@@ -102,7 +102,7 @@ impl Port for PetPia1PortB {
     let row = KEYBOARD_MAPPING[row as usize % 10];
     let mut value = 0b1111_1111;
 
-    let state = PetKeyboardAdapter::map(&self.platform.get_key_state());
+    let state = PetSymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()));
 
     for i in 0..8 {
       if state.is_pressed(row[i]) {

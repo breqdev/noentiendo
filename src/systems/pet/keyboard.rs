@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
+use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
 /// The keys found on the PET's "Graphics" keyboard.
 /// https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg
@@ -207,6 +207,106 @@ impl KeyAdapter<KeyPosition, PetKeys> for PetKeyboardAdapter {
 
         Space => PetKeys::Space,
         Backspace => PetKeys::InsertDelete,
+
+        _ => continue,
+      })
+    }
+
+    mapped
+  }
+}
+
+/// An adapter that maps keyboard symbols to keys on the PET's "Graphics" keyboard.
+pub struct PetSymbolAdapter {}
+
+impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
+  fn map(state: &KeyState<KeySymbol>) -> KeyState<PetKeys> {
+    let mut mapped = KeyState::new();
+
+    for symbol in state.pressed() {
+      use KeySymbol::*;
+
+      mapped.press(match symbol {
+        Char('!') => PetKeys::Exclamation,
+        Char('"') => PetKeys::DoubleQuote,
+        Char('#') => PetKeys::Hash,
+        Char('$') => PetKeys::Dollar,
+        Char('%') => PetKeys::Percent,
+        Char('\'') => PetKeys::Apostrophe,
+        Char('&') => PetKeys::Ampersand,
+        Char('(') => PetKeys::LeftParen,
+        Char(')') => PetKeys::RightParen,
+        // TODO: Left Arrow
+        Home => PetKeys::ClrHome,
+        DownArrow => PetKeys::CursorUpDown,
+        RightArrow => PetKeys::CursorLeftRight,
+        Delete => PetKeys::InsertDelete,
+
+        Char('q') | Char('Q') => PetKeys::Q,
+        Char('w') | Char('W') => PetKeys::W,
+        Char('e') | Char('E') => PetKeys::E,
+        Char('r') | Char('R') => PetKeys::R,
+        Char('t') | Char('T') => PetKeys::T,
+        Char('y') | Char('Y') => PetKeys::Y,
+        Char('u') | Char('U') => PetKeys::U,
+        Char('i') | Char('I') => PetKeys::I,
+        Char('o') | Char('O') => PetKeys::O,
+        Char('p') | Char('P') => PetKeys::P,
+        Char('^') => PetKeys::UpArrow,
+
+        Char('7') => PetKeys::Num7,
+        Char('8') => PetKeys::Num8,
+        Char('9') => PetKeys::Num9,
+        Char('/') => PetKeys::NumDivide,
+
+        Char('a') | Char('A') => PetKeys::A,
+        Char('s') | Char('S') => PetKeys::S,
+        Char('d') | Char('D') => PetKeys::D,
+        Char('f') | Char('F') => PetKeys::F,
+        Char('g') | Char('G') => PetKeys::G,
+        Char('h') | Char('H') => PetKeys::H,
+        Char('j') | Char('J') => PetKeys::J,
+        Char('k') | Char('K') => PetKeys::K,
+        Char('l') | Char('L') => PetKeys::L,
+        Char(':') => PetKeys::Colon,
+        Return => PetKeys::Return,
+
+        Char('4') => PetKeys::Num4,
+        Char('5') => PetKeys::Num5,
+        Char('6') => PetKeys::Num6,
+        Char('*') => PetKeys::NumMultiply,
+
+        Char('z') | Char('Z') => PetKeys::Z,
+        Char('x') | Char('X') => PetKeys::X,
+        Char('c') | Char('C') => PetKeys::C,
+        Char('v') | Char('V') => PetKeys::V,
+        Char('b') | Char('B') => PetKeys::B,
+        Char('n') | Char('N') => PetKeys::N,
+        Char('m') | Char('M') => PetKeys::M,
+        Char(',') => PetKeys::Comma,
+        Char(';') => PetKeys::Semicolon,
+        Char('?') => PetKeys::Question,
+
+        Char('1') => PetKeys::Num1,
+        Char('2') => PetKeys::Num2,
+        Char('3') => PetKeys::Num3,
+        Char('+') => PetKeys::NumPlus,
+
+        LAlt => PetKeys::LShift, // Map Alt to Shift since "shift" actually does graphics characters.
+        // TODO: Reverse
+        Char('@') => PetKeys::At,
+        Char('[') => PetKeys::LeftBracket,
+        Char(']') => PetKeys::RightBracket,
+        Char(' ') => PetKeys::Space,
+        Char('<') => PetKeys::LessThan,
+        Char('>') => PetKeys::GreaterThan,
+        // TODO: Run Stop
+        RAlt => PetKeys::RShift,
+
+        Char('0') => PetKeys::Num0,
+        Char('.') => PetKeys::NumPeriod,
+        Char('-') => PetKeys::NumMinus,
+        Char('=') => PetKeys::NumEquals,
 
         _ => continue,
       })
