@@ -123,7 +123,7 @@ pub struct VicChip {
   background_color: u8,
 
   // Misc
-  character_table_values: u8, // what is this?
+  character_address_top: u8, // what is this?
 }
 
 impl VicChip {
@@ -163,7 +163,7 @@ impl VicChip {
       border_color: 3,
       reverse_field: true,
       background_color: 1,
-      character_table_values: 0,
+      character_address_top: 0,
     }
   }
 
@@ -189,7 +189,7 @@ impl VicChip {
     self.border_color = 3;
     self.reverse_field = true;
     self.background_color = 1;
-    self.character_table_values = 0;
+    self.character_address_top = 0;
   }
 
   /// Get the bits in the character at the given value.
@@ -210,7 +210,7 @@ impl VicChip {
   /// Get the foreground color to be shown at the given character position.
   fn get_foreground(&mut self, address: u16) -> Color {
     let value = self.colors.read(address);
-    match value {
+    match value & 0b111 {
       0b000 => Color::new(0, 0, 0),
       0b001 => Color::new(255, 255, 255),
       0b010 => Color::new(255, 0, 0),
@@ -219,13 +219,13 @@ impl VicChip {
       0b101 => Color::new(0, 255, 0),
       0b110 => Color::new(0, 0, 255),
       0b111 => Color::new(255, 255, 0),
-      _ => panic!("Invalid color value: {}", value),
+      _ => unreachable!(),
     }
   }
 
   /// Get the current background color being shown.
   fn get_background(&self) -> Color {
-    match self.background_color {
+    match self.background_color & 0b1111 {
       0b0000 => Color::new(0, 0, 0),
       0b0001 => Color::new(255, 255, 255),
       0b0010 => Color::new(255, 0, 0),
@@ -242,7 +242,45 @@ impl VicChip {
       0b1101 => Color::new(128, 255, 128),
       0b1110 => Color::new(128, 128, 255),
       0b1111 => Color::new(255, 255, 128),
-      _ => panic!("Invalid color value: {}", self.background_color),
+      _ => unreachable!(),
+    }
+  }
+
+  /// Get the color of the screen border.
+  fn get_border_color(&self) -> Color {
+    match self.border_color & 0b111 {
+      0b000 => Color::new(0, 0, 0),
+      0b001 => Color::new(255, 255, 255),
+      0b010 => Color::new(255, 0, 0),
+      0b011 => Color::new(0, 255, 255),
+      0b100 => Color::new(255, 0, 255),
+      0b101 => Color::new(0, 255, 0),
+      0b110 => Color::new(0, 0, 255),
+      0b111 => Color::new(255, 255, 0),
+      _ => unreachable!(),
+    }
+  }
+
+  /// Get the auxiliary color used for multicolor characters.
+  fn get_aux_color(&self) -> Color {
+    match self.aux_color & 0b1111 {
+      0b0000 => Color::new(0, 0, 0),
+      0b0001 => Color::new(255, 255, 255),
+      0b0010 => Color::new(255, 0, 0),
+      0b0011 => Color::new(0, 255, 255),
+      0b0100 => Color::new(255, 0, 255),
+      0b0101 => Color::new(0, 255, 0),
+      0b0110 => Color::new(0, 0, 255),
+      0b0111 => Color::new(255, 255, 0),
+      0b1000 => Color::new(255, 127, 0),
+      0b1001 => Color::new(255, 192, 128),
+      0b1010 => Color::new(255, 128, 128),
+      0b1011 => Color::new(128, 255, 255),
+      0b1100 => Color::new(255, 128, 255),
+      0b1101 => Color::new(128, 255, 128),
+      0b1110 => Color::new(128, 128, 255),
+      0b1111 => Color::new(255, 255, 128),
+      _ => unreachable!(),
     }
   }
 
@@ -256,20 +294,51 @@ impl VicChip {
     let row = (address / WIDTH as u16) as u32;
 
     let value = self.read_vram(address);
+    let color = self.read_color(address);
     let character = self.get_character(value);
 
-    for line in 0..CHAR_HEIGHT {
-      let line_data = character[line as usize];
-      for pixel in 0..CHAR_WIDTH {
-        let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
-          self.get_foreground(address)
-        } else {
-          self.get_background()
-        };
+    if color & 0b1000 == 0 {
+      // Standard characters
+      for line in 0..CHAR_HEIGHT {
+        let line_data = character[line as usize];
+        for pixel in 0..CHAR_WIDTH {
+          let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
+            self.get_foreground(address)
+          } else {
+            self.get_background()
+          };
 
-        self
-          .platform
-          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+          self
+            .platform
+            .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+        }
+      }
+    } else {
+      // Multicolor characters
+      for line in 0..CHAR_HEIGHT {
+        let line_data = character[line as usize];
+        for pixel in 0..(CHAR_WIDTH / 2) {
+          let color_code = (line_data >> (CHAR_WIDTH - 2 - (pixel * 2))) & 0b11;
+
+          let color = match color_code {
+            0b00 => self.get_background(),
+            0b01 => self.get_border_color(),
+            0b10 => self.get_foreground(address),
+            0b11 => self.get_aux_color(),
+            _ => unreachable!(),
+          };
+
+          self.platform.set_pixel(
+            column * CHAR_WIDTH + (pixel * 2),
+            row * CHAR_HEIGHT + line,
+            color,
+          );
+          self.platform.set_pixel(
+            column * CHAR_WIDTH + (pixel * 2) + 1,
+            row * CHAR_HEIGHT + line,
+            color,
+          );
+        }
       }
     }
   }
@@ -331,7 +400,7 @@ impl Memory for VicChipIO {
           | ((chip.raster_counter & 0b1) as u8) << 7
       }
       0x4 => (chip.raster_counter >> 1) as u8,
-      0x5 => chip.character_table_values | (chip.vram_address_top << 4),
+      0x5 => chip.character_address_top | (chip.vram_address_top << 4),
       0x6 => chip.light_pen.read_x(),
       0x7 => chip.light_pen.read_y(),
       0x8 => chip.potentiometer_1,
@@ -366,7 +435,7 @@ impl Memory for VicChipIO {
       0x4 => chip.raster_counter = (chip.raster_counter & 0x1) | ((value as u16) << 1),
       0x5 => {
         chip.vram_address_top = (value >> 4) & 0x0F;
-        chip.character_table_values = value & 0x0F;
+        chip.character_address_top = value & 0x0F;
       }
       0x6 => chip.light_pen.write_x(value),
       0x7 => chip.light_pen.write_y(value),
