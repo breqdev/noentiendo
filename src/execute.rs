@@ -426,6 +426,25 @@ impl Execute for System {
         Ok(2)
       }
 
+      // === ILLEGAL OPCODES ===
+      0x04 | 0x0C | 0x14 | 0x1A | 0x1C | 0x34 | 0x3A | 0x3C | 0x44 | 0x54 | 0x5A | 0x5C | 0x64 |
+      0x74 | 0x7A | 0x7C | 0x80 | 0x82 | 0x89 | 0xC2 | 0xD4 | 0xDA | 0xDC | 0xE2 | 0xF4 | 0xFA |
+      0xFC => {
+        // NOP
+        match opcode {
+          0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => {
+            // No address
+            Ok(2)
+          }
+          _ => {
+            // Address
+            let (value, cycles) = self.fetch_operand_value(opcode);
+            Ok(cycles)
+          }
+        }
+      }
+
+
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
