@@ -209,8 +209,8 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
     let colors = BlockMemory::ram(0x0200);
     let chip_io = VicChipIO::new(vic_chip.clone());
 
-    // let cartridge = BlockMemory::from_file(0x4000, RomFile::from_file("vic/pacman.bin"));
-    let cartridge = BlockMemory::ram(0x4000);
+    let cartridge = BlockMemory::from_file(0x4000, RomFile::from_file("vic/pacman.bin"));
+    // let cartridge = BlockMemory::ram(0x4000);
 
     let memory = BranchMemory::new()
       .map(0x0000, Box::new(low_ram))

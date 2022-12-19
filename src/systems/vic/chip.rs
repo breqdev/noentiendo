@@ -95,7 +95,7 @@ pub struct VicChip {
   // Memory mapping
   vram_address_top: u8,
   character_address_top: u8,
-  vram_line_9: bool,
+  color_ram_mapping: bool,
 
   // Light pen
   light_pen: VicChipLightPen,
@@ -136,7 +136,7 @@ impl VicChip {
       left_draw_offset: 12,
       top_draw_offset: 38,
       column_count: WIDTH as u8,
-      vram_line_9: true,
+      color_ram_mapping: true,
       raster_counter: 0,
       row_count: HEIGHT as u8,
       double_size_chars: false,
@@ -163,7 +163,7 @@ impl VicChip {
     self.left_draw_offset = 12;
     self.top_draw_offset = 38;
     self.column_count = 22;
-    self.vram_line_9 = true;
+    self.color_ram_mapping = true;
     self.raster_counter = 0;
     self.row_count = 23;
     self.double_size_chars = false;
@@ -186,7 +186,14 @@ impl VicChip {
   /// Read the value of the screen memory at the given address,
   /// respecting the mapping defined in the VIC registers.
   fn read_vram(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
-    let offset = 0x1E00;
+    let mut offset: u16 = if self.vram_address_top & 0x8 != 0 {
+      0x0000
+    } else {
+      0x8000
+    };
+
+    offset += ((self.vram_address_top & 0b111) as u16) << 10;
+    offset += (self.color_ram_mapping as u16) << 9;
 
     memory.read(address + offset)
   }
@@ -194,7 +201,11 @@ impl VicChip {
   /// Read the value of the color memory at the given address,
   /// respecting the mapping defined in the VIC registers.
   fn read_color(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
-    let offset = 0x9600;
+    let offset = if self.color_ram_mapping {
+      0x9600
+    } else {
+      0x9400
+    };
 
     memory.read(address + offset)
   }
@@ -202,7 +213,13 @@ impl VicChip {
   /// Read the value of the character memory at the given address,
   /// respecting the mapping defined in the VIC registers.
   fn read_character(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
-    let offset = 0x8000;
+    let mut offset: u16 = if self.character_address_top & 0x8 != 0 {
+      0x0000
+    } else {
+      0x8000
+    };
+
+    offset += ((self.character_address_top & 0b111) as u16) << 10;
 
     memory.read(address + offset)
   }
@@ -377,7 +394,7 @@ impl Memory for VicChipIO {
     match address % 0xF {
       0x0 => chip.left_draw_offset | (chip.scan_mode as u8) << 7,
       0x1 => chip.top_draw_offset,
-      0x2 => chip.column_count | (chip.vram_line_9 as u8) << 7,
+      0x2 => chip.column_count | (chip.color_ram_mapping as u8) << 7,
       0x3 => {
         (chip.double_size_chars as u8)
           | (chip.row_count << 1)
@@ -408,7 +425,7 @@ impl Memory for VicChipIO {
       }
       0x1 => chip.top_draw_offset = value,
       0x2 => {
-        chip.vram_line_9 = (value & 0x80) != 0;
+        chip.color_ram_mapping = (value & 0x80) != 0;
         chip.column_count = value & 0x7F;
       }
       0x3 => {
