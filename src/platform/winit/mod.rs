@@ -107,7 +107,8 @@ impl SyncPlatform for WinitPlatform {
             .unwrap()
             .as_mut()
             .unwrap()
-            .resize_surface(size.width, size.height);
+            .resize_surface(size.width, size.height)
+            .unwrap();
         }
       }
 
@@ -226,7 +227,7 @@ impl PlatformProvider for WinitPlatformProvider {
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
     let mut pixels = self.pixels.lock().unwrap();
-    let frame = pixels.as_mut().unwrap().get_frame();
+    let frame = pixels.as_mut().unwrap().get_frame_mut();
     let config = self.get_config();
 
     if (x >= config.width) || (y >= config.height) {
