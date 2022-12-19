@@ -444,6 +444,13 @@ impl Execute for System {
         }
       }
 
+      0x02 | 0x12 | 0x22 | 0x32 | 0x42 | 0x52 | 0x62 | 0x72 | 0x92 | 0xB2 | 0xD2 | 0xF2 => {
+        // STP or KIL or JAM or HLT depending on who you ask
+        // @breqdev not sure if this is actually the right thing to do here
+        println!("Execution stopped");
+        Err(())
+      }
+
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
