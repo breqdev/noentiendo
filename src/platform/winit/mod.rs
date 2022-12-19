@@ -238,6 +238,12 @@ impl PlatformProvider for WinitPlatformProvider {
     }
 
     let index = ((y * config.width + x) * 4) as usize;
+    if index + 4 > frame.len() {
+      // Race condition: the app has just requested a new window size, but the
+      // framebuffer hasn't been resized yet
+      *self.dirty.lock().unwrap() = true;
+      return;
+    }
     let pixel = &mut frame[index..(index + 4)];
     pixel.copy_from_slice(&color.to_rgba());
     *self.dirty.lock().unwrap() = true;
