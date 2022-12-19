@@ -1,9 +1,4 @@
-use std::rc::Rc;
-
-use crate::{
-  memory::{ActiveInterrupt, Memory, SystemInfo},
-  platform::PlatformProvider,
-};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
 /// Maps several Memory objects into a single contiguous address space.
 /// Each mapped object is assigned a starting address, and reads and writes
@@ -31,11 +26,11 @@ impl BranchMemory {
 }
 
 impl Memory for BranchMemory {
-  fn read(&self, address: u16, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     let mut memory = None;
     let mut offset = 0;
 
-    for (start, mapped) in &self.mapping {
+    for (start, mapped) in &mut self.mapping {
       if address as usize >= *start {
         memory = Some(mapped);
         offset = *start as u16;
@@ -43,22 +38,16 @@ impl Memory for BranchMemory {
     }
 
     match memory {
-      Some(memory) => memory.read(address - offset, root, platform),
+      Some(memory) => memory.read(address - offset),
       None => 0,
     }
   }
 
-  fn write(
-    &self,
-    address: u16,
-    value: u8,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) {
+  fn write(&mut self, address: u16, value: u8) {
     let mut memory = None;
     let mut offset = 0;
 
-    for (start, mapped) in &self.mapping {
+    for (start, mapped) in &mut self.mapping {
       if address as usize >= *start {
         memory = Some(mapped);
         offset = *start as u16;
@@ -66,27 +55,22 @@ impl Memory for BranchMemory {
     }
 
     match memory {
-      Some(memory) => memory.write(address - offset, value, root, platform),
+      Some(memory) => memory.write(address - offset, value),
       None => (),
     };
   }
 
-  fn reset(&self, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
-    for (_, mapped) in &self.mapping {
-      mapped.reset(root, platform);
+  fn reset(&mut self) {
+    for (_, mapped) in &mut self.mapping {
+      mapped.reset();
     }
   }
 
-  fn poll(
-    &self,
-    info: &SystemInfo,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) -> ActiveInterrupt {
+  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
     let mut highest = ActiveInterrupt::None;
 
-    for (_, mapped) in &self.mapping {
-      let interrupt = mapped.poll(info, root, platform);
+    for (_, mapped) in &mut self.mapping {
+      let interrupt = mapped.poll(info);
 
       match interrupt {
         ActiveInterrupt::None => (),

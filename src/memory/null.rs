@@ -1,9 +1,4 @@
-use std::rc::Rc;
-
-use crate::{
-  memory::{ActiveInterrupt, Memory, SystemInfo},
-  platform::PlatformProvider,
-};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
 /// Memory that does nothing when read or written to.
 pub struct NullMemory {
@@ -25,44 +20,28 @@ impl NullMemory {
 }
 
 impl Memory for NullMemory {
-  fn read(
-    &self,
-    address: u16,
-    _root: &Rc<dyn Memory>,
-    _platform: &Box<dyn PlatformProvider>,
-  ) -> u8 {
+  fn read(&mut self, _address: u16) -> u8 {
     if let Some(message) = self.warn {
       println!(
         "attempted to read from {} at address {:04x}",
-        message, address
+        message, _address
       );
     }
     0
   }
 
-  fn write(
-    &self,
-    address: u16,
-    value: u8,
-    _root: &Rc<dyn Memory>,
-    _platform: &Box<dyn PlatformProvider>,
-  ) {
+  fn write(&mut self, _address: u16, _value: u8) {
     if let Some(message) = self.warn {
       println!(
-        "attempted to write {:02x} to {} at address {:04x}",
-        value, message, address
+        "attempted to write to {} at address {:04x}",
+        message, _address
       );
     }
   }
 
-  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {}
+  fn reset(&mut self) {}
 
-  fn poll(
-    &self,
-    _info: &SystemInfo,
-    _root: &Rc<dyn Memory>,
-    _platform: &Box<dyn PlatformProvider>,
-  ) -> ActiveInterrupt {
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

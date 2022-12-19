@@ -1,17 +1,12 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use crate::execute::Execute;
 use crate::fetch::Fetch;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
-use crate::platform::PlatformProvider;
 use crate::registers::{flags, Registers};
 
 /// The MOS 6502 CPU and its associated memory.
 pub struct System {
   pub registers: Registers,
-  memory: Rc<dyn Memory>,
-  platform: Box<dyn PlatformProvider>,
+  memory: Box<dyn Memory>,
   cycles_per_second: u64,
   cycle_count: u64,
 }
@@ -33,26 +28,22 @@ pub trait MemoryIO {
 
 impl MemoryIO for System {
   fn read(&mut self, address: u16) -> u8 {
-    self
-      .memory
-      .read(address, &self.memory.clone(), &self.platform)
+    self.memory.read(address)
   }
 
   fn read_word(&mut self, address: u16) -> u16 {
-    let lo = self.read(address);
-    let hi = self.read(address + 1);
+    let lo = self.memory.read(address);
+    let hi = self.memory.read(address + 1);
     (hi as u16) << 8 | lo as u16
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    self
-      .memory
-      .write(address, value, &self.memory.clone(), &self.platform);
+    self.memory.write(address, value);
   }
 
   fn write_word(&mut self, address: u16, value: u16) {
-    self.write(address, value as u8);
-    self.write(address + 1, (value >> 8) as u8);
+    self.memory.write(address, value as u8);
+    self.memory.write(address + 1, (value >> 8) as u8);
   }
 }
 
@@ -127,22 +118,17 @@ impl InterruptHandler for System {
 }
 
 impl System {
-  pub fn new(
-    memory: Rc<dyn Memory>,
-    platform: Box<dyn PlatformProvider>,
-    cycles_per_second: u64,
-  ) -> System {
+  pub fn new(memory: Box<dyn Memory>, cycles_per_second: u64) -> System {
     System {
       registers: Registers::new(),
       memory,
-      platform,
       cycles_per_second,
       cycle_count: 0,
     }
   }
 
   pub fn reset(&mut self) {
-    self.memory.reset(&self.memory.clone(), &self.platform);
+    self.memory.reset();
     self.registers.reset();
     let pc_address = self.read_word(0xFFFC);
     self.registers.pc.load(pc_address);
@@ -167,11 +153,7 @@ impl System {
         let info = self.get_info();
 
         for _ in 0..cycles {
-          let interrupt = self
-            .memory
-            .poll(&info, &self.memory.clone(), &self.platform);
-
-          match interrupt {
+          match self.memory.poll(&info) {
             ActiveInterrupt::None => (),
             ActiveInterrupt::NMI => self.interrupt(false, false),
             ActiveInterrupt::IRQ => self.interrupt(true, false),

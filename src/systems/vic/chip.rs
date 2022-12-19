@@ -1,10 +1,7 @@
-use std::{
-  cell::{Cell, RefCell},
-  rc::Rc,
-};
-
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
+use crate::roms::RomFile;
+use std::sync::{Arc, Mutex};
 
 const WIDTH: u32 = 22;
 const HEIGHT: u32 = 23;
@@ -14,95 +11,60 @@ const VRAM_SIZE: usize = 512; // 6 extra bytes to make mapping easier
 
 /// One of the speakers available on the MOS 6560 VIC.
 struct VicChipSpeaker {
-  on: Cell<bool>,
-  note: Cell<u8>,
+  on: bool,
+  note: u8,
 }
 
 impl VicChipSpeaker {
   fn new() -> Self {
-    Self {
-      on: Cell::new(false),
-      note: Cell::new(0),
-    }
+    Self { on: false, note: 0 }
   }
 
   fn read(&self) -> u8 {
-    self.note.get() | (self.on.get() as u8) << 7
+    self.note | (self.on as u8) << 7
   }
 
-  fn write(&self, value: u8) {
-    self.on.set((value & 0x80) != 0);
-    self.note.set(value & 0x7f);
+  fn write(&mut self, value: u8) {
+    self.on = (value & 0x80) != 0;
+    self.note = value & 0x7f;
   }
 
-  fn reset(&self) {
-    self.on.set(false);
-    self.note.set(0);
-  }
-}
-
-/// The set of speakers included on the MOS 6560 VIC.
-struct VicChipSpeakerSet {
-  pub alto: VicChipSpeaker,
-  pub tenor: VicChipSpeaker,
-  pub soprano: VicChipSpeaker,
-  pub noise: VicChipSpeaker,
-  pub volume: Cell<u8>,
-}
-
-impl VicChipSpeakerSet {
-  pub fn new() -> Self {
-    Self {
-      alto: VicChipSpeaker::new(),
-      tenor: VicChipSpeaker::new(),
-      soprano: VicChipSpeaker::new(),
-      noise: VicChipSpeaker::new(),
-      volume: Cell::new(0),
-    }
-  }
-
-  pub fn reset(&self) {
-    self.alto.reset();
-    self.tenor.reset();
-    self.soprano.reset();
-    self.noise.reset();
-    self.volume.set(0);
+  fn reset(&mut self) {
+    self.on = false;
+    self.note = 0;
   }
 }
 
 /// The light pen input available on the MOS 6560 VIC.
 struct VicChipLightPen {
-  x: Cell<u8>,
-  y: Cell<u8>,
+  x: u8,
+  y: u8,
 }
 
 impl VicChipLightPen {
   fn new() -> Self {
-    Self {
-      x: Cell::new(0),
-      y: Cell::new(0),
-    }
+    Self { x: 0, y: 0 }
   }
 
   fn read_x(&self) -> u8 {
-    self.x.get()
+    self.x
   }
 
   fn read_y(&self) -> u8 {
-    self.y.get()
+    self.y
   }
 
-  fn write_x(&self, value: u8) {
-    self.x.set(value);
+  fn write_x(&mut self, value: u8) {
+    self.x = value;
   }
 
-  fn write_y(&self, value: u8) {
-    self.y.set(value);
+  fn write_y(&mut self, value: u8) {
+    self.y = value;
   }
 
-  fn reset(&self) {
-    self.x.set(0);
-    self.y.set(0);
+  fn reset(&mut self) {
+    self.x = 0;
+    self.y = 0;
   }
 }
 
@@ -112,50 +74,60 @@ impl VicChipLightPen {
 /// Uses VRAM memory, character memory, and color memory to draw the screen.
 /// Also handles the speakers and light pen.
 pub struct VicChip {
+  platform: Arc<dyn PlatformProvider>,
+
+  // Associated Memory
+  vram: BlockMemory,
+  characters: BlockMemory,
+  colors: BlockMemory,
+
   // Registers
-  /// TV scan settings
-  scan_mode: Cell<bool>,
 
-  /// Screen alignment: (left, top)
-  draw_offset: Cell<(u8, u8)>,
+  // TV scan settings
+  scan_mode: bool,
 
-  /// Character size: (row, column)
-  character_count: Cell<(u8, u8)>,
+  // Screen alignment
+  left_draw_offset: u8,
+  top_draw_offset: u8,
 
-  /// Double size characters
-  double_size_chars: Cell<bool>,
+  // Character size
+  row_count: u8,
+  column_count: u8,
+  double_size_chars: bool,
 
   // Screen drawing
-  raster_counter: Cell<u16>,
+  raster_counter: u16,
 
   // Memory mapping
-  vram_address_top: Cell<u8>,
-  character_address_top: Cell<u8>,
+  vram_address_top: u8,
+  vram_line_9: bool,
 
   // Light pen
   light_pen: VicChipLightPen,
 
   // Potentiometers
-  potentiometers: Cell<(u8, u8)>,
+  potentiometer_1: u8,
+  potentiometer_2: u8,
 
   // Speakers
-  speakers: VicChipSpeakerSet,
+  speaker_alto: VicChipSpeaker,
+  speaker_tenor: VicChipSpeaker,
+  speaker_soprano: VicChipSpeaker,
+  speaker_noise: VicChipSpeaker,
+  speaker_volume: u8,
 
   // Colors
-  aux_color: Cell<u8>,
-  border_color: Cell<u8>,
-  reverse_field: Cell<bool>,
-  background_color: Cell<u8>,
-
-  // Drawing
-  last_draw_cycle: Cell<u64>,
+  aux_color: u8,
+  border_color: u8,
+  reverse_field: bool,
+  background_color: u8,
 
   // Misc
-  vram_line_9: Cell<bool>,
+  character_address_top: u8, // what is this?
 }
 
 impl VicChip {
-  pub fn new(platform: &Box<dyn PlatformProvider>) -> Self {
+  pub fn new(platform: Arc<dyn PlatformProvider>, characters: RomFile) -> Self {
     platform.request_window(WindowConfig::new(
       WIDTH * CHAR_WIDTH,
       HEIGHT * CHAR_HEIGHT,
@@ -163,95 +135,81 @@ impl VicChip {
     ));
 
     Self {
-      scan_mode: Cell::new(false),
-      draw_offset: Cell::new((12, 38)),
-      character_count: Cell::new((WIDTH as u8, HEIGHT as u8)),
-      vram_line_9: Cell::new(true),
-      raster_counter: Cell::new(0),
-      double_size_chars: Cell::new(false),
-      vram_address_top: Cell::new(0),
+      platform,
+
+      // Associated Memory
+      vram: BlockMemory::ram(VRAM_SIZE),
+      characters: BlockMemory::from_file(0x1000, characters),
+      colors: BlockMemory::ram(0x0200),
+
+      scan_mode: false,
+      left_draw_offset: 12,
+      top_draw_offset: 38,
+      column_count: WIDTH as u8,
+      vram_line_9: true,
+      raster_counter: 0,
+      row_count: HEIGHT as u8,
+      double_size_chars: false,
+      vram_address_top: 0,
       light_pen: VicChipLightPen::new(),
-      potentiometers: Cell::new((0xFF, 0xFF)),
-      speakers: VicChipSpeakerSet::new(),
-      aux_color: Cell::new(0),
-      border_color: Cell::new(3),
-      reverse_field: Cell::new(true),
-      background_color: Cell::new(1),
-      character_address_top: Cell::new(0),
-      last_draw_cycle: Cell::new(0),
+      potentiometer_1: 0xFF,
+      potentiometer_2: 0xFF,
+      speaker_alto: VicChipSpeaker::new(),
+      speaker_tenor: VicChipSpeaker::new(),
+      speaker_soprano: VicChipSpeaker::new(),
+      speaker_noise: VicChipSpeaker::new(),
+      speaker_volume: 0,
+      aux_color: 0,
+      border_color: 3,
+      reverse_field: true,
+      background_color: 1,
+      character_address_top: 0,
     }
   }
 
-  /// Read the value of the specified location in the screen memory,
-  /// taking into account the current memory mapping as defined by the VIC
-  /// chip registers.
-  fn read_vram(
-    &self,
-    address: u16,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) -> u8 {
-    let vram_base = 0x1E00; // TODO: support remapping
-
-    root.read(vram_base + address, root, platform)
-  }
-
-  /// Read the value of the specified location in the color memory,
-  /// taking into account the current memory mapping as defined by the VIC
-  /// chip registers.
-  fn read_color(
-    &self,
-    address: u16,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) -> u8 {
-    let color_base = 0x9600; // TODO: support remapping
-
-    root.read(color_base + address, root, platform)
-  }
-
-  /// Read the value of the specified location in the character memory,
-  /// taking into account the current memory mapping as defined by the VIC
-  /// chip registers.
-  fn read_character(
-    &self,
-    address: u16,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) -> u8 {
-    let character_base = 0x8000; // TODO: support remapping
-
-    root.read(character_base + address, root, platform)
+  pub fn reset(&mut self) {
+    self.scan_mode = false;
+    self.left_draw_offset = 12;
+    self.top_draw_offset = 38;
+    self.column_count = 22;
+    self.vram_line_9 = true;
+    self.raster_counter = 0;
+    self.row_count = 23;
+    self.double_size_chars = false;
+    self.vram_address_top = 15;
+    self.light_pen.reset();
+    self.potentiometer_1 = 0xFF;
+    self.potentiometer_2 = 0xFF;
+    self.speaker_alto.reset();
+    self.speaker_tenor.reset();
+    self.speaker_soprano.reset();
+    self.speaker_noise.reset();
+    self.speaker_volume = 0;
+    self.aux_color = 0;
+    self.border_color = 3;
+    self.reverse_field = true;
+    self.background_color = 1;
+    self.character_address_top = 0;
   }
 
   /// Get the bits in the character at the given value.
   /// The character is 8 bits wide and 8 bits tall, so this returns a vec![0; 8].
   /// Each byte is a horizontal row, which are ordered from top to bottom.
   /// Bits are ordered with the MSB at the left and the LSB at the right.
-  fn get_character(
-    &self,
-    value: u8,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) -> Vec<u8> {
+  fn get_character(&mut self, value: u8) -> Vec<u8> {
     let character_index = (value as u16) * 8;
 
     let mut character = vec![0; 8];
     for i in 0..8 {
-      character[i] = self.read_character(character_index + i as u16, root, platform);
+      character[i] = self.characters.read(character_index + i as u16);
     }
 
     character
   }
 
   /// Get the foreground color to be shown at the given character position.
-  fn get_foreground(
-    &self,
-    address: u16,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) -> Color {
-    let value = self.read_color(address, root, platform);
+  fn get_foreground(&mut self, address: u16) -> Color {
+    let value = self.colors.read(address);
     match value & 0b111 {
       0b000 => Color::new(0, 0, 0),
       0b001 => Color::new(255, 255, 255),
@@ -267,7 +225,7 @@ impl VicChip {
 
   /// Get the current background color being shown.
   fn get_background(&self) -> Color {
-    match self.background_color.get() & 0b1111 {
+    match self.background_color & 0b1111 {
       0b0000 => Color::new(0, 0, 0),
       0b0001 => Color::new(255, 255, 255),
       0b0010 => Color::new(255, 0, 0),
@@ -290,7 +248,7 @@ impl VicChip {
 
   /// Get the color of the screen border.
   fn get_border_color(&self) -> Color {
-    match self.border_color.get() & 0b111 {
+    match self.border_color & 0b111 {
       0b000 => Color::new(0, 0, 0),
       0b001 => Color::new(255, 255, 255),
       0b010 => Color::new(255, 0, 0),
@@ -305,7 +263,7 @@ impl VicChip {
 
   /// Get the auxiliary color used for multicolor characters.
   fn get_aux_color(&self) -> Color {
-    match self.aux_color.get() & 0b1111 {
+    match self.aux_color & 0b1111 {
       0b0000 => Color::new(0, 0, 0),
       0b0001 => Color::new(255, 255, 255),
       0b0010 => Color::new(255, 0, 0),
@@ -327,7 +285,7 @@ impl VicChip {
   }
 
   /// Redraw the character at the specified address.
-  fn redraw(&self, address: u16, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+  fn redraw(&mut self, address: u16) {
     if address >= (HEIGHT * WIDTH) as u16 {
       return; // ignore writes to the extra bytes
     }
@@ -335,9 +293,9 @@ impl VicChip {
     let column = (address % WIDTH as u16) as u32;
     let row = (address / WIDTH as u16) as u32;
 
-    let value = self.read_vram(address, root, platform);
-    let color = self.read_color(address, root, platform);
-    let character = self.get_character(value, root, platform);
+    let value = self.read_vram(address);
+    let color = self.read_color(address);
+    let character = self.get_character(value);
 
     if color & 0b1000 == 0 {
       // Standard characters
@@ -345,12 +303,14 @@ impl VicChip {
         let line_data = character[line as usize];
         for pixel in 0..CHAR_WIDTH {
           let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
-            self.get_foreground(address, root, platform)
+            self.get_foreground(address)
           } else {
             self.get_background()
           };
 
-          platform.set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+          self
+            .platform
+            .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
         }
       }
     } else {
@@ -363,17 +323,17 @@ impl VicChip {
           let color = match color_code {
             0b00 => self.get_background(),
             0b01 => self.get_border_color(),
-            0b10 => self.get_foreground(address, root, platform),
+            0b10 => self.get_foreground(address),
             0b11 => self.get_aux_color(),
             _ => unreachable!(),
           };
 
-          platform.set_pixel(
+          self.platform.set_pixel(
             column * CHAR_WIDTH + (pixel * 2),
             row * CHAR_HEIGHT + line,
             color,
           );
-          platform.set_pixel(
+          self.platform.set_pixel(
             column * CHAR_WIDTH + (pixel * 2) + 1,
             row * CHAR_HEIGHT + line,
             color,
@@ -382,137 +342,128 @@ impl VicChip {
       }
     }
   }
+
+  pub fn read_vram(&mut self, address: u16) -> u8 {
+    self.vram.read(address)
+  }
+
+  pub fn write_vram(&mut self, address: u16, value: u8) {
+    self.vram.write(address, value);
+    self.redraw(address);
+  }
+
+  pub fn read_character(&mut self, address: u16) -> u8 {
+    self.characters.read(address)
+  }
+
+  pub fn write_character(&mut self, address: u16, value: u8) {
+    self.characters.write(address, value);
+
+    // Redraw the entire screen
+    for i in 0..(WIDTH * HEIGHT) {
+      self.redraw(i as u16);
+    }
+  }
+
+  pub fn read_color(&mut self, address: u16) -> u8 {
+    self.colors.read(address)
+  }
+
+  pub fn write_color(&mut self, address: u16, value: u8) {
+    self.colors.write(address, value);
+    self.redraw(address);
+  }
 }
 
-impl Memory for VicChip {
-  fn read(
-    &self,
-    address: u16,
-    _root: &Rc<dyn Memory>,
-    _platform: &Box<dyn PlatformProvider>,
-  ) -> u8 {
+/// Represents the I/O mapping for the MOS 6560 VIC.
+pub struct VicChipIO {
+  chip: Arc<Mutex<VicChip>>,
+}
+
+impl VicChipIO {
+  pub fn new(chip: Arc<Mutex<VicChip>>) -> Self {
+    Self { chip }
+  }
+}
+
+impl Memory for VicChipIO {
+  fn read(&mut self, address: u16) -> u8 {
+    let chip = self.chip.lock().unwrap();
+
     match address % 0xF {
-      0x0 => self.draw_offset.get().0 | (self.scan_mode.get() as u8) << 7,
-      0x1 => self.draw_offset.get().1,
-      0x2 => self.character_count.get().1 | (self.vram_line_9.get() as u8) << 7,
+      0x0 => chip.left_draw_offset | (chip.scan_mode as u8) << 7,
+      0x1 => chip.top_draw_offset,
+      0x2 => chip.column_count | (chip.vram_line_9 as u8) << 7,
       0x3 => {
-        (self.double_size_chars.get() as u8)
-          | (self.character_count.get().0 << 1)
-          | ((self.raster_counter.get() & 0b1) as u8) << 7
+        (chip.double_size_chars as u8)
+          | (chip.row_count << 1)
+          | ((chip.raster_counter & 0b1) as u8) << 7
       }
-      0x4 => (self.raster_counter.get() >> 1) as u8,
-      0x5 => self.character_address_top.get() | (self.vram_address_top.get() << 4),
-      0x6 => self.light_pen.read_x(),
-      0x7 => self.light_pen.read_y(),
-      0x8 => self.potentiometers.get().0,
-      0x9 => self.potentiometers.get().1,
-      0xA => self.speakers.alto.read(),
-      0xB => self.speakers.tenor.read(),
-      0xC => self.speakers.soprano.read(),
-      0xD => self.speakers.noise.read(),
-      0xE => self.speakers.volume.get() | (self.aux_color.get() << 4),
-      0xF => {
-        self.border_color.get()
-          | (self.reverse_field.get() as u8) << 3
-          | (self.background_color.get() << 4)
-      }
+      0x4 => (chip.raster_counter >> 1) as u8,
+      0x5 => chip.character_address_top | (chip.vram_address_top << 4),
+      0x6 => chip.light_pen.read_x(),
+      0x7 => chip.light_pen.read_y(),
+      0x8 => chip.potentiometer_1,
+      0x9 => chip.potentiometer_2,
+      0xA => chip.speaker_alto.read(),
+      0xB => chip.speaker_tenor.read(),
+      0xC => chip.speaker_soprano.read(),
+      0xD => chip.speaker_noise.read(),
+      0xE => chip.speaker_volume | (chip.aux_color << 4),
+      0xF => chip.border_color | (chip.reverse_field as u8) << 3 | (chip.background_color << 4),
       _ => unreachable!(),
     }
   }
 
-  fn write(
-    &self,
-    address: u16,
-    value: u8,
-    _root: &Rc<dyn Memory>,
-    _platform: &Box<dyn PlatformProvider>,
-  ) {
+  fn write(&mut self, address: u16, value: u8) {
+    let mut chip = self.chip.lock().unwrap();
     match address & 0xF {
       0x0 => {
-        self.scan_mode.set((value & 0x80) != 0);
-        self
-          .draw_offset
-          .set(((value & 0x7F), self.draw_offset.get().1));
+        chip.scan_mode = (value & 0x80) != 0;
+        chip.left_draw_offset = value & 0x7F;
       }
-      0x1 => self.draw_offset.set((self.draw_offset.get().0, value)),
+      0x1 => chip.top_draw_offset = value,
       0x2 => {
-        self.vram_line_9.set((value & 0x80) != 0);
-        self
-          .character_count
-          .set((self.character_count.get().0, value & 0x7F));
+        chip.vram_line_9 = (value & 0x80) != 0;
+        chip.column_count = value & 0x7F;
       }
       0x3 => {
-        self
-          .raster_counter
-          .set((self.raster_counter.get() & 0x1FE) | ((value & 0x80) as u16) >> 7);
-        self
-          .character_count
-          .set(((value >> 1) & 0x3F, self.character_count.get().1));
-        self.double_size_chars.set((value & 0x01) != 0);
+        chip.raster_counter = (chip.raster_counter & 0x1FE) | ((value & 0x80) as u16) >> 7;
+        chip.row_count = (value >> 1) & 0x3F;
+        chip.double_size_chars = (value & 0x01) != 0;
       }
-      0x4 => self
-        .raster_counter
-        .set((self.raster_counter.get() & 0x1) | ((value as u16) << 1)),
+      0x4 => chip.raster_counter = (chip.raster_counter & 0x1) | ((value as u16) << 1),
       0x5 => {
-        self.vram_address_top.set((value >> 4) & 0x0F);
-        self.character_address_top.set(value & 0x0F);
+        chip.vram_address_top = (value >> 4) & 0x0F;
+        chip.character_address_top = value & 0x0F;
       }
-      0x6 => self.light_pen.write_x(value),
-      0x7 => self.light_pen.write_y(value),
-      0x8 => self
-        .potentiometers
-        .set((value, self.potentiometers.get().1)),
-      0x9 => self
-        .potentiometers
-        .set((self.potentiometers.get().0, value)),
-      0xA => self.speakers.alto.write(value),
-      0xB => self.speakers.tenor.write(value),
-      0xC => self.speakers.soprano.write(value),
-      0xD => self.speakers.noise.write(value),
+      0x6 => chip.light_pen.write_x(value),
+      0x7 => chip.light_pen.write_y(value),
+      0x8 => chip.potentiometer_1 = value,
+      0x9 => chip.potentiometer_2 = value,
+      0xA => chip.speaker_alto.write(value),
+      0xB => chip.speaker_tenor.write(value),
+      0xC => chip.speaker_soprano.write(value),
+      0xD => chip.speaker_noise.write(value),
       0xE => {
-        self.speakers.volume.set(value & 0x0F);
-        self.aux_color.set((value >> 4) & 0x0F);
+        chip.speaker_volume = value & 0x0F;
+        chip.aux_color = (value >> 4) & 0x0F;
       }
       0xF => {
-        self.border_color.set(value & 0x0F);
-        self.reverse_field.set((value & 0x08) != 0);
-        self.background_color.set((value >> 4) & 0x0F);
+        chip.border_color = value & 0x0F;
+        chip.reverse_field = (value & 0x08) != 0;
+        chip.background_color = (value >> 4) & 0x0F;
       }
       _ => unreachable!(),
     }
   }
 
-  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {
-    self.scan_mode.set(false);
-    self.draw_offset.set((12, 38));
-    self.vram_line_9.set(true);
-    self.raster_counter.set(0);
-    self.character_count.set((23, 22));
-    self.double_size_chars.set(false);
-    self.vram_address_top.set(15);
-    self.light_pen.reset();
-    self.potentiometers.set((0xFF, 0xFF));
-    self.speakers.reset();
-    self.aux_color.set(0);
-    self.border_color.set(3);
-    self.reverse_field.set(true);
-    self.background_color.set(1);
-    self.character_address_top.set(0);
+  fn reset(&mut self) {
+    let mut chip = self.chip.lock().unwrap();
+    chip.reset();
   }
 
-  fn poll(
-    &self,
-    info: &SystemInfo,
-    root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) -> ActiveInterrupt {
-    if (info.cycle_count - self.last_draw_cycle.get()) >= 2000 {
-      self.last_draw_cycle.set(info.cycle_count);
-      for i in 0..(WIDTH * HEIGHT) {
-        self.redraw(i as u16, root, platform);
-      }
-    }
-
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

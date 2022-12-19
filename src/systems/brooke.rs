@@ -4,15 +4,17 @@ use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
-use std::rc::Rc;
+use std::sync::Arc;
 
 /// A Memory implementation that can be used to read from or write to
 /// STDIN/STDOUT.
-struct MappedStdIO {}
+struct MappedStdIO {
+  provider: Arc<dyn PlatformProvider>,
+}
 
 impl MappedStdIO {
-  pub fn new() -> Self {
-    Self {}
+  pub fn new(provider: Arc<dyn PlatformProvider>) -> Self {
+    Self { provider }
   }
 }
 
@@ -21,8 +23,8 @@ impl Memory for MappedStdIO {
   /// 0x00: u8 as dec
   /// 0x01: char
   /// 0x02: u8 as hex
-  fn read(&self, address: u16, _root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
-    let input = platform.input();
+  fn read(&mut self, address: u16) -> u8 {
+    let input = self.provider.input();
 
     match address & 0x03 {
       0x00 => input.trim().parse().expect("Invalid input for u8"),
@@ -40,17 +42,11 @@ impl Memory for MappedStdIO {
   /// 0x00: u8 as dec
   /// 0x01: char
   /// 0x02: u8 as hex
-  fn write(
-    &self,
-    address: u16,
-    value: u8,
-    _root: &Rc<dyn Memory>,
-    platform: &Box<dyn PlatformProvider>,
-  ) {
+  fn write(&mut self, address: u16, value: u8) {
     match address & 0x03 {
-      0x00 => platform.print(&format!("{}\n", value)),
-      0x01 => platform.print(&format!("{}\n", value as char)),
-      0x02 => platform.print(&format!("{:02X}\n", value)),
+      0x00 => self.provider.print(&format!("{}\n", value)),
+      0x01 => self.provider.print(&format!("{}\n", value as char)),
+      0x02 => self.provider.print(&format!("{:02X}\n", value)),
       0x03 => {
         // print!("{}", value as char);
         // std::io::stdout().flush().unwrap();
@@ -59,14 +55,9 @@ impl Memory for MappedStdIO {
     }
   }
 
-  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {}
+  fn reset(&mut self) {}
 
-  fn poll(
-    &self,
-    _info: &SystemInfo,
-    _root: &Rc<dyn Memory>,
-    _platform: &Box<dyn PlatformProvider>,
-  ) -> ActiveInterrupt {
+  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
@@ -75,9 +66,9 @@ impl Memory for MappedStdIO {
 pub struct BrookeSystemFactory {}
 
 impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
-  fn create(rom: RomFile, _config: (), platform: Box<dyn PlatformProvider>) -> System {
+  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
     let ram = BlockMemory::ram(0x4000);
-    let io = MappedStdIO::new();
+    let io = MappedStdIO::new(platform);
     let rom = BlockMemory::from_file(0x8000, rom);
 
     let memory = BranchMemory::new()
@@ -85,6 +76,6 @@ impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
       .map(0x4000, Box::new(io))
       .map(0x8000, Box::new(rom));
 
-    System::new(Rc::new(memory), platform, 0)
+    System::new(Box::new(memory), 0)
   }
 }

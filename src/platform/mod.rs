@@ -7,6 +7,7 @@ mod text;
 #[cfg(not(target_arch = "wasm32"))]
 mod winit;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
 pub use self::canvas::{CanvasPlatform, CanvasPlatformProvider};
@@ -19,7 +20,7 @@ pub use self::winit::{WinitPlatform, WinitPlatformProvider};
 /// It handles starting and ticking the system, and provides a PlatformProvider
 /// to the system for screen/keyboard/etc. access.
 pub trait Platform {
-  fn provider(&self) -> Box<dyn PlatformProvider>;
+  fn provider(&self) -> Arc<dyn PlatformProvider>;
 }
 
 /// A platform which can be run synchronously.
