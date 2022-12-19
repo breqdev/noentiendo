@@ -30,8 +30,8 @@ features = [
 
 # Dependencies used when building for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-winit = "0.26"
-winit_input_helper = "0.12"
+winit = "0.27"
+winit_input_helper = "0.13"
 rand = "0.8"
 clap = { version = "3.2", features = ["derive"]}
 
