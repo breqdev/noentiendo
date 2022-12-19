@@ -451,6 +451,22 @@ impl Execute for System {
         Err(())
       }
 
+      0x03 | 0x07 | 0x0F | 0x13 | 0x17 | 0x1B | 0x1F => {
+        // SLO
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value << 1;
+
+        self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        self.registers.a |= value;
+        self.registers.sr.set_nz(self.registers.a);
+        Ok(cycles + 2)
+      }
+
+      // TODO: RLA, SRE, RRA, SAX, LAX, DCP, ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
