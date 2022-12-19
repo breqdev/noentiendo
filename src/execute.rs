@@ -587,7 +587,22 @@ impl Execute for System {
         Ok(cycles)
       }
 
-      // TODO: DCP, ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS, ATX
+      0xC3 | 0xC7 | 0xCF | 0xD3 | 0xD7 | 0xDB | 0xDF => {
+        // DCP: DEC + SEC
+        self.registers.sr.set(flags::CARRY);
+
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value.wrapping_sub(1);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        self.registers.sr.clear(flags::CARRY);
+
+        Ok(cycles + 2)
+      }
+
+      // TODO: ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS, ATX
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
