@@ -3,7 +3,7 @@ use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 /// A representation for a symbol on a modern keyboard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KeySymbol {
-  // Alphanumeric or symbol keys
+  /// Alphanumeric or symbol keys
   Char(char),
 
   // ASCII control characters

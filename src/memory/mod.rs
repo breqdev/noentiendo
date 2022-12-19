@@ -52,5 +52,8 @@ pub trait Memory {
 /// cycles. This is used to implement the VIC chip's alternate-clock memory
 /// access.
 pub trait DMA {
+  /// Handle DMA for the current instruction tick.
+  /// Implementations may perform whatever operations on the memory that they
+  /// would like.
   fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo);
 }
