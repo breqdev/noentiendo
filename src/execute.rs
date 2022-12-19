@@ -451,7 +451,19 @@ impl Execute for System {
         Err(())
       }
 
-      0x03 | 0x07 | 0x0F | 0x13 | 0x17 | 0x1B | 0x1F => {
+      0x0F => {
+        // SLO a: ASL a -> ORA
+        let value = self.registers.a;
+        self.registers.a = value << 1;
+        self.registers.a |= value;
+
+        self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(2)
+      }
+
+      0x03 | 0x07 | 0x13 | 0x17 | 0x1B | 0x1F => {
         // SLO: ASL -> ORA
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
@@ -468,7 +480,19 @@ impl Execute for System {
         Ok(cycles + 2)
       }
 
-      0x23 | 0x27 | 0x2F | 0x33 | 0x37 | 0x3B | 0x3F => {
+      0x2F => {
+        // RLA a: ROL a -> AND
+        let value = self.registers.a;
+        self.registers.a = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
+        self.registers.a &= value;
+
+        self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(2)
+      }
+
+      0x23 | 0x27 | 0x33 | 0x37 | 0x3B | 0x3F => {
         // RLA: ROL -> AND
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
@@ -485,7 +509,19 @@ impl Execute for System {
         Ok(cycles + 2)
       }
 
-      0x43 | 0x47 | 0x4F | 0x53 | 0x57 | 0x5B | 0x5F => {
+      0x4F => {
+        // SRE a: LSR a -> EOR
+        let value = self.registers.a;
+        self.registers.a = value >> 1;
+        self.registers.a ^= value;
+
+        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(2)
+      }
+
+      0x43 | 0x47 | 0x53 | 0x57 | 0x5B | 0x5F => {
         // SRE: LSR -> EOR
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
@@ -502,7 +538,18 @@ impl Execute for System {
         Ok(cycles + 2)
       }
 
-      0x63 | 0x67 | 0x6F | 0x73 | 0x77 | 0x7B | 0x7F => {
+      0x6F => {
+        // RRA a: ROR a -> ADC
+        let value = self.registers.a;
+        self.registers.a = (value >> 1) | (self.registers.sr.read(flags::CARRY) as u8) << 7;
+        self.registers.alu_add(value);
+
+        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
+        self.registers.sr.set_nz(self.registers.a);
+        Ok(2)
+      }
+
+      0x63 | 0x67 | 0x73 | 0x77 | 0x7B | 0x7F => {
         // RRA: ROR -> ADC
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
