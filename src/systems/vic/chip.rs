@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo, DMA};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use std::sync::{Arc, Mutex};
@@ -75,12 +75,6 @@ impl VicChipLightPen {
 /// Also handles the speakers and light pen.
 pub struct VicChip {
   platform: Arc<dyn PlatformProvider>,
-
-  // Associated Memory
-  vram: BlockMemory,
-  characters: BlockMemory,
-  colors: BlockMemory,
-
   // Registers
 
   // TV scan settings
@@ -100,6 +94,7 @@ pub struct VicChip {
 
   // Memory mapping
   vram_address_top: u8,
+  character_address_top: u8,
   vram_line_9: bool,
 
   // Light pen
@@ -123,11 +118,11 @@ pub struct VicChip {
   background_color: u8,
 
   // Misc
-  character_address_top: u8, // what is this?
+  last_draw_clock: u64,
 }
 
 impl VicChip {
-  pub fn new(platform: Arc<dyn PlatformProvider>, characters: RomFile) -> Self {
+  pub fn new(platform: Arc<dyn PlatformProvider>) -> Self {
     platform.request_window(WindowConfig::new(
       WIDTH * CHAR_WIDTH,
       HEIGHT * CHAR_HEIGHT,
@@ -136,11 +131,6 @@ impl VicChip {
 
     Self {
       platform,
-
-      // Associated Memory
-      vram: BlockMemory::ram(VRAM_SIZE),
-      characters: BlockMemory::from_file(0x1000, characters),
-      colors: BlockMemory::ram(0x0200),
 
       scan_mode: false,
       left_draw_offset: 12,
@@ -151,6 +141,7 @@ impl VicChip {
       row_count: HEIGHT as u8,
       double_size_chars: false,
       vram_address_top: 0,
+      character_address_top: 0,
       light_pen: VicChipLightPen::new(),
       potentiometer_1: 0xFF,
       potentiometer_2: 0xFF,
@@ -163,7 +154,7 @@ impl VicChip {
       border_color: 3,
       reverse_field: true,
       background_color: 1,
-      character_address_top: 0,
+      last_draw_clock: 0,
     }
   }
 
@@ -192,24 +183,48 @@ impl VicChip {
     self.character_address_top = 0;
   }
 
+  /// Read the value of the screen memory at the given address,
+  /// respecting the mapping defined in the VIC registers.
+  fn read_vram(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
+    let offset = 0x1E00;
+
+    memory.read(address + offset)
+  }
+
+  /// Read the value of the color memory at the given address,
+  /// respecting the mapping defined in the VIC registers.
+  fn read_color(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
+    let offset = 0x9600;
+
+    memory.read(address + offset)
+  }
+
+  /// Read the value of the character memory at the given address,
+  /// respecting the mapping defined in the VIC registers.
+  fn read_character(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
+    let offset = 0x8000;
+
+    memory.read(address + offset)
+  }
+
   /// Get the bits in the character at the given value.
   /// The character is 8 bits wide and 8 bits tall, so this returns a vec![0; 8].
   /// Each byte is a horizontal row, which are ordered from top to bottom.
   /// Bits are ordered with the MSB at the left and the LSB at the right.
-  fn get_character(&mut self, value: u8) -> Vec<u8> {
+  fn get_character(&mut self, value: u8, memory: &mut Box<dyn Memory>) -> Vec<u8> {
     let character_index = (value as u16) * 8;
 
     let mut character = vec![0; 8];
     for i in 0..8 {
-      character[i] = self.characters.read(character_index + i as u16);
+      character[i] = self.read_character(character_index + i as u16, memory);
     }
 
     character
   }
 
   /// Get the foreground color to be shown at the given character position.
-  fn get_foreground(&mut self, address: u16) -> Color {
-    let value = self.colors.read(address);
+  fn get_foreground(&mut self, address: u16, memory: &mut Box<dyn Memory>) -> Color {
+    let value = self.read_color(address, memory);
     match value & 0b111 {
       0b000 => Color::new(0, 0, 0),
       0b001 => Color::new(255, 255, 255),
@@ -285,7 +300,7 @@ impl VicChip {
   }
 
   /// Redraw the character at the specified address.
-  fn redraw(&mut self, address: u16) {
+  fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>) {
     if address >= (HEIGHT * WIDTH) as u16 {
       return; // ignore writes to the extra bytes
     }
@@ -293,9 +308,9 @@ impl VicChip {
     let column = (address % WIDTH as u16) as u32;
     let row = (address / WIDTH as u16) as u32;
 
-    let value = self.read_vram(address);
-    let color = self.read_color(address);
-    let character = self.get_character(value);
+    let value = self.read_vram(address, memory);
+    let color = self.read_color(address, memory);
+    let character = self.get_character(value, memory);
 
     if color & 0b1000 == 0 {
       // Standard characters
@@ -303,7 +318,7 @@ impl VicChip {
         let line_data = character[line as usize];
         for pixel in 0..CHAR_WIDTH {
           let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
-            self.get_foreground(address)
+            self.get_foreground(address, memory)
           } else {
             self.get_background()
           };
@@ -323,7 +338,7 @@ impl VicChip {
           let color = match color_code {
             0b00 => self.get_background(),
             0b01 => self.get_border_color(),
-            0b10 => self.get_foreground(address),
+            0b10 => self.get_foreground(address, memory),
             0b11 => self.get_aux_color(),
             _ => unreachable!(),
           };
@@ -341,37 +356,6 @@ impl VicChip {
         }
       }
     }
-  }
-
-  pub fn read_vram(&mut self, address: u16) -> u8 {
-    self.vram.read(address)
-  }
-
-  pub fn write_vram(&mut self, address: u16, value: u8) {
-    self.vram.write(address, value);
-    self.redraw(address);
-  }
-
-  pub fn read_character(&mut self, address: u16) -> u8 {
-    self.characters.read(address)
-  }
-
-  pub fn write_character(&mut self, address: u16, value: u8) {
-    self.characters.write(address, value);
-
-    // Redraw the entire screen
-    for i in 0..(WIDTH * HEIGHT) {
-      self.redraw(i as u16);
-    }
-  }
-
-  pub fn read_color(&mut self, address: u16) -> u8 {
-    self.colors.read(address)
-  }
-
-  pub fn write_color(&mut self, address: u16, value: u8) {
-    self.colors.write(address, value);
-    self.redraw(address);
   }
 }
 
@@ -465,5 +449,32 @@ impl Memory for VicChipIO {
 
   fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
+  }
+}
+
+/// Handles drawing characters by reading directly from the main memory.
+pub struct VicChipDMA {
+  chip: Arc<Mutex<VicChip>>,
+}
+
+impl VicChipDMA {
+  pub fn new(chip: Arc<Mutex<VicChip>>) -> Self {
+    Self { chip }
+  }
+}
+
+impl DMA for VicChipDMA {
+  fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo) {
+    let mut chip = self.chip.lock().unwrap();
+
+    if (info.cycle_count - chip.last_draw_clock) < 50_000 {
+      return;
+    }
+
+    chip.last_draw_clock = info.cycle_count;
+
+    for i in 0..(WIDTH * HEIGHT) {
+      chip.redraw(i as u16, memory);
+    }
   }
 }
