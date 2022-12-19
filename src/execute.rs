@@ -565,7 +565,19 @@ impl Execute for System {
         Ok(cycles)
       }
 
-      // TODO: SAX, LAX, DCP, ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS
+      0x83 | 0x87 | 0x8F | 0x97 => {
+        // SAX: AND -> STA
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        self.registers.a &= value;
+        self.registers.sr.set_nz(self.registers.a);
+
+        let (address, _cycles) = self.fetch_operand_address(opcode);
+        self.write(address, self.registers.a);
+
+        Ok(cycles)
+      }
+
+      // TODO: LAX, DCP, ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
