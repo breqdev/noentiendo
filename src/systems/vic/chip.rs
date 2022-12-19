@@ -1,6 +1,8 @@
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
 
 /// One of the speakers available on the MOS 6560 VIC.
 struct VicChipSpeaker {
@@ -376,18 +378,18 @@ impl VicChip {
 
 /// Represents the I/O mapping for the MOS 6560 VIC.
 pub struct VicChipIO {
-  chip: Arc<Mutex<VicChip>>,
+  chip: Rc<RefCell<VicChip>>,
 }
 
 impl VicChipIO {
-  pub fn new(chip: Arc<Mutex<VicChip>>) -> Self {
+  pub fn new(chip: Rc<RefCell<VicChip>>) -> Self {
     Self { chip }
   }
 }
 
 impl Memory for VicChipIO {
   fn read(&mut self, address: u16) -> u8 {
-    let chip = self.chip.lock().unwrap();
+    let chip = self.chip.borrow();
 
     match address % 0xF {
       0x0 => chip.left_draw_offset | (chip.scan_mode as u8) << 7,
@@ -415,7 +417,7 @@ impl Memory for VicChipIO {
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    let mut chip = self.chip.lock().unwrap();
+    let mut chip = self.chip.borrow_mut();
     match address & 0xF {
       0x0 => {
         chip.scan_mode = (value & 0x80) != 0;
@@ -479,8 +481,7 @@ impl Memory for VicChipIO {
   }
 
   fn reset(&mut self) {
-    let mut chip = self.chip.lock().unwrap();
-    chip.reset();
+    self.chip.borrow_mut().reset();
   }
 
   fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
@@ -490,18 +491,18 @@ impl Memory for VicChipIO {
 
 /// Handles drawing characters by reading directly from the main memory.
 pub struct VicChipDMA {
-  chip: Arc<Mutex<VicChip>>,
+  chip: Rc<RefCell<VicChip>>,
 }
 
 impl VicChipDMA {
-  pub fn new(chip: Arc<Mutex<VicChip>>) -> Self {
+  pub fn new(chip: Rc<RefCell<VicChip>>) -> Self {
     Self { chip }
   }
 }
 
 impl DMA for VicChipDMA {
   fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo) {
-    let mut chip = self.chip.lock().unwrap();
+    let mut chip = self.chip.borrow_mut();
 
     if (info.cycle_count - chip.last_draw_clock) < 50_000 {
       return;

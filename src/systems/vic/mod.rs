@@ -5,7 +5,9 @@ use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
-use std::sync::{Arc, Mutex};
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
+use std::sync::Arc;
 
 mod chip;
 mod keyboard;
@@ -94,29 +96,29 @@ impl Vic20SystemRoms {
 /// Port B on the second VIA chip.
 /// This is used to set the active columns on the keyboard matrix.
 pub struct VicVia2PortB {
-  keyboard_col: Arc<Mutex<u8>>,
+  keyboard_col: Rc<Cell<u8>>,
 }
 
 impl VicVia2PortB {
   pub fn new() -> Self {
     Self {
-      keyboard_col: Arc::new(Mutex::new(0)),
+      keyboard_col: Rc::new(Cell::new(0)),
     }
   }
 
   /// Return a reference to the keyboard column's current value.
-  pub fn get_keyboard_col(&self) -> Arc<Mutex<u8>> {
+  pub fn get_keyboard_col(&self) -> Rc<Cell<u8>> {
     self.keyboard_col.clone()
   }
 }
 
 impl Port for VicVia2PortB {
   fn read(&mut self) -> u8 {
-    *self.keyboard_col.lock().unwrap()
+    self.keyboard_col.get()
   }
 
   fn write(&mut self, value: u8) {
-    *self.keyboard_col.lock().unwrap() = value;
+    self.keyboard_col.set(value);
   }
 
   fn poll(&mut self, _info: &SystemInfo) -> bool {
@@ -129,7 +131,7 @@ impl Port for VicVia2PortB {
 /// Port A on the second VIA chip.
 /// This is used to read the active rows on the keyboard matrix.
 pub struct VicVia2PortA {
-  keyboard_col: Arc<Mutex<u8>>,
+  keyboard_col: Rc<Cell<u8>>,
   mapping_strategy: KeyMappingStrategy,
   platform: Arc<dyn PlatformProvider>,
 }
@@ -138,7 +140,7 @@ impl VicVia2PortA {
   /// Create a new instance of the port, with the given keyboard column,
   /// reading the key status from the given platform.
   pub fn new(
-    keyboard_col: Arc<Mutex<u8>>,
+    keyboard_col: Rc<Cell<u8>>,
     mapping_strategy: KeyMappingStrategy,
     platform: Arc<dyn PlatformProvider>,
   ) -> Self {
@@ -152,7 +154,7 @@ impl VicVia2PortA {
 
 impl Port for VicVia2PortA {
   fn read(&mut self) -> u8 {
-    let col_mask = *self.keyboard_col.lock().unwrap();
+    let col_mask = self.keyboard_col.get();
 
     let mut value = 0b1111_1111;
 
@@ -200,7 +202,7 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
-    let vic_chip = Arc::new(Mutex::new(VicChip::new(platform.clone())));
+    let vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
     let via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let b = VicVia2PortB::new();
