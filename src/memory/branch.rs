@@ -4,6 +4,7 @@ use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 /// Each mapped object is assigned a starting address, and reads and writes
 /// will have the starting address subtracted from them before being passed
 /// to the underlying Memory object.
+#[derive(Default)]
 pub struct BranchMemory {
   mapping: Vec<(usize, Box<dyn Memory>)>,
 }
@@ -54,10 +55,9 @@ impl Memory for BranchMemory {
       }
     }
 
-    match memory {
-      Some(memory) => memory.write(address - offset, value),
-      None => (),
-    };
+    if let Some(memory) = memory {
+      memory.write(address - offset, value);
+    }
   }
 
   fn reset(&mut self) {

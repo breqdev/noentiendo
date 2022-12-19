@@ -1,6 +1,5 @@
-use crate::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo, DMA};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
-use crate::roms::RomFile;
 use std::sync::{Arc, Mutex};
 
 /// One of the speakers available on the MOS 6560 VIC.
@@ -229,8 +228,8 @@ impl VicChip {
     let character_index = (value as u16) * 8;
 
     let mut character = vec![0; 8];
-    for i in 0..8 {
-      character[i] = self.read_character(character_index + i as u16, memory);
+    for (i, row) in character.iter_mut().enumerate() {
+      *row = self.read_character(character_index + i as u16, memory);
     }
 
     character

@@ -48,7 +48,7 @@ impl WinitPlatform {
 
   fn get_config(&self) -> WindowConfig {
     let config = self.config.lock().unwrap();
-    config.clone().expect("WindowConfig not set")
+    config.expect("WindowConfig not set")
   }
 }
 
@@ -138,7 +138,7 @@ impl SyncPlatform for WinitPlatform {
             let new_config = config.lock().unwrap().unwrap();
 
             if new_config != current_config {
-              current_config = new_config.clone();
+              current_config = new_config;
               *dirty.lock().unwrap() = true;
 
               window.set_inner_size(LogicalSize::new(
@@ -215,7 +215,7 @@ impl WinitPlatformProvider {
   }
   fn get_config(&self) -> WindowConfig {
     let config = self.config.lock().unwrap();
-    config.clone().expect("WindowConfig not set")
+    config.expect("WindowConfig not set")
   }
 }
 

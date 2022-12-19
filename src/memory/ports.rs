@@ -19,6 +19,7 @@ pub trait Port {
 }
 
 /// A Port that does nothing.
+#[derive(Default)]
 pub struct NullPort {
   warn: Option<&'static str>,
 }

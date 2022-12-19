@@ -51,7 +51,7 @@ impl Vic20SystemRoms {
     let character = RomFile::from_file("vic/char.bin");
     let basic = RomFile::from_file("vic/basic.bin");
     let kernal = RomFile::from_file("vic/kernal.bin");
-    let cartridge = cartridge_path.map(|path| RomFile::from_file(path));
+    let cartridge = cartridge_path.map(RomFile::from_file);
 
     Self {
       character,
@@ -163,13 +163,10 @@ impl Port for VicVia2PortA {
       }
     };
 
-    for row in 0..8 {
-      for col in 0..8 {
-        if (!col_mask & (1 << col)) != 0 {
-          let key = KEYBOARD_MAPPING[row][col];
-          if state.is_pressed(key) {
-            value &= !(1 << row);
-          }
+    for (y, row) in KEYBOARD_MAPPING.iter().enumerate() {
+      for (x, key) in row.iter().enumerate() {
+        if ((!col_mask & (1 << x)) != 0) && state.is_pressed(*key) {
+          value &= !(1 << y);
         }
       }
     }

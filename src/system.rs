@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::execute::Execute;
 use crate::fetch::Fetch;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
@@ -73,8 +71,7 @@ impl Stack for System {
 
   fn pop(&mut self) -> u8 {
     self.registers.sp.pop();
-    let value = self.read(self.registers.sp.address());
-    value
+    self.read(self.registers.sp.address())
   }
 
   fn push_word(&mut self, value: u16) {

@@ -1,4 +1,5 @@
 /// The registers inside of a MOS 6502 processor.
+#[derive(Default)]
 pub struct Registers {
   /// The accumulator register, used in ALU operations.
   pub a: u8,
@@ -54,6 +55,7 @@ pub mod flags {
 /// The stack register is usually initialized by the operating system to 0x01FF,
 /// and grows upward (i.e., pushing decrements the value, while popping
 /// increments it).
+#[derive(Default)]
 pub struct StackPointer {
   value: u8,
 }
@@ -92,6 +94,7 @@ impl StackPointer {
 
 /// The program counter register, which points to the current instruction being
 /// executed.
+#[derive(Default)]
 pub struct ProgramCounter {
   value: u16,
 }
@@ -124,6 +127,7 @@ impl ProgramCounter {
 
 /// The processor status register, which contains a series of flags that
 /// represent the current state of the processor.
+#[derive(Default)]
 pub struct StatusRegister {
   value: u8,
 }

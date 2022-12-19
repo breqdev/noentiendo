@@ -35,7 +35,7 @@ pub trait AsyncPlatform: Platform {
 }
 
 /// Represents an RGB color with 8 bits per channel.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Color {
   r: u8,
   g: u8,

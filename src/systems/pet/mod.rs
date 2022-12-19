@@ -115,8 +115,8 @@ impl Port for PetPia1PortB {
       }
     };
 
-    for i in 0..8 {
-      if state.is_pressed(row[i]) {
+    for (i, key) in row.iter().enumerate() {
+      if state.is_pressed(*key) {
         value &= !(1 << i);
       }
     }
