@@ -3,12 +3,6 @@ use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use std::sync::{Arc, Mutex};
 
-const WIDTH: u32 = 22;
-const HEIGHT: u32 = 23;
-const CHAR_WIDTH: u32 = 8;
-const CHAR_HEIGHT: u32 = 8;
-const VRAM_SIZE: usize = 512; // 6 extra bytes to make mapping easier
-
 /// One of the speakers available on the MOS 6560 VIC.
 struct VicChipSpeaker {
   on: bool,
@@ -123,11 +117,10 @@ pub struct VicChip {
 
 impl VicChip {
   pub fn new(platform: Arc<dyn PlatformProvider>) -> Self {
-    platform.request_window(WindowConfig::new(
-      WIDTH * CHAR_WIDTH,
-      HEIGHT * CHAR_HEIGHT,
-      2.0,
-    ));
+    let width: u8 = 22;
+    let height: u8 = 23;
+
+    platform.request_window(WindowConfig::new(width as u32 * 8, height as u32 * 8, 2.0));
 
     Self {
       platform,
@@ -135,10 +128,10 @@ impl VicChip {
       scan_mode: false,
       left_draw_offset: 12,
       top_draw_offset: 38,
-      column_count: WIDTH as u8,
+      column_count: width,
       color_ram_mapping: true,
       raster_counter: 0,
-      row_count: HEIGHT as u8,
+      row_count: height,
       double_size_chars: false,
       vram_address_top: 0,
       character_address_top: 0,
@@ -322,23 +315,25 @@ impl VicChip {
 
   /// Redraw the character at the specified address.
   fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>) {
-    if address >= (HEIGHT * WIDTH) as u16 {
+    if address >= (self.row_count as u16 * self.column_count as u16) {
       return; // ignore writes to the extra bytes
     }
 
-    let column = (address % WIDTH as u16) as u32;
-    let row = (address / WIDTH as u16) as u32;
+    let column = (address % self.column_count as u16) as u32;
+    let row = (address / self.column_count as u16) as u32;
 
     let value = self.read_vram(address, memory);
     let color = self.read_color(address, memory);
     let character = self.get_character(value, memory);
 
+    let char_height = if self.double_size_chars { 16 } else { 8 };
+    let char_width = if color & 0b1000 == 0 { 8 } else { 4 };
+
     if color & 0b1000 == 0 {
-      // Standard characters
-      for line in 0..CHAR_HEIGHT {
+      for line in 0..char_height {
         let line_data = character[line as usize];
-        for pixel in 0..CHAR_WIDTH {
-          let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
+        for pixel in 0..char_width {
+          let color = if line_data & (1 << (char_width - 1 - pixel)) != 0 {
             self.get_foreground(address, memory)
           } else {
             self.get_background()
@@ -346,15 +341,15 @@ impl VicChip {
 
           self
             .platform
-            .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+            .set_pixel(column * char_width + pixel, row * char_height + line, color);
         }
       }
     } else {
       // Multicolor characters
-      for line in 0..CHAR_HEIGHT {
+      for line in 0..char_height {
         let line_data = character[line as usize];
-        for pixel in 0..(CHAR_WIDTH / 2) {
-          let color_code = (line_data >> (CHAR_WIDTH - 2 - (pixel * 2))) & 0b11;
+        for pixel in 0..(char_width / 2) {
+          let color_code = (line_data >> (char_width - 2 - (pixel * 2))) & 0b11;
 
           let color = match color_code {
             0b00 => self.get_background(),
@@ -365,13 +360,13 @@ impl VicChip {
           };
 
           self.platform.set_pixel(
-            column * CHAR_WIDTH + (pixel * 2),
-            row * CHAR_HEIGHT + line,
+            column * char_width + (pixel * 2),
+            row * char_height + line,
             color,
           );
           self.platform.set_pixel(
-            column * CHAR_WIDTH + (pixel * 2) + 1,
-            row * CHAR_HEIGHT + line,
+            column * char_width + (pixel * 2) + 1,
+            row * char_height + line,
             color,
           );
         }
@@ -429,11 +424,28 @@ impl Memory for VicChipIO {
       }
       0x1 => chip.top_draw_offset = value,
       0x2 => {
+        if value & 0x7F != chip.column_count {
+          chip.platform.request_window(WindowConfig::new(
+            (value & 0x7F) as u32 * 8,
+            chip.row_count as u32 * 8,
+            2.0,
+          ));
+        }
+
         chip.color_ram_mapping = (value & 0x80) != 0;
         chip.column_count = value & 0x7F;
       }
       0x3 => {
         chip.raster_counter = (chip.raster_counter & 0x1FE) | ((value & 0x80) as u16) >> 7;
+
+        if ((value >> 1) & 0x3F) != chip.row_count {
+          chip.platform.request_window(WindowConfig::new(
+            chip.column_count as u32 * 8,
+            ((value >> 1) & 0x3F) as u32 * 8,
+            2.0,
+          ));
+        }
+
         chip.row_count = (value >> 1) & 0x3F;
         chip.double_size_chars = (value & 0x01) != 0;
 
@@ -498,7 +510,7 @@ impl DMA for VicChipDMA {
 
     chip.last_draw_clock = info.cycle_count;
 
-    for i in 0..(WIDTH * HEIGHT) {
+    for i in 0..(chip.column_count as u16 * chip.row_count as u16) {
       chip.redraw(i as u16, memory);
     }
   }

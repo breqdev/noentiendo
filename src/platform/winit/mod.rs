@@ -62,13 +62,13 @@ impl SyncPlatform for WinitPlatform {
   fn run(&mut self, mut system: System) {
     let event_loop = EventLoop::new();
 
-    let config = self.get_config();
+    let mut current_config = self.get_config();
 
     let window = WindowBuilder::new()
       .with_title("noentiendo")
       .with_inner_size(LogicalSize::new(
-        config.width as f64 * config.scale,
-        config.height as f64 * config.scale,
+        current_config.width as f64 * current_config.scale,
+        current_config.height as f64 * current_config.scale,
       ))
       .build(&event_loop)
       .unwrap();
@@ -78,12 +78,13 @@ impl SyncPlatform for WinitPlatform {
     let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
     *self.pixels.lock().unwrap() =
-      Some(Pixels::new(config.width, config.height, surface_texture).unwrap());
+      Some(Pixels::new(current_config.width, current_config.height, surface_texture).unwrap());
 
     let mut input = WinitInputHelper::new();
     let pixels = self.pixels.clone();
     let dirty = self.dirty.clone();
     let key_state = self.key_state.clone();
+    let config = self.config.clone();
 
     system.reset();
 
@@ -131,6 +132,28 @@ impl SyncPlatform for WinitPlatform {
               system.get_info().cycle_count as f64 / (now - start).as_secs_f64()
             );
             last_report = now;
+          }
+
+          {
+            let new_config = config.lock().unwrap().unwrap();
+
+            if new_config != current_config {
+              current_config = new_config.clone();
+              *dirty.lock().unwrap() = true;
+
+              window.set_inner_size(LogicalSize::new(
+                new_config.width as f64 * new_config.scale,
+                new_config.height as f64 * new_config.scale,
+              ));
+
+              let inner_size = window.inner_size();
+
+              let surface_texture =
+                SurfaceTexture::new(inner_size.width, inner_size.height, &window);
+
+              *pixels.lock().unwrap() =
+                Some(Pixels::new(new_config.width, new_config.height, surface_texture).unwrap());
+            }
           }
 
           if *dirty.lock().unwrap() {
