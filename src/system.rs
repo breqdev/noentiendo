@@ -1,6 +1,8 @@
+use std::rc::Rc;
+
 use crate::execute::Execute;
 use crate::fetch::Fetch;
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 use crate::registers::{flags, Registers};
 
 /// The MOS 6502 CPU and its associated memory.
@@ -9,6 +11,7 @@ pub struct System {
   memory: Box<dyn Memory>,
   cycles_per_second: u64,
   cycle_count: u64,
+  dma: Vec<Box<dyn DMA>>,
 }
 
 /// Read and write from the system's memory.
@@ -124,7 +127,13 @@ impl System {
       memory,
       cycles_per_second,
       cycle_count: 0,
+      dma: Vec::new(),
     }
+  }
+
+  /// Attach a device which can perform DMA access.
+  pub fn attach_dma(&mut self, dma: Box<dyn DMA>) {
+    self.dma.push(dma);
   }
 
   pub fn reset(&mut self) {
@@ -145,6 +154,7 @@ impl System {
   /// Execute a single instruction.
   pub fn tick(&mut self) -> f64 {
     let opcode = self.fetch();
+    let elapsed;
 
     match self.execute(opcode) {
       Ok(cycles) => {
@@ -161,9 +171,9 @@ impl System {
         }
 
         if self.cycles_per_second == 0 {
-          0.0
+          elapsed = 0.0
         } else {
-          cycles as f64 / self.cycles_per_second as f64
+          elapsed = cycles as f64 / self.cycles_per_second as f64
         }
       }
       Err(_) => {
@@ -174,5 +184,13 @@ impl System {
         );
       }
     }
+
+    let info = self.get_info();
+
+    for dma in &mut self.dma {
+      dma.dma(&mut self.memory, &info);
+    }
+
+    elapsed
   }
 }

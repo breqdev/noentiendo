@@ -82,7 +82,8 @@ impl WindowConfig {
 
 pub trait PlatformProvider {
   /// Request that the platform create a window of the specified size,
-  /// with the specified scale factor.
+  /// with the specified scale factor. If a window already exists, the platform
+  /// should resize it to the new size.
   fn request_window(&self, config: WindowConfig);
 
   /// Set the given pixel on the screen to the given color.
