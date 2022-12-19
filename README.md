@@ -1,6 +1,14 @@
 # noentiendo
 
-A modular framework for emulating retro computers.
+_A modular framework for emulating retro computers._
+
+<center>
+
+[Demo](https://github.breq.dev/noentiendo/) | [Docs](https://github.breq.dev/noentiendo/doc/libnoentiendo/) | [Repo](https://github.com/breqdev/noentiendo/)
+
+</center>
+
+`noentiendo` is a framework for retro emulation. It focuses in implementing small building blocks like the `6502`, `6520`, and `6560` chips, then stitches them together to emulate a variety of systems. It runs in text-mode, as a desktop GUI application, or on the web with WebAssembly.
 
 | Supported Systems | Roadmap      |
 | ----------------- | ------------ |
@@ -14,8 +22,12 @@ A modular framework for emulating retro computers.
 | Web (via WebAssembly)           | iOS (Native)            |
 |                                 | Embedded (e.g., RP2040) |
 
-A [`system::System`] consists of a 6502 CPU and some attached _memory_. All computer peripherals are exposed to the CPU over the memory interface (i.e., _memory-mapped I/O_).
+## Core Contributors
 
-A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts.
+<center>
 
-A [`platform::Platform`] consumes a system and runs it. Platforms provide access to the video output, keyboard input, system random number generator, and other details via a [`platform::PlatformProvider`]. Some platforms run synchronously (taking over the thread) while others run asynchronously with the help of an event loop (such as when compiling to WASM).
+| <img src="https://github.com/breqdev.png" width="150" /> | <img src="https://github.com/dillydally414.png" width="150" /> | <img src="https://github.com/nkizz.png" width="150" /> | <img src="https://github.com/ava-silver.png" width="150" /> |
+| -------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------- |
+| [Brooke Chalmers](https://breq.dev/)                     | [Dillon Scott](https://dillydally414.github.io)                | [Nathan Kiesman](https://nkizz.com/)                   | [Ava Silver](https://avasilver.dev/)                        |
+
+</center>

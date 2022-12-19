@@ -2,6 +2,12 @@
 name = "noentiendo"
 version = "0.1.0"
 edition = "2021"
+authors = ["noentiendo team <noentiendo@breq.dev>", "Brooke Chalmers <breq@breq.dev>"]
+description = "A modular retro emulation framework"
+documentation = "https://github.breq.dev/noentiendo/doc/libnoentiendo/"
+homepage = "https://github.breq.dev/noentiendo/"
+repository = "https://github.com/breqdev/noentiendo"
+keywords = ["6502", "emulation", "retro", "wasm", "commodore"]
 
 # Shared dependencies across all targets
 [dependencies]
