@@ -265,6 +265,12 @@
 <span id="265">265</span>
 <span id="266">266</span>
 <span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState};
 <span class="kw">mod </span>keyboard;
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
@@ -505,6 +511,12 @@
     }
 
     <span class="kw">let </span>index = ((y * config.width + x) * <span class="number">4</span>) <span class="kw">as </span>usize;
+    <span class="kw">if </span>index + <span class="number">4 </span>&gt; frame.len() {
+      <span class="comment">// Race condition: the app has just requested a new window size, but the
+      // framebuffer hasn&#39;t been resized yet
+      </span><span class="kw-2">*</span><span class="self">self</span>.dirty.lock().unwrap() = <span class="bool-val">true</span>;
+      <span class="kw">return</span>;
+    }
     <span class="kw">let </span>pixel = <span class="kw-2">&amp;mut </span>frame[index..(index + <span class="number">4</span>)];
     pixel.copy_from_slice(<span class="kw-2">&amp;</span>color.to_rgba());
     <span class="kw-2">*</span><span class="self">self</span>.dirty.lock().unwrap() = <span class="bool-val">true</span>;

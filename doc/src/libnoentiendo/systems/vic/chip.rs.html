@@ -514,9 +514,12 @@
 <span id="514">514</span>
 <span id="515">515</span>
 <span id="516">516</span>
+<span id="517">517</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
-<span class="kw">use </span>std::sync::{Arc, Mutex};
+<span class="kw">use </span>std::cell::RefCell;
+<span class="kw">use </span>std::rc::Rc;
+<span class="kw">use </span>std::sync::Arc;
 
 <span class="doccomment">/// One of the speakers available on the MOS 6560 VIC.
 </span><span class="kw">struct </span>VicChipSpeaker {
@@ -892,18 +895,18 @@
 
 <span class="doccomment">/// Represents the I/O mapping for the MOS 6560 VIC.
 </span><span class="kw">pub struct </span>VicChipIO {
-  chip: Arc&lt;Mutex&lt;VicChip&gt;&gt;,
+  chip: Rc&lt;RefCell&lt;VicChip&gt;&gt;,
 }
 
 <span class="kw">impl </span>VicChipIO {
-  <span class="kw">pub fn </span>new(chip: Arc&lt;Mutex&lt;VicChip&gt;&gt;) -&gt; <span class="self">Self </span>{
+  <span class="kw">pub fn </span>new(chip: Rc&lt;RefCell&lt;VicChip&gt;&gt;) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{ chip }
   }
 }
 
 <span class="kw">impl </span>Memory <span class="kw">for </span>VicChipIO {
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; u8 {
-    <span class="kw">let </span>chip = <span class="self">self</span>.chip.lock().unwrap();
+    <span class="kw">let </span>chip = <span class="self">self</span>.chip.borrow();
 
     <span class="kw">match </span>address % <span class="number">0xF </span>{
       <span class="number">0x0 </span>=&gt; chip.left_draw_offset | (chip.scan_mode <span class="kw">as </span>u8) &lt;&lt; <span class="number">7</span>,
@@ -931,7 +934,7 @@
   }
 
   <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
-    <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.lock().unwrap();
+    <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.borrow_mut();
     <span class="kw">match </span>address &amp; <span class="number">0xF </span>{
       <span class="number">0x0 </span>=&gt; {
         chip.scan_mode = (value &amp; <span class="number">0x80</span>) != <span class="number">0</span>;
@@ -995,8 +998,7 @@
   }
 
   <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-    <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.lock().unwrap();
-    chip.reset();
+    <span class="self">self</span>.chip.borrow_mut().reset();
   }
 
   <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
@@ -1006,18 +1008,18 @@
 
 <span class="doccomment">/// Handles drawing characters by reading directly from the main memory.
 </span><span class="kw">pub struct </span>VicChipDMA {
-  chip: Arc&lt;Mutex&lt;VicChip&gt;&gt;,
+  chip: Rc&lt;RefCell&lt;VicChip&gt;&gt;,
 }
 
 <span class="kw">impl </span>VicChipDMA {
-  <span class="kw">pub fn </span>new(chip: Arc&lt;Mutex&lt;VicChip&gt;&gt;) -&gt; <span class="self">Self </span>{
+  <span class="kw">pub fn </span>new(chip: Rc&lt;RefCell&lt;VicChip&gt;&gt;) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{ chip }
   }
 }
 
 <span class="kw">impl </span>DMA <span class="kw">for </span>VicChipDMA {
   <span class="kw">fn </span>dma(<span class="kw-2">&amp;mut </span><span class="self">self</span>, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;, info: <span class="kw-2">&amp;</span>SystemInfo) {
-    <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.lock().unwrap();
+    <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.borrow_mut();
 
     <span class="kw">if </span>(info.cycle_count - chip.last_draw_clock) &lt; <span class="number">50_000 </span>{
       <span class="kw">return</span>;

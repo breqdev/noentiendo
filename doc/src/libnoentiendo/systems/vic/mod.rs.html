@@ -246,6 +246,8 @@
 <span id="246">246</span>
 <span id="247">247</span>
 <span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 <span class="kw">use </span><span class="kw">crate</span>::memory::via::VIA;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
@@ -253,7 +255,9 @@
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
 <span class="kw">use </span><span class="kw">crate</span>::systems::SystemFactory;
-<span class="kw">use </span>std::sync::{Arc, Mutex};
+<span class="kw">use </span>std::cell::{Cell, RefCell};
+<span class="kw">use </span>std::rc::Rc;
+<span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">mod </span>chip;
 <span class="kw">mod </span>keyboard;
@@ -342,29 +346,29 @@
 <span class="doccomment">/// Port B on the second VIA chip.
 /// This is used to set the active columns on the keyboard matrix.
 </span><span class="kw">pub struct </span>VicVia2PortB {
-  keyboard_col: Arc&lt;Mutex&lt;u8&gt;&gt;,
+  keyboard_col: Rc&lt;Cell&lt;u8&gt;&gt;,
 }
 
 <span class="kw">impl </span>VicVia2PortB {
   <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{
-      keyboard_col: Arc::new(Mutex::new(<span class="number">0</span>)),
+      keyboard_col: Rc::new(Cell::new(<span class="number">0</span>)),
     }
   }
 
   <span class="doccomment">/// Return a reference to the keyboard column&#39;s current value.
-  </span><span class="kw">pub fn </span>get_keyboard_col(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Arc&lt;Mutex&lt;u8&gt;&gt; {
+  </span><span class="kw">pub fn </span>get_keyboard_col(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rc&lt;Cell&lt;u8&gt;&gt; {
     <span class="self">self</span>.keyboard_col.clone()
   }
 }
 
 <span class="kw">impl </span>Port <span class="kw">for </span>VicVia2PortB {
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
-    <span class="kw-2">*</span><span class="self">self</span>.keyboard_col.lock().unwrap()
+    <span class="self">self</span>.keyboard_col.get()
   }
 
   <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: u8) {
-    <span class="kw-2">*</span><span class="self">self</span>.keyboard_col.lock().unwrap() = value;
+    <span class="self">self</span>.keyboard_col.set(value);
   }
 
   <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
@@ -377,7 +381,7 @@
 <span class="doccomment">/// Port A on the second VIA chip.
 /// This is used to read the active rows on the keyboard matrix.
 </span><span class="kw">pub struct </span>VicVia2PortA {
-  keyboard_col: Arc&lt;Mutex&lt;u8&gt;&gt;,
+  keyboard_col: Rc&lt;Cell&lt;u8&gt;&gt;,
   mapping_strategy: KeyMappingStrategy,
   platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
 }
@@ -386,7 +390,7 @@
   <span class="doccomment">/// Create a new instance of the port, with the given keyboard column,
   /// reading the key status from the given platform.
   </span><span class="kw">pub fn </span>new(
-    keyboard_col: Arc&lt;Mutex&lt;u8&gt;&gt;,
+    keyboard_col: Rc&lt;Cell&lt;u8&gt;&gt;,
     mapping_strategy: KeyMappingStrategy,
     platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
   ) -&gt; <span class="self">Self </span>{
@@ -400,7 +404,7 @@
 
 <span class="kw">impl </span>Port <span class="kw">for </span>VicVia2PortA {
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
-    <span class="kw">let </span>col_mask = <span class="kw-2">*</span><span class="self">self</span>.keyboard_col.lock().unwrap();
+    <span class="kw">let </span>col_mask = <span class="self">self</span>.keyboard_col.get();
 
     <span class="kw">let </span><span class="kw-2">mut </span>value = <span class="number">0b1111_1111</span>;
 
@@ -448,7 +452,7 @@
     <span class="kw">let </span>low_ram = BlockMemory::ram(<span class="number">0x0400</span>);
     <span class="kw">let </span>main_ram = BlockMemory::ram(<span class="number">0x0E00</span>);
 
-    <span class="kw">let </span>vic_chip = Arc::new(Mutex::new(VicChip::new(platform.clone())));
+    <span class="kw">let </span>vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
     <span class="kw">let </span>via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="kw">let </span>b = VicVia2PortB::new();
