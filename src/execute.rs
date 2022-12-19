@@ -452,8 +452,8 @@ impl Execute for System {
       }
 
       0x03 | 0x07 | 0x0F | 0x13 | 0x17 | 0x1B | 0x1F => {
-        // SLO
-        let (address, address_cycles) = self.fetch_operand_address(opcode);
+        // SLO - essentially ASL ->
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = value << 1;
 
@@ -461,16 +461,16 @@ impl Execute for System {
         self.registers.sr.set_nz(result);
         self.write(address, result);
 
-        let (value, value_cycles) = self.fetch_operand_value(opcode);
+        let (value, _cycles) = self.fetch_operand_value(opcode);
         self.registers.a |= value;
         self.registers.sr.set_nz(self.registers.a);
 
-        Ok(address_cycles + value_cycles + 2)
+        Ok(cycles + 2)
       }
 
       0x23 | 0x27 | 0x2F | 0x33 | 0x37 | 0x3B | 0x3F => {
         // RLA
-        let (address, address_cycles) = self.fetch_operand_address(opcode);
+        let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
         let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
 
@@ -478,11 +478,11 @@ impl Execute for System {
         self.registers.sr.set_nz(result);
         self.write(address, result);
 
-        let (value, value_cycles) = self.fetch_operand_value(opcode);
+        let (value, _cycles) = self.fetch_operand_value(opcode);
         self.registers.a &= value;
         self.registers.sr.set_nz(self.registers.a);
 
-        Ok(address_cycles + value_cycles + 2)
+        Ok(cycles + 2)
       }
 
       // TODO: SRE, RRA, SAX, LAX, DCP, ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS
