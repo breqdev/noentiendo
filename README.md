@@ -7,10 +7,15 @@ _A modular framework for emulating retro computers._
 
 [Demo](https://github.breq.dev/noentiendo/) | [Docs](https://github.breq.dev/noentiendo/doc/libnoentiendo/) | [Repo](https://github.com/breqdev/noentiendo/) | [License](https://github.com/breqdev/noentiendo/blob/main/LICENSE.txt)
 
+![](https://i.imgur.com/1KpsVcK.png)
+
 </div>
 </center>
 
 `noentiendo` is a framework for retro emulation. It focuses in implementing small building blocks like the `6502`, `6520`, and `6560` chips, then stitches them together to emulate a variety of systems. It runs in text-mode, as a desktop GUI application, or on the web with WebAssembly.
+
+<center>
+<div align="center">
 
 | Supported Systems | Roadmap      |
 | ----------------- | ------------ |
@@ -23,6 +28,9 @@ _A modular framework for emulating retro computers._
 | Desktop (Linux, macOS, Windows) | Android (Native)        |
 | Web (via WebAssembly)           | iOS (Native)            |
 |                                 | Embedded (e.g., RP2040) |
+
+</div>
+</center>
 
 ## Core Contributors
 
