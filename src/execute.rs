@@ -613,8 +613,67 @@ impl Execute for System {
 
         Ok(cycles + 2)
       }
+      /*
+            0x0B | 0x2B => {
+              // TODO: ANC
+              Err(())
+            }
 
-      // TODO: ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS, ATX
+            0x4B => {
+              // TODO: ALR
+              Err(())
+            }
+
+            0x6B => {
+              // TODO: ARR
+              Err(())
+            }
+
+            0x8B => {
+              // TODO: XAA
+              Err(())
+            }
+
+            0xCB => {
+              // TODO: AXS
+              Err(())
+            }
+
+            0xEB => {
+              // TODO: SBC
+              Err(())
+            }
+
+            0x9C => {
+              // TODO: SHY
+              Err(())
+            }
+
+            0x9E => {
+              // TODO: SHX
+              Err(())
+            }
+
+            0x93 | 0x9F => {
+              // TODO: AHX
+              Err(())
+            }
+
+            0x9B => {
+              // TODO: TAS
+              Err(())
+            }
+
+            0xBB => {
+              // TODO: LAS
+              Err(())
+            }
+
+            0xAB => {
+              // TODO: ATX
+              Err(())
+            }
+      */
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
