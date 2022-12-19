@@ -8,6 +8,7 @@ documentation = "https://github.breq.dev/noentiendo/doc/libnoentiendo/"
 homepage = "https://github.breq.dev/noentiendo/"
 repository = "https://github.com/breqdev/noentiendo"
 keywords = ["6502", "emulation", "retro", "wasm", "commodore"]
+license = "AGPL-3.0-or-later"
 
 # Shared dependencies across all targets
 [dependencies]
