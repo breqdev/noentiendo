@@ -45,20 +45,19 @@ pub struct Vic20SystemRoms {
 impl Vic20SystemRoms {
   /// Load the ROM files from files.
   #[cfg(not(target_arch = "wasm32"))]
-  pub fn from_disk() -> Self {
+  pub fn from_disk(cartridge_path: Option<&str>) -> Self {
     use crate::roms::DiskLoadable;
 
     let character = RomFile::from_file("vic/char.bin");
     let basic = RomFile::from_file("vic/basic.bin");
     let kernal = RomFile::from_file("vic/kernal.bin");
-    // let cartridge = RomFile::from_file("vic/pacman.bin");
+    let cartridge = cartridge_path.map(|path| RomFile::from_file(path));
 
     Self {
       character,
       basic,
       kernal,
-      // cartridge: Some(cartridge),
-      cartridge: None,
+      cartridge,
     }
   }
 
