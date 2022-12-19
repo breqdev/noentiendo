@@ -250,6 +250,10 @@
 <span id="250">250</span>
 <span id="251">251</span>
 <span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
 
 <span class="comment">// MOS 6522
@@ -496,6 +500,10 @@
     }
 
     <span class="kw">if </span><span class="self">self</span>.t2.poll(info) &amp;&amp; (<span class="self">self</span>.ier &amp; <span class="number">0b00100000</span>) != <span class="number">0 </span>{
+      <span class="kw">return </span>ActiveInterrupt::IRQ;
+    }
+
+    <span class="kw">if </span><span class="self">self</span>.a.poll(info) || <span class="self">self</span>.b.poll(info) {
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 

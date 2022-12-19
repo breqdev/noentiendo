@@ -13,20 +13,46 @@
 <span id="13">13</span>
 <span id="14">14</span>
 <span id="15">15</span>
-</pre><pre class="rust"><code><span class="kw">mod </span>romfile;
-
-<span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
+<span id="16">16</span>
+<span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+</pre><pre class="rust"><code><span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">mod </span>disk;
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">mod </span>wasm;
-
-<span class="kw">pub use </span>romfile::RomFile;
 
 <span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">pub use </span>disk::DiskLoadable;
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">pub use </span>wasm::JsValueLoadable;
+
+<span class="doccomment">/// Represents a predefined, immutable ROM file.
+/// Useful for storing character, BASIC, kernal, etc. ROMs.
+</span><span class="kw">pub struct </span>RomFile {
+  data: Vec&lt;u8&gt;,
+}
+
+<span class="kw">impl </span>RomFile {
+  <span class="kw">pub fn </span>new(data: Vec&lt;u8&gt;) -&gt; <span class="self">Self </span>{
+    <span class="self">Self </span>{ data }
+  }
+
+  <span class="doccomment">/// Returns the contents of the ROM file.
+  </span><span class="kw">pub fn </span>get_data(<span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+    <span class="self">self</span>.data
+  }
+}
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libnoentiendo" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>
