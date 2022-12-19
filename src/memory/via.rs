@@ -247,6 +247,10 @@ impl Memory for VIA {
       return ActiveInterrupt::IRQ;
     }
 
+    if self.a.poll(info) || self.b.poll(info) {
+      return ActiveInterrupt::IRQ;
+    }
+
     ActiveInterrupt::None
   }
 }

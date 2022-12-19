@@ -1,5 +1,5 @@
 /// A representation for a position on a modern keyboard.
-/// Source: https://en.wikipedia.org/wiki/Keyboard_layout#/media/File:Qwerty.svg
+/// Source: <https://en.wikipedia.org/wiki/Keyboard_layout#/media/File:Qwerty.svg>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KeyPosition {
   Escape,

@@ -1,6 +1,21 @@
 # noentiendo
 
-A modular framework for emulating retro computers.
+_A modular framework for emulating retro computers._
+
+<center>
+<div align="center">
+
+[Demo](https://github.breq.dev/noentiendo/) | [Docs](https://github.breq.dev/noentiendo/doc/libnoentiendo/) | [Repo](https://github.com/breqdev/noentiendo/) | [License](https://github.com/breqdev/noentiendo/blob/main/LICENSE.txt)
+
+![](https://i.imgur.com/1KpsVcK.png)
+
+</div>
+</center>
+
+`noentiendo` is a framework for retro emulation. It focuses in implementing small building blocks like the `6502`, `6520`, and `6560` chips, then stitches them together to emulate a variety of systems. It runs in text-mode, as a desktop GUI application, or on the web with WebAssembly.
+
+<center>
+<div align="center">
 
 | Supported Systems | Roadmap      |
 | ----------------- | ------------ |
@@ -14,8 +29,30 @@ A modular framework for emulating retro computers.
 | Web (via WebAssembly)           | iOS (Native)            |
 |                                 | Embedded (e.g., RP2040) |
 
-A [`system::System`] consists of a 6502 CPU and some attached _memory_. All computer peripherals are exposed to the CPU over the memory interface (i.e., _memory-mapped I/O_).
+</div>
+</center>
 
-A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts.
+## Core Contributors
 
-A [`platform::Platform`] consumes a system and runs it. Platforms provide access to the video output, keyboard input, system random number generator, and other details via a [`platform::PlatformProvider`]. Some platforms run synchronously (taking over the thread) while others run asynchronously with the help of an event loop (such as when compiling to WASM).
+<center>
+<div align="center">
+
+| <img src="https://github.com/breqdev.png" width="150" /> | <img src="https://github.com/dillydally414.png" width="150" /> | <img src="https://github.com/nkizz.png" width="150" /> | <img src="https://github.com/ava-silver.png" width="150" /> |
+| :------------------------------------------------------: | :------------------------------------------------------------: | :----------------------------------------------------: | :---------------------------------------------------------: |
+|           [Brooke Chalmers](https://breq.dev/)           |        [Dillon Scott](https://dillydally414.github.io)         |          [Nathan Kiesman](https://nkizz.com/)          |            [Ava Silver](https://avasilver.dev/)             |
+
+</div>
+</center>
+
+## License
+
+This program is free software, licensed under the AGPLv3 license. In short, this means that:
+
+- You may use this software for free, for personal or commercial use
+- You may make modifications to this software, but these changes must retain the AGPLv3 license
+- You may distribute this software or your modified version, but you must provide the source code to users
+- You may allow users to interact with this software over a network connection, but you must provide the source code to users
+
+For full details, consult [LICENSE.txt](https://github.com/breqdev/noentiendo/blob/main/LICENSE.txt).
+
+Note that some files in this repo, such as provided ROMs, are licensed under their own terms.
