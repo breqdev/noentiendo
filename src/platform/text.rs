@@ -3,7 +3,6 @@ use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowCon
 use crate::system::System;
 use rand;
 use std::io::Write;
-use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -20,8 +19,8 @@ impl TextPlatform {
 }
 
 impl Platform for TextPlatform {
-  fn provider(&self) -> Arc<dyn PlatformProvider> {
-    Arc::new(TextPlatformProvider::new())
+  fn provider(&self) -> Box<dyn PlatformProvider> {
+    Box::new(TextPlatformProvider::new())
   }
 }
 

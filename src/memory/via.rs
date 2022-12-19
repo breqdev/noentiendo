@@ -1,78 +1,84 @@
-use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
+use std::{cell::Cell, rc::Rc};
+
+use crate::{
+  memory::{ActiveInterrupt, Memory, Port, SystemInfo},
+  platform::PlatformProvider,
+};
 
 // MOS 6522
 
 struct PortRegisters {
   port: Box<dyn Port>,
-  writes: u8, // if the DDR is write, allow reading the current written value
-  ddr: u8, // data direction register, each bit controls whether the line is an input (0) or output (1)
-  latch_enabled: bool,
+  writes: Cell<u8>, // if the DDR is write, allow reading the current written value
+  ddr: Cell<u8>, // data direction register, each bit controls whether the line is an input (0) or output (1)
+  latch_enabled: Cell<bool>,
 }
 
 impl PortRegisters {
   pub fn new(port: Box<dyn Port>) -> Self {
     Self {
       port,
-      writes: 0,
-      ddr: 0,
-      latch_enabled: false,
+      writes: Cell::new(0),
+      ddr: Cell::new(0),
+      latch_enabled: Cell::new(false),
     }
   }
 
-  pub fn read(&mut self) -> u8 {
-    (self.port.read() & !self.ddr) | (self.writes & self.ddr)
+  pub fn read(&self, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
+    (self.port.read(root, platform) & !self.ddr.get()) | (self.writes.get() & self.ddr.get())
   }
 
-  pub fn write(&mut self, value: u8) {
-    self.writes = value;
-    self.port.write(value & self.ddr);
+  pub fn write(&self, value: u8, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+    self.writes.set(value);
+    self.port.write(value & self.ddr.get(), root, platform);
   }
 
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
+  pub fn poll(&self, info: &SystemInfo) -> bool {
     self.port.poll(info)
   }
 
-  pub fn reset(&mut self) {
-    self.ddr = 0;
+  pub fn reset(&self, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+    self.ddr.set(0);
+    self.writes.set(0);
 
-    self.port.reset();
+    self.port.reset(root, platform);
   }
 }
 
 struct Timer {
-  latch: u16,
-  counter: u16,
-  interrupt: bool,
-  continuous: bool, // if false, the timer will fire once; if true, it will load the latch into the counter and keep going
-  pulse_counting: bool, // if true, the timer will output a set number of pulses on PB6
-  output_enable: bool, // if true, the timer will output a pulse on PB7
+  latch: Cell<u16>,
+  counter: Cell<u16>,
+  interrupt: Cell<bool>,
+  continuous: Cell<bool>, // if false, the timer will fire once; if true, it will load the latch into the counter and keep going
+  pulse_counting: Cell<bool>, // if true, the timer will output a set number of pulses on PB6
+  output_enable: Cell<bool>, // if true, the timer will output a pulse on PB7
 }
 
 impl Timer {
   pub fn new() -> Self {
     Self {
-      latch: 0,
-      counter: 0,
-      interrupt: false,
-      continuous: false,
-      pulse_counting: false,
-      output_enable: false,
+      latch: Cell::new(0),
+      counter: Cell::new(0),
+      interrupt: Cell::new(false),
+      continuous: Cell::new(false),
+      pulse_counting: Cell::new(false),
+      output_enable: Cell::new(false),
     }
   }
 
-  pub fn poll(&mut self, _info: &SystemInfo) -> bool {
-    if self.counter == 0 {
-      if self.continuous {
-        self.counter = self.latch
+  pub fn poll(&self, _info: &SystemInfo) -> bool {
+    if self.counter.get() == 0 {
+      if self.continuous.get() {
+        self.counter.set(self.latch.get())
       } else {
         return false;
       }
     }
 
-    self.counter = self.counter.wrapping_sub(1);
+    self.counter.set(self.counter.get().wrapping_sub(1));
 
-    if self.counter == 0 {
-      self.interrupt = true;
+    if self.counter.get() == 0 {
+      self.interrupt.set(true);
 
       true
     } else {
@@ -101,15 +107,15 @@ pub mod sr_control_bits {
 }
 
 struct ShiftRegister {
-  data: u8,
-  control: u8,
+  data: Cell<u8>,
+  control: Cell<u8>,
 }
 
 impl ShiftRegister {
   pub fn new() -> Self {
     Self {
-      data: 0,
-      control: 0,
+      data: Cell::new(0),
+      control: Cell::new(0),
     }
   }
 }
@@ -120,8 +126,8 @@ pub struct VIA {
   t1: Timer,
   t2: Timer,
   sr: ShiftRegister,
-  pcr: u8, // peripheral control register
-  ier: u8, // interrupt enable register
+  pcr: Cell<u8>, // peripheral control register
+  ier: Cell<u8>, // interrupt enable register
 }
 
 impl VIA {
@@ -132,119 +138,148 @@ impl VIA {
       t1: Timer::new(),
       t2: Timer::new(),
       sr: ShiftRegister::new(),
-      pcr: 0,
-      ier: 0,
+      pcr: Cell::new(0),
+      ier: Cell::new(0),
     }
   }
 }
 
 impl Memory for VIA {
-  fn read(&mut self, address: u16) -> u8 {
+  fn read(&self, address: u16, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
     match address % 0x10 {
-      0x00 => self.b.read(),
-      0x01 => self.a.read(), // TODO: controls handshake?
-      0x02 => self.b.ddr,
-      0x03 => self.a.ddr,
+      0x00 => self.b.read(root, platform),
+      0x01 => self.a.read(root, platform), // TODO: controls handshake?
+      0x02 => self.b.ddr.get(),
+      0x03 => self.a.ddr.get(),
       0x04 => {
-        self.t1.interrupt = false;
-        let value = (self.t1.counter & 0xff) as u8;
+        self.t1.interrupt.set(false);
+        let value = (self.t1.counter.get() & 0xff) as u8;
         value
       }
-      0x05 => ((self.t1.counter >> 8) & 0xff) as u8,
-      0x06 => (self.t1.latch & 0xff) as u8,
-      0x07 => ((self.t1.latch >> 8) & 0xff) as u8,
+      0x05 => ((self.t1.counter.get() >> 8) & 0xff) as u8,
+      0x06 => (self.t1.latch.get() & 0xff) as u8,
+      0x07 => ((self.t1.latch.get() >> 8) & 0xff) as u8,
       0x08 => {
-        self.t2.interrupt = false;
-        (self.t2.counter & 0xff) as u8
+        self.t2.interrupt.set(false);
+        (self.t2.counter.get() & 0xff) as u8
       }
-      0x09 => ((self.t2.counter >> 8) & 0xff) as u8,
-      0x0a => self.sr.data,
+      0x09 => ((self.t2.counter.get() >> 8) & 0xff) as u8,
+      0x0a => self.sr.data.get(),
       0x0b => {
-        (self.t1.output_enable as u8) << 7
-          | (self.t1.continuous as u8) << 6
-          | (self.t2.pulse_counting as u8) << 5
-          | self.sr.control << 2
-          | (self.b.latch_enabled as u8) << 1
-          | (self.a.latch_enabled as u8)
+        (self.t1.output_enable.get() as u8) << 7
+          | (self.t1.continuous.get() as u8) << 6
+          | (self.t2.pulse_counting.get() as u8) << 5
+          | self.sr.control.get() << 2
+          | (self.b.latch_enabled.get() as u8) << 1
+          | (self.a.latch_enabled.get() as u8)
       }
-      0x0c => self.pcr,
+      0x0c => self.pcr.get(),
       0x0d => {
         let mut value = 0;
-        if self.t1.interrupt {
+        if self.t1.interrupt.get() {
           value |= 0b01000000;
         }
-        if self.t2.interrupt {
+        if self.t2.interrupt.get() {
           value |= 0b00100000;
         }
 
-        if (value & self.ier) != 0 {
+        if (value & self.ier.get()) != 0 {
           value |= 0b10000000; // master flag
         }
         value
       }
-      0x0e => self.ier,
-      0x0f => self.a.read(),
+      0x0e => self.ier.get(),
+      0x0f => self.a.read(root, platform),
       _ => unreachable!(),
     }
   }
 
-  fn write(&mut self, address: u16, value: u8) {
+  fn write(
+    &self,
+    address: u16,
+    value: u8,
+    root: &Rc<dyn Memory>,
+    platform: &Box<dyn PlatformProvider>,
+  ) {
     match address % 0x10 {
-      0x00 => self.b.write(value),
-      0x01 => self.a.write(value), // TODO: controls handshake?
-      0x02 => self.b.ddr = value,
-      0x03 => self.a.ddr = value,
-      0x04 => self.t1.latch = (self.t1.latch & 0xff00) | (value as u16),
+      0x00 => self.b.write(value, root, platform),
+      0x01 => self.a.write(value, root, platform), // TODO: controls handshake?
+      0x02 => self.b.ddr.set(value),
+      0x03 => self.a.ddr.set(value),
+      0x04 => self
+        .t1
+        .latch
+        .set((self.t1.latch.get() & 0xff00) | (value as u16)),
       0x05 => {
-        self.t1.latch = (self.t1.latch & 0x00ff) | ((value as u16) << 8);
-        self.t1.counter = self.t1.latch;
-        self.t1.interrupt = false;
+        self
+          .t1
+          .latch
+          .set((self.t1.latch.get() & 0x00ff) | ((value as u16) << 8));
+        self.t1.counter.set(self.t1.latch.get());
+        self.t1.interrupt.set(false);
       }
-      0x06 => self.t1.latch = (self.t1.latch & 0xff00) | (value as u16),
+      0x06 => self
+        .t1
+        .latch
+        .set((self.t1.latch.get() & 0xff00) | (value as u16)),
       0x07 => {
-        self.t1.latch = (self.t1.latch & 0x00ff) | ((value as u16) << 8);
-        self.t1.interrupt = false;
+        self
+          .t1
+          .latch
+          .set((self.t1.latch.get() & 0x00ff) | ((value as u16) << 8));
+        self.t1.interrupt.set(false);
       }
-      0x08 => self.t2.latch = (self.t2.latch & 0xff00) | (value as u16),
+      0x08 => self
+        .t2
+        .latch
+        .set((self.t2.latch.get() & 0xff00) | (value as u16)),
       0x09 => {
-        self.t2.counter = (self.t2.latch & 0x00ff) | ((value as u16) << 8);
-        self.t2.interrupt = false;
+        self
+          .t2
+          .counter
+          .set((self.t2.latch.get() & 0x00ff) | ((value as u16) << 8));
+        self.t2.interrupt.set(false);
       }
-      0x0a => self.sr.data = value,
+      0x0a => self.sr.data.set(value),
       0x0b => {
-        self.t1.output_enable = (value & 0b10000000) != 0;
-        self.t1.continuous = (value & 0b01000000) != 0;
-        self.t2.pulse_counting = (value & 0b00100000) != 0;
-        self.sr.control = (value & 0b00011100) >> 2;
-        self.b.latch_enabled = (value & 0b00000010) != 0;
-        self.a.latch_enabled = (value & 0b00000001) != 0;
+        self.t1.output_enable.set((value & 0b10000000) != 0);
+        self.t1.continuous.set((value & 0b01000000) != 0);
+        self.t2.pulse_counting.set((value & 0b00100000) != 0);
+        self.sr.control.set((value & 0b00011100) >> 2);
+        self.b.latch_enabled.set((value & 0b00000010) != 0);
+        self.a.latch_enabled.set((value & 0b00000001) != 0);
       }
-      0x0c => self.pcr = value,
+      0x0c => self.pcr.set(value),
       0x0d => {
         if (value & 0b01000000) == 0 {
-          self.t1.interrupt = false;
+          self.t1.interrupt.set(false);
         }
         if (value & 0b00100000) == 0 {
-          self.t2.interrupt = false;
+          self.t2.interrupt.set(false);
         }
       }
-      0x0e => self.ier = value,
-      0x0f => self.a.write(value),
+      0x0e => self.ier.set(value),
+      0x0f => self.a.write(value, root, platform),
       _ => unreachable!(),
     }
   }
 
-  fn reset(&mut self) {
-    self.a.reset();
-    self.b.reset();
+  fn reset(&self, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+    self.a.reset(root, platform);
+    self.b.reset(root, platform);
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    if self.t1.poll(info) && (self.ier & 0b01000000) != 0 {
+  fn poll(
+    &self,
+    info: &SystemInfo,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> ActiveInterrupt {
+    if self.t1.poll(info) && (self.ier.get() & 0b01000000) != 0 {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.t2.poll(info) && (self.ier & 0b00100000) != 0 {
+    if self.t2.poll(info) && (self.ier.get() & 0b00100000) != 0 {
       return ActiveInterrupt::IRQ;
     }
 

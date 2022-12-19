@@ -1,12 +1,13 @@
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::pia::PIA;
 use crate::memory::via::VIA;
-use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
+use crate::memory::{BlockMemory, BranchMemory, Memory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use instant::Instant;
-use std::sync::{Arc, Mutex};
+use std::cell::Cell;
+use std::rc::Rc;
 use std::time::Duration;
 mod vram;
 use vram::PetVram;
@@ -20,48 +21,48 @@ use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
 /// screen drawing reaches the last line), and for setting the active
 /// row of the keyboard matrix.
 pub struct PetPia1PortA {
-  keyboard_row: Arc<Mutex<u8>>,
-  last_draw_instant: Option<Instant>,
-  last_draw_cycle: u64,
+  keyboard_row: Rc<Cell<u8>>,
+  last_draw_instant: Cell<Option<Instant>>,
+  last_draw_cycle: Cell<u64>,
 }
 
 impl PetPia1PortA {
   pub fn new() -> Self {
     Self {
-      keyboard_row: Arc::new(Mutex::new(0)),
-      last_draw_instant: None,
-      last_draw_cycle: 0,
+      keyboard_row: Rc::new(Cell::new(0)),
+      last_draw_instant: Cell::new(None),
+      last_draw_cycle: Cell::new(0),
     }
   }
 
-  pub fn get_keyboard_row(&self) -> Arc<Mutex<u8>> {
+  pub fn get_keyboard_row(&self) -> Rc<Cell<u8>> {
     self.keyboard_row.clone()
   }
 }
 
 impl Port for PetPia1PortA {
-  fn read(&mut self) -> u8 {
-    0b1000_0000 | *self.keyboard_row.lock().unwrap()
+  fn read(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) -> u8 {
+    0b1000_0000 | self.keyboard_row.get()
     //^         diagnostic mode off
     // ^        IEEE488 (not implemented)
     //  ^^      Cassette sense (not implemented)
     //     ^^^^ Keyboard row select
   }
 
-  fn write(&mut self, value: u8) {
-    *self.keyboard_row.lock().unwrap() = value & 0b1111;
+  fn write(&self, value: u8, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {
+    self.keyboard_row.set(value & 0b1111);
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> bool {
+  fn poll(&self, info: &SystemInfo) -> bool {
     let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
 
-    match self.last_draw_instant {
+    match self.last_draw_instant.get() {
       Some(last_draw) => {
         if (last_draw.elapsed() > Duration::from_millis(17))
-          && (info.cycle_count > self.last_draw_cycle + min_elapsed)
+          && (info.cycle_count > self.last_draw_cycle.get() + min_elapsed)
         {
-          self.last_draw_cycle = info.cycle_count;
-          self.last_draw_instant = Some(Instant::now());
+          self.last_draw_cycle.set(info.cycle_count);
+          self.last_draw_instant.set(Some(Instant::now()));
           true
           // false
         } else {
@@ -69,49 +70,43 @@ impl Port for PetPia1PortA {
         }
       }
       None => {
-        self.last_draw_instant = Some(Instant::now());
+        self.last_draw_instant.set(Some(Instant::now()));
         false
       }
     }
   }
 
-  fn reset(&mut self) {
-    *self.keyboard_row.lock().unwrap() = 0;
+  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {
+    self.keyboard_row.set(0);
   }
 }
 
 /// Port B on the first PIA.
 /// This is used for reading the keyboard matrix.
 pub struct PetPia1PortB {
-  keyboard_row: Arc<Mutex<u8>>,
+  keyboard_row: Rc<Cell<u8>>,
   mapping_strategy: KeyMappingStrategy,
-  platform: Arc<dyn PlatformProvider>,
 }
 
 impl PetPia1PortB {
-  pub fn new(
-    keyboard_row: Arc<Mutex<u8>>,
-    mapping_strategy: KeyMappingStrategy,
-    platform: Arc<dyn PlatformProvider>,
-  ) -> Self {
+  pub fn new(keyboard_row: Rc<Cell<u8>>, mapping_strategy: KeyMappingStrategy) -> Self {
     Self {
       keyboard_row,
       mapping_strategy,
-      platform,
     }
   }
 }
 
 impl Port for PetPia1PortB {
-  fn read(&mut self) -> u8 {
-    let row = *self.keyboard_row.lock().unwrap();
+  fn read(&self, _root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
+    let row = self.keyboard_row.get();
     let row = KEYBOARD_MAPPING[row as usize % 10];
     let mut value = 0b1111_1111;
 
     let state = match &self.mapping_strategy {
-      KeyMappingStrategy::Physical => PetKeyboardAdapter::map(&self.platform.get_key_state()),
+      KeyMappingStrategy::Physical => PetKeyboardAdapter::map(&platform.get_key_state()),
       KeyMappingStrategy::Symbolic => {
-        PetSymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
+        PetSymbolAdapter::map(&SymbolAdapter::map(&platform.get_key_state()))
       }
     };
 
@@ -123,13 +118,13 @@ impl Port for PetPia1PortB {
     value
   }
 
-  fn write(&mut self, _value: u8) {}
+  fn write(&self, _value: u8, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&self, _info: &SystemInfo) -> bool {
     false
   }
 
-  fn reset(&mut self) {}
+  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {}
 }
 
 /// Configuration for a Commodore PET system.
@@ -144,10 +139,10 @@ impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
   fn create(
     roms: PetSystemRoms,
     config: PetSystemConfig,
-    platform: Arc<dyn PlatformProvider>,
+    platform: Box<dyn PlatformProvider>,
   ) -> System {
     let ram = BlockMemory::ram(0x8000);
-    let vram = PetVram::new(roms.character, platform.clone());
+    let vram = PetVram::new(roms.character, &platform);
 
     let expansion_rom_9 = NullMemory::new();
     let expansion_rom_a = NullMemory::new();
@@ -157,7 +152,7 @@ impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
     let editor_rom = BlockMemory::from_file(0x1000, roms.editor);
 
     let port_a = PetPia1PortA::new();
-    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), config.mapping, platform);
+    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), config.mapping);
     let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
     let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
     let via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
@@ -177,6 +172,6 @@ impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
       .map(0xE840, Box::new(via))
       .map(0xF000, Box::new(kernel_rom));
 
-    System::new(Box::new(memory), 1_000_000)
+    System::new(Rc::new(memory), platform, 1_000_000)
   }
 }

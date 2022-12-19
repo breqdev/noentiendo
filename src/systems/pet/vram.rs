@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::{
   memory::{ActiveInterrupt, Memory, SystemInfo},
@@ -21,15 +21,14 @@ const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 /// (see <https://www.chibiakumas.com/6502/platform4.php#LessonP38> for details)
 /// Note that this emulates a 40-column pet, not an 80-column "Business" pet.
 pub struct PetVram {
-  data: Vec<u8>,
-  platform: Arc<dyn PlatformProvider>,
+  data: RefCell<Vec<u8>>,
   character_rom: Vec<u8>,
   foreground: Color,
   background: Color,
 }
 
 impl PetVram {
-  pub fn new(character_rom: RomFile, platform: Arc<dyn PlatformProvider>) -> Self {
+  pub fn new(character_rom: RomFile, platform: &Box<dyn PlatformProvider>) -> Self {
     platform.request_window(WindowConfig::new(
       WIDTH * CHAR_WIDTH,
       HEIGHT * CHAR_HEIGHT,
@@ -37,8 +36,7 @@ impl PetVram {
     ));
 
     Self {
-      data: vec![0; VRAM_SIZE],
-      platform,
+      data: RefCell::new(vec![0; VRAM_SIZE]),
       character_rom: character_rom.get_data(),
       foreground: Color::new(0, 255, 0),
       background: Color::new(0, 0, 0),
@@ -47,12 +45,23 @@ impl PetVram {
 }
 
 impl Memory for PetVram {
-  fn read(&mut self, address: u16) -> u8 {
-    self.data[address as usize % VRAM_SIZE]
+  fn read(
+    &self,
+    address: u16,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> u8 {
+    self.data.borrow()[address as usize % VRAM_SIZE]
   }
 
-  fn write(&mut self, address: u16, value: u8) {
-    self.data[address as usize % VRAM_SIZE] = value;
+  fn write(
+    &self,
+    address: u16,
+    value: u8,
+    _root: &Rc<dyn Memory>,
+    platform: &Box<dyn PlatformProvider>,
+  ) {
+    self.data.borrow_mut()[address as usize % VRAM_SIZE] = value;
 
     if address >= (HEIGHT * WIDTH) as u16 {
       return; // ignore writes to the extra bytes
@@ -78,26 +87,30 @@ impl Memory for PetVram {
           self.background
         };
 
-        self
-          .platform
-          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+        platform.set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
       }
     }
   }
 
-  fn reset(&mut self) {
-    for i in 0..self.data.len() {
-      self.data[i] = 0;
+  fn reset(&self, _root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+    let mut data = self.data.borrow_mut();
+    for i in 0..data.len() {
+      data[i] = 0;
     }
 
     for x in 0..(WIDTH * CHAR_WIDTH) {
       for y in 0..(HEIGHT * CHAR_HEIGHT) {
-        self.platform.set_pixel(x, y, self.background);
+        platform.set_pixel(x, y, self.background);
       }
     }
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(
+    &self,
+    _info: &SystemInfo,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

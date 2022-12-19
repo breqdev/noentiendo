@@ -20,7 +20,6 @@ use winit_input_helper::WinitInputHelper;
 pub struct WinitPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
-  provider: Arc<WinitPlatformProvider>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
 }
@@ -33,12 +32,6 @@ impl WinitPlatform {
     let key_state = Arc::new(Mutex::new(KeyState::new()));
 
     Self {
-      provider: Arc::new(WinitPlatformProvider::new(
-        config.clone(),
-        pixels.clone(),
-        dirty.clone(),
-        key_state.clone(),
-      )),
       config,
       pixels,
       dirty,
@@ -53,8 +46,13 @@ impl WinitPlatform {
 }
 
 impl Platform for WinitPlatform {
-  fn provider(&self) -> Arc<dyn PlatformProvider> {
-    self.provider.clone()
+  fn provider(&self) -> Box<dyn PlatformProvider> {
+    Box::new(WinitPlatformProvider::new(
+      self.config.clone(),
+      self.pixels.clone(),
+      self.dirty.clone(),
+      self.key_state.clone(),
+    ))
   }
 }
 

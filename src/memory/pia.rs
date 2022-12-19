@@ -1,4 +1,9 @@
-use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
+use std::{cell::Cell, rc::Rc};
+
+use crate::{
+  memory::{ActiveInterrupt, Memory, Port, SystemInfo},
+  platform::PlatformProvider,
+};
 
 // MOS 6520
 
@@ -8,13 +13,13 @@ struct PortRegisters {
   port: Box<dyn Port>,
 
   /// If the DDR is write, the current written value.
-  writes: u8,
+  writes: Cell<u8>,
 
   /// Data direction register. Each bit controls whether the line is an input (0) or output (1)
-  ddr: u8,
+  ddr: Cell<u8>,
 
   // Control register. Each bit has a specific function.
-  pub control: u8,
+  pub control: Cell<u8>,
 }
 
 impl PortRegisters {
@@ -22,9 +27,9 @@ impl PortRegisters {
   pub fn new(port: Box<dyn Port>) -> Self {
     Self {
       port,
-      writes: 0,
-      ddr: 0,
-      control: 0,
+      writes: Cell::new(0),
+      ddr: Cell::new(0),
+      control: Cell::new(0),
     }
   }
 
@@ -33,11 +38,11 @@ impl PortRegisters {
   /// When reading the port, bor each bit, if the DDR is set to read, this
   /// reads directly from the port. If the DDR is set to write, this reads from
   /// the written value.
-  pub fn read(&mut self) -> u8 {
-    if self.control & control_bits::DDR_SELECT != 0 {
-      (self.port.read() & !self.ddr) | (self.writes & self.ddr)
+  pub fn read(&self, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
+    if self.control.get() & control_bits::DDR_SELECT != 0 {
+      (self.port.read(root, platform) & !self.ddr.get()) | (self.writes.get() & self.ddr.get())
     } else {
-      self.ddr
+      self.ddr.get()
     }
   }
 
@@ -45,26 +50,27 @@ impl PortRegisters {
   /// the control register.
   /// Respects the DDR, so if a bit in the DDR is set to read, then that bit
   /// will not be written.
-  pub fn write(&mut self, value: u8) {
-    if self.control & control_bits::DDR_SELECT != 0 {
-      self.writes = value;
-      self.port.write(value & self.ddr);
+  pub fn write(&self, value: u8, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+    if self.control.get() & control_bits::DDR_SELECT != 0 {
+      self.writes.set(value);
+      self.port.write(value & self.ddr.get(), root, platform);
     } else {
-      self.ddr = value;
+      self.ddr.set(value);
     }
   }
 
   /// Poll the underlying port for interrupts.
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
+  pub fn poll(&self, info: &SystemInfo) -> bool {
     self.port.poll(info)
   }
 
   /// Reset the DDR, control register, and underlying port.
-  pub fn reset(&mut self) {
-    self.ddr = 0;
-    self.control = 0;
+  pub fn reset(&self, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+    self.ddr.set(0);
+    self.control.set(0);
+    self.writes.set(0);
 
-    self.port.reset();
+    self.port.reset(root, platform);
   }
 }
 
@@ -95,32 +101,43 @@ impl PIA {
 }
 
 impl Memory for PIA {
-  fn read(&mut self, address: u16) -> u8 {
+  fn read(&self, address: u16, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
     match address % 0x04 {
-      0x00 => self.a.read(),
-      0x01 => self.a.control,
-      0x02 => self.b.read(),
-      0x03 => self.b.control,
+      0x00 => self.a.read(root, platform),
+      0x01 => self.a.control.get(),
+      0x02 => self.b.read(root, platform),
+      0x03 => self.b.control.get(),
       _ => unreachable!(),
     }
   }
 
-  fn write(&mut self, address: u16, value: u8) {
+  fn write(
+    &self,
+    address: u16,
+    value: u8,
+    root: &Rc<dyn Memory>,
+    platform: &Box<dyn PlatformProvider>,
+  ) {
     match address % 0x04 {
-      0x00 => self.a.write(value),
-      0x01 => self.a.control = value,
-      0x02 => self.b.write(value),
-      0x03 => self.b.control = value,
+      0x00 => self.a.write(value, root, platform),
+      0x01 => self.a.control.set(value),
+      0x02 => self.b.write(value, root, platform),
+      0x03 => self.b.control.set(value),
       _ => unreachable!(),
     }
   }
 
-  fn reset(&mut self) {
-    self.a.reset();
-    self.b.reset();
+  fn reset(&self, root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) {
+    self.a.reset(root, platform);
+    self.b.reset(root, platform);
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(
+    &self,
+    info: &SystemInfo,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> ActiveInterrupt {
     let a = self.a.poll(info);
     let b = self.b.poll(info);
 

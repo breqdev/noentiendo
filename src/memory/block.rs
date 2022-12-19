@@ -1,4 +1,7 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
 
 /// Represents a simple block of contiguous memory, with no additional hardware.
@@ -6,7 +9,7 @@ use crate::roms::RomFile;
 /// Reading from this memory is side-effect free.
 pub struct BlockMemory {
   size: usize,
-  data: Vec<u8>,
+  data: RefCell<Vec<u8>>,
   persistent: bool,
 }
 
@@ -16,7 +19,7 @@ impl BlockMemory {
   pub fn ram(size: usize) -> Self {
     Self {
       size,
-      data: vec![0; size],
+      data: RefCell::new(vec![0; size]),
       persistent: false,
     }
   }
@@ -26,7 +29,7 @@ impl BlockMemory {
   pub fn rom(size: usize) -> Self {
     Self {
       size,
-      data: vec![0; size],
+      data: RefCell::new(vec![0; size]),
       persistent: true,
     }
   }
@@ -51,30 +54,48 @@ impl BlockMemory {
 
     Self {
       size,
-      data,
+      data: RefCell::new(data),
       persistent: true,
     }
   }
 }
 
 impl Memory for BlockMemory {
-  fn read(&mut self, address: u16) -> u8 {
-    self.data[(address as usize) % self.size]
+  fn read(
+    &self,
+    address: u16,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> u8 {
+    self.data.borrow()[(address as usize) % self.size]
   }
 
-  fn write(&mut self, address: u16, value: u8) {
-    self.data[(address as usize) % self.size] = value;
+  fn write(
+    &self,
+    address: u16,
+    value: u8,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) {
+    self.data.borrow_mut()[(address as usize) % self.size] = value;
   }
 
-  fn reset(&mut self) {
+  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {
     if !self.persistent {
-      for i in 0..self.data.len() {
-        self.data[i] = 0;
+      let mut data = self.data.borrow_mut();
+
+      for i in 0..data.len() {
+        data[i] = 0;
       }
     }
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(
+    &self,
+    _info: &SystemInfo,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

@@ -1,6 +1,5 @@
 use crate::platform::PlatformProvider;
 use crate::system::System;
-use std::sync::Arc;
 
 pub mod brooke;
 pub mod easy;
@@ -16,6 +15,6 @@ pub use vic::{Vic20SystemFactory, Vic20SystemRoms};
 
 /// A factory for creating a system from a set of ROM files and a platform.
 pub trait SystemFactory<RomRegistry, SystemConfig> {
-  fn create(roms: RomRegistry, config: SystemConfig, platform: Arc<dyn PlatformProvider>)
+  fn create(roms: RomRegistry, config: SystemConfig, platform: Box<dyn PlatformProvider>)
     -> System;
 }

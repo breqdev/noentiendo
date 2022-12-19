@@ -4,7 +4,8 @@ use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
-use std::sync::Arc;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// VRAM based around the Easy6502 display system from
 /// https://skilldrick.github.io/easy6502/
@@ -14,15 +15,14 @@ use std::sync::Arc;
 struct EasyVram {
   width: u32,
   height: u32,
-  data: Vec<u8>,
-  platform: Arc<dyn PlatformProvider>,
+  data: RefCell<Vec<u8>>,
   palette: Vec<Color>,
 }
 
 const SCALE: u32 = 8;
 
 impl EasyVram {
-  pub fn new(width: u32, height: u32, platform: Arc<dyn PlatformProvider>) -> Self {
+  pub fn new(width: u32, height: u32, platform: &Box<dyn PlatformProvider>) -> Self {
     platform.request_window(WindowConfig::new(width, height, SCALE as f64));
 
     let palette = [
@@ -38,36 +38,53 @@ impl EasyVram {
     Self {
       width,
       height,
-      data: vec![0; (width * height) as usize],
-      platform,
+      data: RefCell::new(vec![0; (width * height) as usize]),
       palette,
     }
   }
 }
 
 impl Memory for EasyVram {
-  fn read(&mut self, address: u16) -> u8 {
-    self.data[((address as u32) % (self.width * self.height)) as usize]
+  fn read(
+    &self,
+    address: u16,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> u8 {
+    self.data.borrow()[((address as u32) % (self.width * self.height)) as usize]
   }
 
-  fn write(&mut self, address: u16, value: u8) {
+  fn write(
+    &self,
+    address: u16,
+    value: u8,
+    _root: &Rc<dyn Memory>,
+    platform: &Box<dyn PlatformProvider>,
+  ) {
     let index = ((address as u32) % (self.width * self.height)) as usize;
-    self.data[index] = value;
+    let mut data = self.data.borrow_mut();
+    data[index] = value;
 
     let x_base = (index % self.width as usize) as u32;
     let y_base = (index / self.width as usize) as u32;
-    let color = self.palette[(self.data[index] as usize) % self.palette.len()];
+    let color = self.palette[(data[index] as usize) % self.palette.len()];
 
-    self.platform.set_pixel(x_base, y_base, color);
+    platform.set_pixel(x_base, y_base, color);
   }
 
-  fn reset(&mut self) {
-    for i in 0..self.data.len() {
-      self.data[i] = 0;
+  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {
+    let mut data = self.data.borrow_mut();
+    for i in 0..data.len() {
+      data[i] = 0;
     }
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(
+    &self,
+    _info: &SystemInfo,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
@@ -77,22 +94,20 @@ impl Memory for EasyVram {
 /// Reading from address 0 returns a random number between 0 and 255,
 /// and reading from address 1 returns the ASCII code of the key most recently
 /// pressed. Writing to this memory does nothing.
-struct EasyIO {
-  platform: Arc<dyn PlatformProvider>,
-}
+struct EasyIO {}
 
 impl EasyIO {
-  pub fn new(platform: Arc<dyn PlatformProvider>) -> Self {
-    Self { platform }
+  pub fn new() -> Self {
+    Self {}
   }
 }
 
 impl Memory for EasyIO {
-  fn read(&mut self, address: u16) -> u8 {
+  fn read(&self, address: u16, _root: &Rc<dyn Memory>, platform: &Box<dyn PlatformProvider>) -> u8 {
     match address % 2 {
-      0 => self.platform.random(),
+      0 => platform.random(),
       _ => {
-        let state = self.platform.get_key_state();
+        let state = platform.get_key_state();
 
         if state.is_pressed(KeyPosition::W) {
           return b'W';
@@ -109,11 +124,23 @@ impl Memory for EasyIO {
     }
   }
 
-  fn write(&mut self, _address: u16, _value: u8) {}
+  fn write(
+    &self,
+    _address: u16,
+    _value: u8,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) {
+  }
 
-  fn reset(&mut self) {}
+  fn reset(&self, _root: &Rc<dyn Memory>, _platform: &Box<dyn PlatformProvider>) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(
+    &self,
+    _info: &SystemInfo,
+    _root: &Rc<dyn Memory>,
+    _platform: &Box<dyn PlatformProvider>,
+  ) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
@@ -123,11 +150,11 @@ impl Memory for EasyIO {
 pub struct EasySystemFactory {}
 
 impl SystemFactory<RomFile, ()> for EasySystemFactory {
-  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
+  fn create(rom: RomFile, _config: (), platform: Box<dyn PlatformProvider>) -> System {
     let zero_page = BlockMemory::ram(0x0100);
-    let io = EasyIO::new(platform.clone());
+    let io = EasyIO::new();
     let stack_ram = BlockMemory::ram(0x0100);
-    let vram = EasyVram::new(32, 32, platform);
+    let vram = EasyVram::new(32, 32, &platform);
     let high_ram = BlockMemory::ram(0x7A00);
     let rom = BlockMemory::from_file(0x8000, rom);
 
@@ -139,6 +166,6 @@ impl SystemFactory<RomFile, ()> for EasySystemFactory {
       .map(0x0600, Box::new(high_ram))
       .map(0x8000, Box::new(rom));
 
-    System::new(Box::new(memory), 20_000)
+    System::new(Rc::new(memory), platform, 20_000)
   }
 }
