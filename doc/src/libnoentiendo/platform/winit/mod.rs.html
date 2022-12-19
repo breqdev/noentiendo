@@ -271,6 +271,7 @@
 <span id="271">271</span>
 <span id="272">272</span>
 <span id="273">273</span>
+<span id="274">274</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState};
 <span class="kw">mod </span>keyboard;
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
@@ -380,7 +381,8 @@
             .unwrap()
             .as_mut()
             .unwrap()
-            .resize_surface(size.width, size.height);
+            .resize_surface(size.width, size.height)
+            .unwrap();
         }
       }
 
@@ -499,7 +501,7 @@
 
   <span class="kw">fn </span>set_pixel(<span class="kw-2">&amp;</span><span class="self">self</span>, x: u32, y: u32, color: Color) {
     <span class="kw">let </span><span class="kw-2">mut </span>pixels = <span class="self">self</span>.pixels.lock().unwrap();
-    <span class="kw">let </span>frame = pixels.as_mut().unwrap().get_frame();
+    <span class="kw">let </span>frame = pixels.as_mut().unwrap().get_frame_mut();
     <span class="kw">let </span>config = <span class="self">self</span>.get_config();
 
     <span class="kw">if </span>(x &gt;= config.width) || (y &gt;= config.height) {
