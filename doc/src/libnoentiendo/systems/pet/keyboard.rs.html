@@ -459,7 +459,7 @@
 };
 
 <span class="doccomment">/// An adapter that maps standard keyboard positions to keys on the PET&#39;s &quot;Graphics&quot; keyboard.
-</span><span class="kw">pub struct </span>PetKeyboardAdapter {}
+</span><span class="kw">pub struct </span>PetKeyboardAdapter;
 
 <span class="kw">impl </span>KeyAdapter&lt;KeyPosition, PetKeys&gt; <span class="kw">for </span>PetKeyboardAdapter {
   <span class="kw">fn </span>map(state: <span class="kw-2">&amp;</span>KeyState&lt;KeyPosition&gt;) -&gt; KeyState&lt;PetKeys&gt; {
@@ -534,7 +534,7 @@
 }
 
 <span class="doccomment">/// An adapter that maps keyboard symbols to keys on the PET&#39;s &quot;Graphics&quot; keyboard.
-</span><span class="kw">pub struct </span>PetSymbolAdapter {}
+</span><span class="kw">pub struct </span>PetSymbolAdapter;
 
 <span class="kw">impl </span>KeyAdapter&lt;KeySymbol, PetKeys&gt; <span class="kw">for </span>PetSymbolAdapter {
   <span class="kw">fn </span>map(state: <span class="kw-2">&amp;</span>KeyState&lt;KeySymbol&gt;) -&gt; KeyState&lt;PetKeys&gt; {

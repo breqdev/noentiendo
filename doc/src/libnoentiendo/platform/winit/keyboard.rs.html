@@ -135,7 +135,7 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState};
 
-<span class="kw">pub struct </span>WinitAdapter {}
+<span class="kw">pub struct </span>WinitAdapter;
 
 <span class="kw">impl </span>KeyAdapter&lt;VirtualKeyCode, KeyPosition&gt; <span class="kw">for </span>WinitAdapter {
   <span class="kw">fn </span>map(state: <span class="kw-2">&amp;</span>KeyState&lt;VirtualKeyCode&gt;) -&gt; KeyState&lt;KeyPosition&gt; {

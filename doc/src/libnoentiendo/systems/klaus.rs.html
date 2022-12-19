@@ -25,7 +25,7 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="doccomment">/// A system used to run Klaus Dormann&#39;s 6502 CPU test suite.
-</span><span class="kw">pub struct </span>KlausSystemFactory {}
+</span><span class="kw">pub struct </span>KlausSystemFactory;
 
 <span class="kw">impl </span>SystemFactory&lt;RomFile, ()&gt; <span class="kw">for </span>KlausSystemFactory {
   <span class="kw">fn </span>create(rom: RomFile, _config: (), _platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {

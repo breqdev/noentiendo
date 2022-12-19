@@ -264,7 +264,7 @@
 
 <span class="doccomment">/// A port of the &quot;Easy6502&quot; system from
 /// &lt;https://skilldrick.github.io/easy6502/&gt;
-</span><span class="kw">pub struct </span>EasySystemFactory {}
+</span><span class="kw">pub struct </span>EasySystemFactory;
 
 <span class="kw">impl </span>SystemFactory&lt;RomFile, ()&gt; <span class="kw">for </span>EasySystemFactory {
   <span class="kw">fn </span>create(rom: RomFile, _config: (), platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
