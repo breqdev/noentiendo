@@ -51,13 +51,14 @@ impl Vic20SystemRoms {
     let character = RomFile::from_file("vic/char.bin");
     let basic = RomFile::from_file("vic/basic.bin");
     let kernal = RomFile::from_file("vic/kernal.bin");
-    let cartridge = RomFile::from_file("vic/pacman.bin");
+    // let cartridge = RomFile::from_file("vic/pacman.bin");
 
     Self {
       character,
       basic,
       kernal,
-      cartridge: Some(cartridge),
+      // cartridge: Some(cartridge),
+      cartridge: None,
     }
   }
 

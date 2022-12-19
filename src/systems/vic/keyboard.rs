@@ -272,8 +272,8 @@ impl KeyAdapter<KeySymbol, Vic20Keys> for Vic20SymbolAdapter {
         Char('.') => Vic20Keys::Period,
         Char('/') => Vic20Keys::Slash,
         RShift => continue, // Handled separately
-        // TODO: CursorUpDown
-        // TODO: CursorLeftRight
+        DownArrow => Vic20Keys::CursorUpDown,
+        RightArrow => Vic20Keys::CursorLeftRight,
         Char(' ') => Vic20Keys::Space,
 
         F1 => Vic20Keys::F1,
@@ -307,6 +307,9 @@ impl KeyAdapter<KeySymbol, Vic20Keys> for Vic20SymbolAdapter {
           Char('<') => Vic20Keys::Comma,
           Char('>') => Vic20Keys::Period,
           Char('?') => Vic20Keys::Slash,
+
+          UpArrow => Vic20Keys::CursorUpDown,
+          LeftArrow => Vic20Keys::CursorLeftRight,
 
           _ => continue,
         })
