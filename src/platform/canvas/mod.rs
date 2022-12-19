@@ -3,11 +3,15 @@ use crate::platform::{AsyncPlatform, Color, Platform, PlatformProvider, WindowCo
 use crate::system::System;
 use async_trait::async_trait;
 use js_sys::Math;
+mod handles;
+use handles::CanvasWindow;
+use pixels::{Pixels, SurfaceTexture};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use web_sys::{CanvasRenderingContext2d, HtmlCanvasElement, KeyboardEvent};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{HtmlCanvasElement, KeyboardEvent};
 mod keyboard;
 use crate::keyboard::{KeyAdapter, KeyPosition};
 use keyboard::JavaScriptAdapter;
@@ -25,8 +29,9 @@ extern "C" {
 /// This platform runs asynchronously (using the JS event loop).
 pub struct CanvasPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
+  resize_requested: Arc<Mutex<bool>>,
   canvas: Arc<Mutex<Option<HtmlCanvasElement>>>,
-  framebuffer: Arc<Mutex<Option<Vec<u8>>>>,
+  pixels: Arc<Mutex<Option<Pixels>>>,
   provider: Arc<CanvasPlatformProvider>,
   key_state: Arc<Mutex<KeyState<String>>>,
 }
@@ -34,20 +39,22 @@ pub struct CanvasPlatform {
 impl CanvasPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
+    let resize_requested = Arc::new(Mutex::new(false));
     let canvas = Arc::new(Mutex::new(None));
-    let framebuffer = Arc::new(Mutex::new(None));
+    let pixels = Arc::new(Mutex::new(None));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
 
     Self {
       provider: Arc::new(CanvasPlatformProvider::new(
         config.clone(),
-        canvas.clone(),
-        framebuffer.clone(),
+        resize_requested.clone(),
+        pixels.clone(),
         key_state.clone(),
       )),
       config,
+      resize_requested,
       canvas,
-      framebuffer,
+      pixels,
       key_state,
     }
   }
@@ -56,26 +63,6 @@ impl CanvasPlatform {
     let config = self.config.lock().unwrap();
     config.clone().expect("WindowConfig not set")
   }
-}
-
-fn run_system(mut system: System) {
-  let mut duration = Duration::ZERO;
-
-  while duration < Duration::from_millis(20) {
-    duration += Duration::from_secs_f64(system.tick());
-  }
-
-  let closure = Closure::once_into_js(move || {
-    run_system(system);
-  });
-
-  web_sys::window()
-    .unwrap()
-    .set_timeout_with_callback_and_timeout_and_arguments_0(
-      closure.unchecked_ref(),
-      duration.as_millis() as i32,
-    )
-    .unwrap();
 }
 
 impl Platform for CanvasPlatform {
@@ -113,16 +100,20 @@ impl AsyncPlatform for CanvasPlatform {
       .set_property("height", &format!("{}px", height))
       .unwrap();
 
-    let context = canvas
-      .get_context("2d")
-      .unwrap()
-      .unwrap()
-      .dyn_into::<CanvasRenderingContext2d>()
-      .unwrap();
+    canvas.set_attribute("data-raw-handle", "1").unwrap();
+    let window = CanvasWindow::new(&canvas);
 
-    context.set_image_smoothing_enabled(false);
-    context.set_fill_style(&JsValue::from_str("black"));
-    context.fill_rect(0.0, 0.0, width as f64, height as f64);
+    let surface_texture = SurfaceTexture::new(
+      (config.width as f64 * config.scale) as u32,
+      (config.height as f64 * config.scale) as u32,
+      &window,
+    );
+
+    *self.pixels.lock().unwrap() = Some(
+      Pixels::new_async(config.width, config.height, surface_texture)
+        .await
+        .unwrap(),
+    );
 
     {
       let key_state = self.key_state.clone();
@@ -156,33 +147,87 @@ impl AsyncPlatform for CanvasPlatform {
 
     *self.canvas.lock().unwrap() = Some(canvas);
 
-    let framebuffer = vec![0; width * height * 4];
-    *self.framebuffer.lock().unwrap() = Some(framebuffer);
-
     system.reset();
 
-    run_system(system);
+    let pixels = self.pixels.clone();
+    let config = self.config.clone();
+    let canvas = self.canvas.clone();
+    let resize_requested = self.resize_requested.clone();
+
+    let interval = Closure::new(move || {
+      let mut duration = Duration::ZERO;
+
+      while duration < Duration::from_millis(20) {
+        duration += Duration::from_secs_f64(system.tick());
+      }
+
+      if *resize_requested.lock().unwrap() {
+        let config = config.lock().unwrap().unwrap();
+
+        let width = (config.width as f64 * config.scale) as u32;
+        let height = (config.height as f64 * config.scale) as u32;
+
+        let pixels = pixels.clone();
+
+        *resize_requested.lock().unwrap() = false;
+
+        spawn_local(async move {
+          let surface_texture = SurfaceTexture::new(width, height, &window);
+
+          *pixels.lock().unwrap() = Some(
+            Pixels::new_async(config.width, config.height, surface_texture)
+              .await
+              .unwrap(),
+          );
+        });
+
+        let canvas_mutex = canvas.lock().unwrap();
+        let canvas = canvas_mutex.as_ref().unwrap();
+
+        canvas
+          .style()
+          .set_property("width", &format!("{}px", width))
+          .unwrap();
+
+        canvas
+          .style()
+          .set_property("height", &format!("{}px", height))
+          .unwrap();
+
+        canvas.set_width(width);
+        canvas.set_height(height);
+      }
+
+      pixels.lock().unwrap().as_mut().unwrap().render().unwrap();
+    });
+
+    web_sys::window()
+      .unwrap()
+      .set_interval_with_callback_and_timeout_and_arguments_0(interval.as_ref().unchecked_ref(), 20)
+      .unwrap();
+
+    interval.forget();
   }
 }
 
 pub struct CanvasPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
-  canvas: Arc<Mutex<Option<HtmlCanvasElement>>>,
-  framebuffer: Arc<Mutex<Option<Vec<u8>>>>,
+  resize_requested: Arc<Mutex<bool>>,
+  pixels: Arc<Mutex<Option<Pixels>>>,
   key_state: Arc<Mutex<KeyState<String>>>,
 }
 
 impl CanvasPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
-    canvas: Arc<Mutex<Option<HtmlCanvasElement>>>,
-    framebuffer: Arc<Mutex<Option<Vec<u8>>>>,
+    resize_requested: Arc<Mutex<bool>>,
+    pixels: Arc<Mutex<Option<Pixels>>>,
     key_state: Arc<Mutex<KeyState<String>>>,
   ) -> Self {
     Self {
       config,
-      canvas,
-      framebuffer,
+      resize_requested,
+      pixels,
       key_state,
     }
   }
@@ -195,11 +240,12 @@ impl CanvasPlatformProvider {
 impl PlatformProvider for CanvasPlatformProvider {
   fn request_window(&self, config: WindowConfig) {
     *self.config.lock().unwrap() = Some(config);
+    *self.resize_requested.lock().unwrap() = true;
   }
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
-    let mut framebuffer = self.framebuffer.lock().unwrap();
-    let buffer = framebuffer.as_mut().unwrap();
+    let mut pixels = self.pixels.lock().unwrap();
+    let frame = pixels.as_mut().unwrap().get_frame_mut();
     let config = self.get_config();
 
     if (x >= config.width) || (y >= config.height) {
@@ -211,31 +257,13 @@ impl PlatformProvider for CanvasPlatformProvider {
     }
 
     let index = ((y * config.width + x) * 4) as usize;
-    let pixel = &mut buffer[index..(index + 4)];
+    if index + 4 > frame.len() {
+      // Race condition: the app has just requested a new window size, but the
+      // framebuffer hasn't been resized yet
+      return;
+    }
+    let pixel = &mut frame[index..(index + 4)];
     pixel.copy_from_slice(&color.to_rgba());
-
-    let context = self
-      .canvas
-      .lock()
-      .unwrap()
-      .as_ref()
-      .unwrap()
-      .get_context("2d")
-      .unwrap()
-      .unwrap()
-      .dyn_into::<CanvasRenderingContext2d>()
-      .unwrap();
-
-    context.set_fill_style(&JsValue::from_str(&format!(
-      "rgb({}, {}, {})",
-      color.r, color.g, color.b
-    )));
-    context.fill_rect(
-      x as f64 * config.scale,
-      y as f64 * config.scale,
-      config.scale,
-      config.scale,
-    );
   }
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {

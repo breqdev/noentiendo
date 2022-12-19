@@ -30,8 +30,6 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   };
   use wasm_bindgen_futures::spawn_local;
 
-  console_log::init().unwrap();
-
   let mut platform = CanvasPlatform::new();
 
   let pet_object = Reflect::get(&roms, &JsValue::from_str("pet")).unwrap();
