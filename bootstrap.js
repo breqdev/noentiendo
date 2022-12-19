@@ -58,11 +58,11 @@
 /******/ 					"__wbindgen_object_drop_ref": function(p0i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_object_drop_ref"](p0i32);
 /******/ 					},
-/******/ 					"__wbindgen_cb_drop": function(p0i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_cb_drop"](p0i32);
-/******/ 					},
 /******/ 					"__wbindgen_string_new": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_string_new"](p0i32,p1i32);
+/******/ 					},
+/******/ 					"__wbindgen_cb_drop": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_cb_drop"](p0i32);
 /******/ 					},
 /******/ 					"__wbindgen_string_get": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_string_get"](p0i32,p1i32);
@@ -205,14 +205,14 @@
 /******/ 					"__wbindgen_throw": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_throw"](p0i32,p1i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper92": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper92"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper109": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper109"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper94": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper94"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper111": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper111"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper268": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper268"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper255": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper255"](p0i32,p1i32,p2i32);
 /******/ 					}
 /******/ 				}
 /******/ 			};
@@ -315,7 +315,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/libnoentiendo_bg.wasm":"4b943f647e6315f03b16"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/libnoentiendo_bg.wasm":"f0989786cf2d1e8e5bc5"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {

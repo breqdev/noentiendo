@@ -398,18 +398,129 @@
 <span id="398">398</span>
 <span id="399">399</span>
 <span id="400">400</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo};
+<span id="401">401</span>
+<span id="402">402</span>
+<span id="403">403</span>
+<span id="404">404</span>
+<span id="405">405</span>
+<span id="406">406</span>
+<span id="407">407</span>
+<span id="408">408</span>
+<span id="409">409</span>
+<span id="410">410</span>
+<span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 <span class="kw">use </span>std::sync::{Arc, Mutex};
 
-<span class="kw">const </span>WIDTH: u32 = <span class="number">22</span>;
-<span class="kw">const </span>HEIGHT: u32 = <span class="number">23</span>;
-<span class="kw">const </span>CHAR_WIDTH: u32 = <span class="number">8</span>;
-<span class="kw">const </span>CHAR_HEIGHT: u32 = <span class="number">8</span>;
-<span class="kw">const </span>VRAM_SIZE: usize = <span class="number">512</span>; <span class="comment">// 6 extra bytes to make mapping easier
-
-</span><span class="doccomment">/// One of the speakers available on the MOS 6560 VIC.
+<span class="doccomment">/// One of the speakers available on the MOS 6560 VIC.
 </span><span class="kw">struct </span>VicChipSpeaker {
   on: bool,
   note: u8,
@@ -475,12 +586,6 @@
 /// Also handles the speakers and light pen.
 </span><span class="kw">pub struct </span>VicChip {
   platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
-
-  <span class="comment">// Associated Memory
-  </span>vram: BlockMemory,
-  characters: BlockMemory,
-  colors: BlockMemory,
-
   <span class="comment">// Registers
 
   // TV scan settings
@@ -500,7 +605,8 @@
 
   <span class="comment">// Memory mapping
   </span>vram_address_top: u8,
-  vram_line_9: bool,
+  character_address_top: u8,
+  color_ram_mapping: bool,
 
   <span class="comment">// Light pen
   </span>light_pen: VicChipLightPen,
@@ -523,34 +629,29 @@
   background_color: u8,
 
   <span class="comment">// Misc
-  </span>character_table_values: u8, <span class="comment">// what is this?
-</span>}
+  </span>last_draw_clock: u64,
+}
 
 <span class="kw">impl </span>VicChip {
-  <span class="kw">pub fn </span>new(platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;, characters: RomFile) -&gt; <span class="self">Self </span>{
-    platform.request_window(WindowConfig::new(
-      WIDTH * CHAR_WIDTH,
-      HEIGHT * CHAR_HEIGHT,
-      <span class="number">2.0</span>,
-    ));
+  <span class="kw">pub fn </span>new(platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; <span class="self">Self </span>{
+    <span class="kw">let </span>width: u8 = <span class="number">22</span>;
+    <span class="kw">let </span>height: u8 = <span class="number">23</span>;
+
+    platform.request_window(WindowConfig::new(width <span class="kw">as </span>u32 * <span class="number">8</span>, height <span class="kw">as </span>u32 * <span class="number">8</span>, <span class="number">2.0</span>));
 
     <span class="self">Self </span>{
       platform,
 
-      <span class="comment">// Associated Memory
-      </span>vram: BlockMemory::ram(VRAM_SIZE),
-      characters: BlockMemory::from_file(<span class="number">0x1000</span>, characters),
-      colors: BlockMemory::ram(<span class="number">0x0200</span>),
-
       scan_mode: <span class="bool-val">false</span>,
       left_draw_offset: <span class="number">12</span>,
       top_draw_offset: <span class="number">38</span>,
-      column_count: WIDTH <span class="kw">as </span>u8,
-      vram_line_9: <span class="bool-val">true</span>,
+      column_count: width,
+      color_ram_mapping: <span class="bool-val">true</span>,
       raster_counter: <span class="number">0</span>,
-      row_count: HEIGHT <span class="kw">as </span>u8,
+      row_count: height,
       double_size_chars: <span class="bool-val">false</span>,
       vram_address_top: <span class="number">0</span>,
+      character_address_top: <span class="number">0</span>,
       light_pen: VicChipLightPen::new(),
       potentiometer_1: <span class="number">0xFF</span>,
       potentiometer_2: <span class="number">0xFF</span>,
@@ -563,7 +664,7 @@
       border_color: <span class="number">3</span>,
       reverse_field: <span class="bool-val">true</span>,
       background_color: <span class="number">1</span>,
-      character_table_values: <span class="number">0</span>,
+      last_draw_clock: <span class="number">0</span>,
     }
   }
 
@@ -572,7 +673,7 @@
     <span class="self">self</span>.left_draw_offset = <span class="number">12</span>;
     <span class="self">self</span>.top_draw_offset = <span class="number">38</span>;
     <span class="self">self</span>.column_count = <span class="number">22</span>;
-    <span class="self">self</span>.vram_line_9 = <span class="bool-val">true</span>;
+    <span class="self">self</span>.color_ram_mapping = <span class="bool-val">true</span>;
     <span class="self">self</span>.raster_counter = <span class="number">0</span>;
     <span class="self">self</span>.row_count = <span class="number">23</span>;
     <span class="self">self</span>.double_size_chars = <span class="bool-val">false</span>;
@@ -589,28 +690,73 @@
     <span class="self">self</span>.border_color = <span class="number">3</span>;
     <span class="self">self</span>.reverse_field = <span class="bool-val">true</span>;
     <span class="self">self</span>.background_color = <span class="number">1</span>;
-    <span class="self">self</span>.character_table_values = <span class="number">0</span>;
+    <span class="self">self</span>.character_address_top = <span class="number">0</span>;
+  }
+
+  <span class="doccomment">/// The Vic-20 only has 14 address lines, see:
+  /// http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327
+  </span><span class="kw">fn </span>vic_to_cpu_address(address: u16) -&gt; u16 {
+    <span class="comment">// 0x0000 -&gt; 0x8000
+    // 0x0FFF -&gt; 0x8FFF
+    // 0x1000 -&gt; 0x9000
+    // 0x1FFF -&gt; 0x9FFF
+    // 0x2000 -&gt; 0x0000
+    // 0x2FFF -&gt; 0x0FFF
+
+    </span><span class="kw">match </span>address &amp; (<span class="number">1 </span>&lt;&lt; <span class="number">13</span>) {
+      <span class="number">0 </span>=&gt; <span class="number">0x8000 </span>+ (address &amp; <span class="number">0x1fff</span>),
+      <span class="kw">_ </span>=&gt; <span class="number">0x0000 </span>+ (address &amp; <span class="number">0x1fff</span>),
+    }
+  }
+
+  <span class="doccomment">/// Read the value of the screen memory at the given address,
+  /// respecting the mapping defined in the VIC registers.
+  </span><span class="kw">fn </span>read_vram(<span class="kw-2">&amp;</span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; u8 {
+    <span class="kw">let </span><span class="kw-2">mut </span>offset = (<span class="self">self</span>.vram_address_top <span class="kw">as </span>u16) &lt;&lt; <span class="number">10</span>;
+    offset += (<span class="self">self</span>.color_ram_mapping <span class="kw">as </span>u16) &lt;&lt; <span class="number">9</span>;
+
+    memory.read(VicChip::vic_to_cpu_address(address + offset))
+  }
+
+  <span class="doccomment">/// Read the value of the color memory at the given address,
+  /// respecting the mapping defined in the VIC registers.
+  </span><span class="kw">fn </span>read_color(<span class="kw-2">&amp;</span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; u8 {
+    <span class="kw">let </span>offset = <span class="kw">if </span><span class="self">self</span>.color_ram_mapping {
+      <span class="number">0x1600
+    </span>} <span class="kw">else </span>{
+      <span class="number">0x1400
+    </span>};
+
+    memory.read(VicChip::vic_to_cpu_address(address + offset))
+  }
+
+  <span class="doccomment">/// Read the value of the character memory at the given address,
+  /// respecting the mapping defined in the VIC registers.
+  </span><span class="kw">fn </span>read_character(<span class="kw-2">&amp;</span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; u8 {
+    <span class="kw">let </span>offset = (<span class="self">self</span>.character_address_top <span class="kw">as </span>u16) &lt;&lt; <span class="number">10</span>;
+
+    memory.read(VicChip::vic_to_cpu_address(address + offset))
   }
 
   <span class="doccomment">/// Get the bits in the character at the given value.
   /// The character is 8 bits wide and 8 bits tall, so this returns a vec![0; 8].
   /// Each byte is a horizontal row, which are ordered from top to bottom.
   /// Bits are ordered with the MSB at the left and the LSB at the right.
-  </span><span class="kw">fn </span>get_character(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: u8) -&gt; Vec&lt;u8&gt; {
+  </span><span class="kw">fn </span>get_character(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: u8, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; Vec&lt;u8&gt; {
     <span class="kw">let </span>character_index = (value <span class="kw">as </span>u16) * <span class="number">8</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>character = <span class="macro">vec!</span>[<span class="number">0</span>; <span class="number">8</span>];
     <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">8 </span>{
-      character[i] = <span class="self">self</span>.characters.read(character_index + i <span class="kw">as </span>u16);
+      character[i] = <span class="self">self</span>.read_character(character_index + i <span class="kw">as </span>u16, memory);
     }
 
     character
   }
 
   <span class="doccomment">/// Get the foreground color to be shown at the given character position.
-  </span><span class="kw">fn </span>get_foreground(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; Color {
-    <span class="kw">let </span>value = <span class="self">self</span>.colors.read(address);
-    <span class="kw">match </span>value {
+  </span><span class="kw">fn </span>get_foreground(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; Color {
+    <span class="kw">let </span>value = <span class="self">self</span>.read_color(address, memory);
+    <span class="kw">match </span>value &amp; <span class="number">0b111 </span>{
       <span class="number">0b000 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>),
       <span class="number">0b001 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>),
       <span class="number">0b010 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">0</span>, <span class="number">0</span>),
@@ -619,13 +765,13 @@
       <span class="number">0b101 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">255</span>, <span class="number">0</span>),
       <span class="number">0b110 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">255</span>),
       <span class="number">0b111 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">0</span>),
-      <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Invalid color value: {}&quot;</span>, value),
+      <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
     }
   }
 
   <span class="doccomment">/// Get the current background color being shown.
   </span><span class="kw">fn </span>get_background(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Color {
-    <span class="kw">match </span><span class="self">self</span>.background_color {
+    <span class="kw">match </span><span class="self">self</span>.background_color &amp; <span class="number">0b1111 </span>{
       <span class="number">0b0000 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>),
       <span class="number">0b0001 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>),
       <span class="number">0b0010 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">0</span>, <span class="number">0</span>),
@@ -642,67 +788,107 @@
       <span class="number">0b1101 </span>=&gt; Color::new(<span class="number">128</span>, <span class="number">255</span>, <span class="number">128</span>),
       <span class="number">0b1110 </span>=&gt; Color::new(<span class="number">128</span>, <span class="number">128</span>, <span class="number">255</span>),
       <span class="number">0b1111 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">128</span>),
-      <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Invalid color value: {}&quot;</span>, <span class="self">self</span>.background_color),
+      <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
+    }
+  }
+
+  <span class="doccomment">/// Get the color of the screen border.
+  </span><span class="kw">fn </span>get_border_color(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Color {
+    <span class="kw">match </span><span class="self">self</span>.border_color &amp; <span class="number">0b111 </span>{
+      <span class="number">0b000 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>),
+      <span class="number">0b001 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>),
+      <span class="number">0b010 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">0</span>, <span class="number">0</span>),
+      <span class="number">0b011 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">255</span>, <span class="number">255</span>),
+      <span class="number">0b100 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">0</span>, <span class="number">255</span>),
+      <span class="number">0b101 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">255</span>, <span class="number">0</span>),
+      <span class="number">0b110 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">255</span>),
+      <span class="number">0b111 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">0</span>),
+      <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
+    }
+  }
+
+  <span class="doccomment">/// Get the auxiliary color used for multicolor characters.
+  </span><span class="kw">fn </span>get_aux_color(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Color {
+    <span class="kw">match </span><span class="self">self</span>.aux_color &amp; <span class="number">0b1111 </span>{
+      <span class="number">0b0000 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>),
+      <span class="number">0b0001 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">255</span>),
+      <span class="number">0b0010 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">0</span>, <span class="number">0</span>),
+      <span class="number">0b0011 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">255</span>, <span class="number">255</span>),
+      <span class="number">0b0100 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">0</span>, <span class="number">255</span>),
+      <span class="number">0b0101 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">255</span>, <span class="number">0</span>),
+      <span class="number">0b0110 </span>=&gt; Color::new(<span class="number">0</span>, <span class="number">0</span>, <span class="number">255</span>),
+      <span class="number">0b0111 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">0</span>),
+      <span class="number">0b1000 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">127</span>, <span class="number">0</span>),
+      <span class="number">0b1001 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">192</span>, <span class="number">128</span>),
+      <span class="number">0b1010 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">128</span>, <span class="number">128</span>),
+      <span class="number">0b1011 </span>=&gt; Color::new(<span class="number">128</span>, <span class="number">255</span>, <span class="number">255</span>),
+      <span class="number">0b1100 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">128</span>, <span class="number">255</span>),
+      <span class="number">0b1101 </span>=&gt; Color::new(<span class="number">128</span>, <span class="number">255</span>, <span class="number">128</span>),
+      <span class="number">0b1110 </span>=&gt; Color::new(<span class="number">128</span>, <span class="number">128</span>, <span class="number">255</span>),
+      <span class="number">0b1111 </span>=&gt; Color::new(<span class="number">255</span>, <span class="number">255</span>, <span class="number">128</span>),
+      <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
     }
   }
 
   <span class="doccomment">/// Redraw the character at the specified address.
-  </span><span class="kw">fn </span>redraw(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) {
-    <span class="kw">if </span>address &gt;= (HEIGHT * WIDTH) <span class="kw">as </span>u16 {
+  </span><span class="kw">fn </span>redraw(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) {
+    <span class="kw">if </span>address &gt;= (<span class="self">self</span>.row_count <span class="kw">as </span>u16 * <span class="self">self</span>.column_count <span class="kw">as </span>u16) {
       <span class="kw">return</span>; <span class="comment">// ignore writes to the extra bytes
     </span>}
 
-    <span class="kw">let </span>column = (address % WIDTH <span class="kw">as </span>u16) <span class="kw">as </span>u32;
-    <span class="kw">let </span>row = (address / WIDTH <span class="kw">as </span>u16) <span class="kw">as </span>u32;
+    <span class="kw">let </span>column = (address % <span class="self">self</span>.column_count <span class="kw">as </span>u16) <span class="kw">as </span>u32;
+    <span class="kw">let </span>row = (address / <span class="self">self</span>.column_count <span class="kw">as </span>u16) <span class="kw">as </span>u32;
 
-    <span class="kw">let </span>value = <span class="self">self</span>.read_vram(address);
-    <span class="kw">let </span>character = <span class="self">self</span>.get_character(value);
+    <span class="kw">let </span>value = <span class="self">self</span>.read_vram(address, memory);
+    <span class="kw">let </span>color = <span class="self">self</span>.read_color(address, memory);
+    <span class="kw">let </span>character = <span class="self">self</span>.get_character(value, memory);
 
-    <span class="kw">for </span>line <span class="kw">in </span><span class="number">0</span>..CHAR_HEIGHT {
-      <span class="kw">let </span>line_data = character[line <span class="kw">as </span>usize];
-      <span class="kw">for </span>pixel <span class="kw">in </span><span class="number">0</span>..CHAR_WIDTH {
-        <span class="kw">let </span>color = <span class="kw">if </span>line_data &amp; (<span class="number">1 </span>&lt;&lt; (CHAR_WIDTH - <span class="number">1 </span>- pixel)) != <span class="number">0 </span>{
-          <span class="self">self</span>.get_foreground(address)
-        } <span class="kw">else </span>{
-          <span class="self">self</span>.get_background()
-        };
+    <span class="kw">let </span>char_height = <span class="kw">if </span><span class="self">self</span>.double_size_chars { <span class="number">16 </span>} <span class="kw">else </span>{ <span class="number">8 </span>};
+    <span class="kw">let </span>char_width = <span class="kw">if </span>color &amp; <span class="number">0b1000 </span>== <span class="number">0 </span>{ <span class="number">8 </span>} <span class="kw">else </span>{ <span class="number">4 </span>};
 
-        <span class="self">self
-          </span>.platform
-          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+    <span class="kw">if </span>color &amp; <span class="number">0b1000 </span>== <span class="number">0 </span>{
+      <span class="kw">for </span>line <span class="kw">in </span><span class="number">0</span>..char_height {
+        <span class="kw">let </span>line_data = character[line <span class="kw">as </span>usize];
+        <span class="kw">for </span>pixel <span class="kw">in </span><span class="number">0</span>..char_width {
+          <span class="kw">let </span>color = <span class="kw">if </span>line_data &amp; (<span class="number">1 </span>&lt;&lt; (char_width - <span class="number">1 </span>- pixel)) != <span class="number">0 </span>{
+            <span class="self">self</span>.get_foreground(address, memory)
+          } <span class="kw">else </span>{
+            <span class="self">self</span>.get_background()
+          };
+
+          <span class="self">self
+            </span>.platform
+            .set_pixel(column * char_width + pixel, row * char_height + line, color);
+        }
+      }
+    } <span class="kw">else </span>{
+      <span class="comment">// Multicolor characters
+      </span><span class="kw">for </span>line <span class="kw">in </span><span class="number">0</span>..char_height {
+        <span class="kw">let </span>line_data = character[line <span class="kw">as </span>usize];
+        <span class="kw">for </span>pixel <span class="kw">in </span><span class="number">0</span>..(char_width / <span class="number">2</span>) {
+          <span class="kw">let </span>color_code = (line_data &gt;&gt; (char_width - <span class="number">2 </span>- (pixel * <span class="number">2</span>))) &amp; <span class="number">0b11</span>;
+
+          <span class="kw">let </span>color = <span class="kw">match </span>color_code {
+            <span class="number">0b00 </span>=&gt; <span class="self">self</span>.get_background(),
+            <span class="number">0b01 </span>=&gt; <span class="self">self</span>.get_border_color(),
+            <span class="number">0b10 </span>=&gt; <span class="self">self</span>.get_foreground(address, memory),
+            <span class="number">0b11 </span>=&gt; <span class="self">self</span>.get_aux_color(),
+            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
+          };
+
+          <span class="self">self</span>.platform.set_pixel(
+            column * char_width + (pixel * <span class="number">2</span>),
+            row * char_height + line,
+            color,
+          );
+          <span class="self">self</span>.platform.set_pixel(
+            column * char_width + (pixel * <span class="number">2</span>) + <span class="number">1</span>,
+            row * char_height + line,
+            color,
+          );
+        }
       }
     }
-  }
-
-  <span class="kw">pub fn </span>read_vram(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; u8 {
-    <span class="self">self</span>.vram.read(address)
-  }
-
-  <span class="kw">pub fn </span>write_vram(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
-    <span class="self">self</span>.vram.write(address, value);
-    <span class="self">self</span>.redraw(address);
-  }
-
-  <span class="kw">pub fn </span>read_character(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; u8 {
-    <span class="self">self</span>.characters.read(address)
-  }
-
-  <span class="kw">pub fn </span>write_character(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
-    <span class="self">self</span>.characters.write(address, value);
-
-    <span class="comment">// Redraw the entire screen
-    </span><span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..(WIDTH * HEIGHT) {
-      <span class="self">self</span>.redraw(i <span class="kw">as </span>u16);
-    }
-  }
-
-  <span class="kw">pub fn </span>read_color(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; u8 {
-    <span class="self">self</span>.colors.read(address)
-  }
-
-  <span class="kw">pub fn </span>write_color(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
-    <span class="self">self</span>.colors.write(address, value);
-    <span class="self">self</span>.redraw(address);
   }
 }
 
@@ -724,14 +910,14 @@
     <span class="kw">match </span>address % <span class="number">0xF </span>{
       <span class="number">0x0 </span>=&gt; chip.left_draw_offset | (chip.scan_mode <span class="kw">as </span>u8) &lt;&lt; <span class="number">7</span>,
       <span class="number">0x1 </span>=&gt; chip.top_draw_offset,
-      <span class="number">0x2 </span>=&gt; chip.column_count | (chip.vram_line_9 <span class="kw">as </span>u8) &lt;&lt; <span class="number">7</span>,
+      <span class="number">0x2 </span>=&gt; chip.column_count | (chip.color_ram_mapping <span class="kw">as </span>u8) &lt;&lt; <span class="number">7</span>,
       <span class="number">0x3 </span>=&gt; {
         (chip.double_size_chars <span class="kw">as </span>u8)
           | (chip.row_count &lt;&lt; <span class="number">1</span>)
           | ((chip.raster_counter &amp; <span class="number">0b1</span>) <span class="kw">as </span>u8) &lt;&lt; <span class="number">7
       </span>}
       <span class="number">0x4 </span>=&gt; (chip.raster_counter &gt;&gt; <span class="number">1</span>) <span class="kw">as </span>u8,
-      <span class="number">0x5 </span>=&gt; chip.character_table_values | (chip.vram_address_top &lt;&lt; <span class="number">4</span>),
+      <span class="number">0x5 </span>=&gt; chip.character_address_top | (chip.vram_address_top &lt;&lt; <span class="number">4</span>),
       <span class="number">0x6 </span>=&gt; chip.light_pen.read_x(),
       <span class="number">0x7 </span>=&gt; chip.light_pen.read_y(),
       <span class="number">0x8 </span>=&gt; chip.potentiometer_1,
@@ -755,18 +941,39 @@
       }
       <span class="number">0x1 </span>=&gt; chip.top_draw_offset = value,
       <span class="number">0x2 </span>=&gt; {
-        chip.vram_line_9 = (value &amp; <span class="number">0x80</span>) != <span class="number">0</span>;
+        <span class="kw">if </span>value &amp; <span class="number">0x7F </span>!= chip.column_count {
+          chip.platform.request_window(WindowConfig::new(
+            (value &amp; <span class="number">0x7F</span>) <span class="kw">as </span>u32 * <span class="number">8</span>,
+            chip.row_count <span class="kw">as </span>u32 * <span class="number">8</span>,
+            <span class="number">2.0</span>,
+          ));
+        }
+
+        chip.color_ram_mapping = (value &amp; <span class="number">0x80</span>) != <span class="number">0</span>;
         chip.column_count = value &amp; <span class="number">0x7F</span>;
       }
       <span class="number">0x3 </span>=&gt; {
         chip.raster_counter = (chip.raster_counter &amp; <span class="number">0x1FE</span>) | ((value &amp; <span class="number">0x80</span>) <span class="kw">as </span>u16) &gt;&gt; <span class="number">7</span>;
+
+        <span class="kw">if </span>((value &gt;&gt; <span class="number">1</span>) &amp; <span class="number">0x3F</span>) != chip.row_count {
+          chip.platform.request_window(WindowConfig::new(
+            chip.column_count <span class="kw">as </span>u32 * <span class="number">8</span>,
+            ((value &gt;&gt; <span class="number">1</span>) &amp; <span class="number">0x3F</span>) <span class="kw">as </span>u32 * <span class="number">8</span>,
+            <span class="number">2.0</span>,
+          ));
+        }
+
         chip.row_count = (value &gt;&gt; <span class="number">1</span>) &amp; <span class="number">0x3F</span>;
         chip.double_size_chars = (value &amp; <span class="number">0x01</span>) != <span class="number">0</span>;
+
+        <span class="kw">if </span>chip.double_size_chars {
+          <span class="macro">panic!</span>(<span class="string">&quot;Double size characters not supported yet&quot;</span>);
+        }
       }
       <span class="number">0x4 </span>=&gt; chip.raster_counter = (chip.raster_counter &amp; <span class="number">0x1</span>) | ((value <span class="kw">as </span>u16) &lt;&lt; <span class="number">1</span>),
       <span class="number">0x5 </span>=&gt; {
         chip.vram_address_top = (value &gt;&gt; <span class="number">4</span>) &amp; <span class="number">0x0F</span>;
-        chip.character_table_values = value &amp; <span class="number">0x0F</span>;
+        chip.character_address_top = value &amp; <span class="number">0x0F</span>;
       }
       <span class="number">0x6 </span>=&gt; chip.light_pen.write_x(value),
       <span class="number">0x7 </span>=&gt; chip.light_pen.write_y(value),
@@ -796,6 +1003,33 @@
 
   <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
     ActiveInterrupt::None
+  }
+}
+
+<span class="doccomment">/// Handles drawing characters by reading directly from the main memory.
+</span><span class="kw">pub struct </span>VicChipDMA {
+  chip: Arc&lt;Mutex&lt;VicChip&gt;&gt;,
+}
+
+<span class="kw">impl </span>VicChipDMA {
+  <span class="kw">pub fn </span>new(chip: Arc&lt;Mutex&lt;VicChip&gt;&gt;) -&gt; <span class="self">Self </span>{
+    <span class="self">Self </span>{ chip }
+  }
+}
+
+<span class="kw">impl </span>DMA <span class="kw">for </span>VicChipDMA {
+  <span class="kw">fn </span>dma(<span class="kw-2">&amp;mut </span><span class="self">self</span>, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;, info: <span class="kw-2">&amp;</span>SystemInfo) {
+    <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.lock().unwrap();
+
+    <span class="kw">if </span>(info.cycle_count - chip.last_draw_clock) &lt; <span class="number">50_000 </span>{
+      <span class="kw">return</span>;
+    }
+
+    chip.last_draw_clock = info.cycle_count;
+
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..(chip.column_count <span class="kw">as </span>u16 * chip.row_count <span class="kw">as </span>u16) {
+      chip.redraw(i <span class="kw">as </span>u16, memory);
+    }
   }
 }
 </code></pre></div>

@@ -234,6 +234,21 @@
 <span id="234">234</span>
 <span id="235">235</span>
 <span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 <span class="kw">use </span><span class="kw">crate</span>::memory::via::VIA;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
@@ -243,16 +258,10 @@
 <span class="kw">use </span><span class="kw">crate</span>::systems::SystemFactory;
 <span class="kw">use </span>std::sync::{Arc, Mutex};
 
-<span class="kw">mod </span>character;
 <span class="kw">mod </span>chip;
-<span class="kw">mod </span>color;
 <span class="kw">mod </span>keyboard;
-<span class="kw">mod </span>vram;
-<span class="kw">use </span>character::VicCharacterRam;
 <span class="kw">use </span>chip::{VicChip, VicChipIO};
-<span class="kw">use </span>color::VicColorRam;
 <span class="kw">use </span>keyboard::{Vic20KeyboardAdapter, KEYBOARD_MAPPING};
-<span class="kw">use </span>vram::VicVram;
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">use </span>js_sys::Reflect;
@@ -266,6 +275,7 @@
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">use </span>js_sys::Uint8Array;
 
+<span class="kw">use </span><span class="self">self</span>::chip::VicChipDMA;
 <span class="kw">use </span><span class="self">self</span>::keyboard::Vic20SymbolAdapter;
 
 <span class="doccomment">/// The set of ROM files required to run a VIC-20 system.
@@ -278,22 +288,27 @@
 
   <span class="doccomment">/// Kernal ROM. Contains the operating system and editor functions.
   </span><span class="kw">pub </span>kernal: RomFile,
+
+  <span class="doccomment">/// Cartridge ROM. Contains the contents of a cartridge, if one is inserted.
+  </span><span class="kw">pub </span>cartridge: <span class="prelude-ty">Option</span>&lt;RomFile&gt;,
 }
 
 <span class="kw">impl </span>Vic20SystemRoms {
   <span class="doccomment">/// Load the ROM files from files.
   </span><span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
-  </span><span class="kw">pub fn </span>from_disk() -&gt; <span class="self">Self </span>{
+  </span><span class="kw">pub fn </span>from_disk(cartridge_path: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;) -&gt; <span class="self">Self </span>{
     <span class="kw">use </span><span class="kw">crate</span>::roms::DiskLoadable;
 
     <span class="kw">let </span>character = RomFile::from_file(<span class="string">&quot;vic/char.bin&quot;</span>);
     <span class="kw">let </span>basic = RomFile::from_file(<span class="string">&quot;vic/basic.bin&quot;</span>);
     <span class="kw">let </span>kernal = RomFile::from_file(<span class="string">&quot;vic/kernal.bin&quot;</span>);
+    <span class="kw">let </span>cartridge = cartridge_path.map(|path| RomFile::from_file(path));
 
     <span class="self">Self </span>{
       character,
       basic,
       kernal,
+      cartridge,
     }
   }
 
@@ -313,11 +328,16 @@
       .unwrap()
       .dyn_into::&lt;Uint8Array&gt;()
       .unwrap();
+    <span class="kw">let </span>cartridge = Reflect::get(value, <span class="kw-2">&amp;</span>JsValue::from_str(<span class="string">&quot;cartridge&quot;</span>))
+      .unwrap()
+      .dyn_into::&lt;Uint8Array&gt;()
+      .unwrap();
 
     <span class="self">Self </span>{
       character: RomFile::from_uint8array(<span class="kw-2">&amp;</span>character),
       basic: RomFile::from_uint8array(<span class="kw-2">&amp;</span>basic),
       kernal: RomFile::from_uint8array(<span class="kw-2">&amp;</span>kernal),
+      cartridge: <span class="prelude-val">Some</span>(RomFile::from_uint8array(<span class="kw-2">&amp;</span>cartridge)),
     }
   }
 }
@@ -434,7 +454,7 @@
     <span class="kw">let </span>low_ram = BlockMemory::ram(<span class="number">0x0400</span>);
     <span class="kw">let </span>main_ram = BlockMemory::ram(<span class="number">0x0E00</span>);
 
-    <span class="kw">let </span>vic_chip = Arc::new(Mutex::new(VicChip::new(platform.clone(), roms.character)));
+    <span class="kw">let </span>vic_chip = Arc::new(Mutex::new(VicChip::new(platform.clone())));
     <span class="kw">let </span>via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="kw">let </span>b = VicVia2PortB::new();
@@ -445,10 +465,15 @@
     <span class="kw">let </span>basic_rom = BlockMemory::from_file(<span class="number">0x2000</span>, roms.basic);
     <span class="kw">let </span>kernel_rom = BlockMemory::from_file(<span class="number">0x2000</span>, roms.kernal);
 
-    <span class="kw">let </span>vram = VicVram::new(vic_chip.clone());
-    <span class="kw">let </span>characters = VicCharacterRam::new(vic_chip.clone());
-    <span class="kw">let </span>colors = VicColorRam::new(vic_chip.clone());
+    <span class="kw">let </span>vram = BlockMemory::ram(<span class="number">0x0200</span>);
+    <span class="kw">let </span>characters = BlockMemory::from_file(<span class="number">0x1000</span>, roms.character);
+    <span class="kw">let </span>colors = BlockMemory::ram(<span class="number">0x0200</span>);
     <span class="kw">let </span>chip_io = VicChipIO::new(vic_chip.clone());
+
+    <span class="kw">let </span>cartridge = <span class="kw">match </span>roms.cartridge {
+      <span class="prelude-val">Some</span>(rom) =&gt; BlockMemory::from_file(<span class="number">0x4000</span>, rom),
+      <span class="prelude-val">None </span>=&gt; BlockMemory::ram(<span class="number">0x4000</span>),
+    };
 
     <span class="kw">let </span>memory = BranchMemory::new()
       .map(<span class="number">0x0000</span>, Box::new(low_ram))
@@ -464,10 +489,15 @@
       .map(<span class="number">0x9120</span>, Box::new(via2))
       .map(<span class="number">0x9130</span>, Box::new(NullMemory::new()))
       .map(<span class="number">0x9600</span>, Box::new(colors))
+      .map(<span class="number">0xA000</span>, Box::new(cartridge))
       .map(<span class="number">0xC000</span>, Box::new(basic_rom))
       .map(<span class="number">0xE000</span>, Box::new(kernel_rom));
 
-    System::new(Box::new(memory), <span class="number">1_000_000</span>)
+    <span class="kw">let </span><span class="kw-2">mut </span>system = System::new(Box::new(memory), <span class="number">1_000_000</span>);
+
+    system.attach_dma(Box::new(VicChipDMA::new(vic_chip)));
+
+    system
   }
 }
 </code></pre></div>

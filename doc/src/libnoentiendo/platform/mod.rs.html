@@ -106,6 +106,7 @@
 <span id="106">106</span>
 <span id="107">107</span>
 <span id="108">108</span>
+<span id="109">109</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
@@ -190,7 +191,8 @@
 
 <span class="kw">pub trait </span>PlatformProvider {
   <span class="doccomment">/// Request that the platform create a window of the specified size,
-  /// with the specified scale factor.
+  /// with the specified scale factor. If a window already exists, the platform
+  /// should resize it to the new size.
   </span><span class="kw">fn </span>request_window(<span class="kw-2">&amp;</span><span class="self">self</span>, config: WindowConfig);
 
   <span class="doccomment">/// Set the given pixel on the screen to the given color.
