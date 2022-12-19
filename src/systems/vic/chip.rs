@@ -183,45 +183,49 @@ impl VicChip {
     self.character_address_top = 0;
   }
 
+  /// The Vic-20 only has 14 address lines, see:
+  /// http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327
+  fn vic_to_cpu_address(address: u16) -> u16 {
+    // 0x0000 -> 0x8000
+    // 0x0FFF -> 0x8FFF
+    // 0x1000 -> 0x9000
+    // 0x1FFF -> 0x9FFF
+    // 0x2000 -> 0x0000
+    // 0x2FFF -> 0x0FFF
+
+    match address & (1 << 13) {
+      0 => 0x8000 + (address & 0x1fff),
+      _ => 0x0000 + (address & 0x1fff),
+    }
+  }
+
   /// Read the value of the screen memory at the given address,
   /// respecting the mapping defined in the VIC registers.
   fn read_vram(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
-    let mut offset: u16 = if self.vram_address_top & 0x8 != 0 {
-      0x0000
-    } else {
-      0x8000
-    };
-
-    offset += ((self.vram_address_top & 0b111) as u16) << 10;
+    let mut offset = (self.vram_address_top as u16) << 10;
     offset += (self.color_ram_mapping as u16) << 9;
 
-    memory.read(address + offset)
+    memory.read(VicChip::vic_to_cpu_address(address + offset))
   }
 
   /// Read the value of the color memory at the given address,
   /// respecting the mapping defined in the VIC registers.
   fn read_color(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
     let offset = if self.color_ram_mapping {
-      0x9600
+      0x1600
     } else {
-      0x9400
+      0x1400
     };
 
-    memory.read(address + offset)
+    memory.read(VicChip::vic_to_cpu_address(address + offset))
   }
 
   /// Read the value of the character memory at the given address,
   /// respecting the mapping defined in the VIC registers.
   fn read_character(&self, address: u16, memory: &mut Box<dyn Memory>) -> u8 {
-    let mut offset: u16 = if self.character_address_top & 0x8 != 0 {
-      0x0000
-    } else {
-      0x8000
-    };
+    let offset = (self.character_address_top as u16) << 10;
 
-    offset += ((self.character_address_top & 0b111) as u16) << 10;
-
-    memory.read(address + offset)
+    memory.read(VicChip::vic_to_cpu_address(address + offset))
   }
 
   /// Get the bits in the character at the given value.
@@ -432,6 +436,10 @@ impl Memory for VicChipIO {
         chip.raster_counter = (chip.raster_counter & 0x1FE) | ((value & 0x80) as u16) >> 7;
         chip.row_count = (value >> 1) & 0x3F;
         chip.double_size_chars = (value & 0x01) != 0;
+
+        if chip.double_size_chars {
+          panic!("Double size characters not supported yet");
+        }
       }
       0x4 => chip.raster_counter = (chip.raster_counter & 0x1) | ((value as u16) << 1),
       0x5 => {

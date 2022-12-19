@@ -6,6 +6,7 @@ import petKernalBin from "../pet/kernal.bin";
 import vicCharBin from "../vic/char.bin";
 import vicBasicBin from "../vic/basic.bin";
 import vicKernalBin from "../vic/kernal.bin";
+import vicPacManBin from "../vic/pacman.bin";
 
 document.getElementById("canvas").focus();
 
@@ -18,7 +19,12 @@ let [petBasic, petChar, petEditor, petKernal] = [
   .map((x) => x.split(";")[1].split(",")[1])
   .map((x) => Uint8Array.from(atob(x), (c) => c.charCodeAt(0)));
 
-let [vicBasic, vicChar, vicKernal] = [vicBasicBin, vicCharBin, vicKernalBin]
+let [vicBasic, vicChar, vicKernal, vicPacMan] = [
+  vicBasicBin,
+  vicCharBin,
+  vicKernalBin,
+  vicPacManBin,
+]
   .map((x) => x.split(";")[1].split(",")[1])
   .map((x) => Uint8Array.from(atob(x), (c) => c.charCodeAt(0)));
 
@@ -33,6 +39,7 @@ let roms = {
     basic: vicBasic,
     char: vicChar,
     kernal: vicKernal,
+    cartridge: vicPacMan,
   },
 };
 

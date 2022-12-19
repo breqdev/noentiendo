@@ -2,7 +2,7 @@ use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::via::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
-use crate::roms::{DiskLoadable, RomFile};
+use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::{Arc, Mutex};
@@ -37,6 +37,9 @@ pub struct Vic20SystemRoms {
 
   /// Kernal ROM. Contains the operating system and editor functions.
   pub kernal: RomFile,
+
+  /// Cartridge ROM. Contains the contents of a cartridge, if one is inserted.
+  pub cartridge: Option<RomFile>,
 }
 
 impl Vic20SystemRoms {
@@ -48,11 +51,13 @@ impl Vic20SystemRoms {
     let character = RomFile::from_file("vic/char.bin");
     let basic = RomFile::from_file("vic/basic.bin");
     let kernal = RomFile::from_file("vic/kernal.bin");
+    let cartridge = RomFile::from_file("vic/pacman.bin");
 
     Self {
       character,
       basic,
       kernal,
+      cartridge: Some(cartridge),
     }
   }
 
@@ -72,11 +77,16 @@ impl Vic20SystemRoms {
       .unwrap()
       .dyn_into::<Uint8Array>()
       .unwrap();
+    let cartridge = Reflect::get(value, &JsValue::from_str("cartridge"))
+      .unwrap()
+      .dyn_into::<Uint8Array>()
+      .unwrap();
 
     Self {
       character: RomFile::from_uint8array(&character),
       basic: RomFile::from_uint8array(&basic),
       kernal: RomFile::from_uint8array(&kernal),
+      cartridge: Some(RomFile::from_uint8array(&cartridge)),
     }
   }
 }
@@ -209,8 +219,10 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
     let colors = BlockMemory::ram(0x0200);
     let chip_io = VicChipIO::new(vic_chip.clone());
 
-    let cartridge = BlockMemory::from_file(0x4000, RomFile::from_file("vic/pacman.bin"));
-    // let cartridge = BlockMemory::ram(0x4000);
+    let cartridge = match roms.cartridge {
+      Some(rom) => BlockMemory::from_file(0x4000, rom),
+      None => BlockMemory::ram(0x4000),
+    };
 
     let memory = BranchMemory::new()
       .map(0x0000, Box::new(low_ram))

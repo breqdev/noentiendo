@@ -35,7 +35,6 @@ pub enum Vic20Keys {
   At,
   Asterisk,
   UpArrow,
-  Restore,
 
   RunStop,
   ShiftLock,
