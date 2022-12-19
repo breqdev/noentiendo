@@ -602,7 +602,19 @@ impl Execute for System {
         Ok(cycles + 2)
       }
 
-      // TODO: ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS, ATX
+      0xE3 | 0xE7 | 0xEF | 0xF3 | 0xF7 | 0xFB | 0xFF => {
+        // ISC: INC => SBC
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value.wrapping_add(1);
+        self.registers.alu_subtract(value);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        Ok(cycles + 2)
+      }
+
+      // TODO: ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS, ATX
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
