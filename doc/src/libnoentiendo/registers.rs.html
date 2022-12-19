@@ -298,7 +298,12 @@
 <span id="298">298</span>
 <span id="299">299</span>
 <span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
 </pre><pre class="rust"><code><span class="doccomment">/// The registers inside of a MOS 6502 processor.
+</span><span class="attribute">#[derive(Default)]
 </span><span class="kw">pub struct </span>Registers {
   <span class="doccomment">/// The accumulator register, used in ALU operations.
   </span><span class="kw">pub </span>a: u8,
@@ -354,6 +359,7 @@
 /// The stack register is usually initialized by the operating system to 0x01FF,
 /// and grows upward (i.e., pushing decrements the value, while popping
 /// increments it).
+</span><span class="attribute">#[derive(Default)]
 </span><span class="kw">pub struct </span>StackPointer {
   value: u8,
 }
@@ -392,6 +398,7 @@
 
 <span class="doccomment">/// The program counter register, which points to the current instruction being
 /// executed.
+</span><span class="attribute">#[derive(Default)]
 </span><span class="kw">pub struct </span>ProgramCounter {
   value: u16,
 }
@@ -424,6 +431,7 @@
 
 <span class="doccomment">/// The processor status register, which contains a series of flags that
 /// represent the current state of the processor.
+</span><span class="attribute">#[derive(Default)]
 </span><span class="kw">pub struct </span>StatusRegister {
   value: u8,
 }

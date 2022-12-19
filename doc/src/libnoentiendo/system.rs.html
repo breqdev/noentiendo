@@ -191,12 +191,7 @@
 <span id="191">191</span>
 <span id="192">192</span>
 <span id="193">193</span>
-<span id="194">194</span>
-<span id="195">195</span>
-<span id="196">196</span>
-</pre><pre class="rust"><code><span class="kw">use </span>std::rc::Rc;
-
-<span class="kw">use </span><span class="kw">crate</span>::execute::Execute;
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::execute::Execute;
 <span class="kw">use </span><span class="kw">crate</span>::fetch::Fetch;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::registers::{flags, Registers};
@@ -269,8 +264,7 @@
 
   <span class="kw">fn </span>pop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
     <span class="self">self</span>.registers.sp.pop();
-    <span class="kw">let </span>value = <span class="self">self</span>.read(<span class="self">self</span>.registers.sp.address());
-    value
+    <span class="self">self</span>.read(<span class="self">self</span>.registers.sp.address())
   }
 
   <span class="kw">fn </span>push_word(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: u16) {

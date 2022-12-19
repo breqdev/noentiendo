@@ -113,7 +113,7 @@
         <span class="kw">let </span>char = input.chars().next().expect(<span class="string">&quot;String is empty&quot;</span>);
         ((char <span class="kw">as </span>u32) &amp; <span class="number">0xFF</span>) <span class="kw">as </span>u8
       }
-      <span class="number">0x02 </span>=&gt; u8::from_str_radix(<span class="kw-2">&amp;</span>input.trim(), <span class="number">16</span>).expect(<span class="string">&quot;Invalid input for u8&quot;</span>),
+      <span class="number">0x02 </span>=&gt; u8::from_str_radix(input.trim(), <span class="number">16</span>).expect(<span class="string">&quot;Invalid input for u8&quot;</span>),
       <span class="number">0x03 </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Invalid address for MappedStdIO&quot;</span>),
       <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">&quot;Invalid address&quot;</span>),
     }

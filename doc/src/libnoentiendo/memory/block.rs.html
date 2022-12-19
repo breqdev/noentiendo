@@ -76,8 +76,6 @@
 <span id="76">76</span>
 <span id="77">77</span>
 <span id="78">78</span>
-<span id="79">79</span>
-<span id="80">80</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 
@@ -125,9 +123,7 @@
       );
     }
 
-    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..file_data.len() {
-      data[i] = file_data[i];
-    }
+    data[..file_data.len()].copy_from_slice(<span class="kw-2">&amp;</span>file_data[..]);
 
     <span class="self">Self </span>{
       size,

@@ -315,7 +315,7 @@
 
   <span class="kw">fn </span>get_config(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WindowConfig {
     <span class="kw">let </span>config = <span class="self">self</span>.config.lock().unwrap();
-    config.clone().expect(<span class="string">&quot;WindowConfig not set&quot;</span>)
+    config.expect(<span class="string">&quot;WindowConfig not set&quot;</span>)
   }
 }
 
@@ -405,7 +405,7 @@
             <span class="kw">let </span>new_config = config.lock().unwrap().unwrap();
 
             <span class="kw">if </span>new_config != current_config {
-              current_config = new_config.clone();
+              current_config = new_config;
               <span class="kw-2">*</span>dirty.lock().unwrap() = <span class="bool-val">true</span>;
 
               window.set_inner_size(LogicalSize::new(
@@ -482,7 +482,7 @@
   }
   <span class="kw">fn </span>get_config(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WindowConfig {
     <span class="kw">let </span>config = <span class="self">self</span>.config.lock().unwrap();
-    config.clone().expect(<span class="string">&quot;WindowConfig not set&quot;</span>)
+    config.expect(<span class="string">&quot;WindowConfig not set&quot;</span>)
   }
 }
 

@@ -250,7 +250,6 @@
 <span id="250">250</span>
 <span id="251">251</span>
 <span id="252">252</span>
-<span id="253">253</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
 
 <span class="comment">// MOS 6522
@@ -400,8 +399,7 @@
       <span class="number">0x03 </span>=&gt; <span class="self">self</span>.a.ddr,
       <span class="number">0x04 </span>=&gt; {
         <span class="self">self</span>.t1.interrupt = <span class="bool-val">false</span>;
-        <span class="kw">let </span>value = (<span class="self">self</span>.t1.counter &amp; <span class="number">0xff</span>) <span class="kw">as </span>u8;
-        value
+        (<span class="self">self</span>.t1.counter &amp; <span class="number">0xff</span>) <span class="kw">as </span>u8
       }
       <span class="number">0x05 </span>=&gt; ((<span class="self">self</span>.t1.counter &gt;&gt; <span class="number">8</span>) &amp; <span class="number">0xff</span>) <span class="kw">as </span>u8,
       <span class="number">0x06 </span>=&gt; (<span class="self">self</span>.t1.latch &amp; <span class="number">0xff</span>) <span class="kw">as </span>u8,

@@ -514,10 +514,8 @@
 <span id="514">514</span>
 <span id="515">515</span>
 <span id="516">516</span>
-<span id="517">517</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, BlockMemory, Memory, SystemInfo, DMA};
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
-<span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 <span class="kw">use </span>std::sync::{Arc, Mutex};
 
 <span class="doccomment">/// One of the speakers available on the MOS 6560 VIC.
@@ -746,8 +744,8 @@
     <span class="kw">let </span>character_index = (value <span class="kw">as </span>u16) * <span class="number">8</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>character = <span class="macro">vec!</span>[<span class="number">0</span>; <span class="number">8</span>];
-    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">8 </span>{
-      character[i] = <span class="self">self</span>.read_character(character_index + i <span class="kw">as </span>u16, memory);
+    <span class="kw">for </span>(i, row) <span class="kw">in </span>character.iter_mut().enumerate() {
+      <span class="kw-2">*</span>row = <span class="self">self</span>.read_character(character_index + i <span class="kw">as </span>u16, memory);
     }
 
     character

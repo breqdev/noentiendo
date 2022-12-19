@@ -45,9 +45,11 @@
 <span id="45">45</span>
 <span id="46">46</span>
 <span id="47">47</span>
+<span id="48">48</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo};
 
 <span class="doccomment">/// Memory that does nothing when read or written to.
+</span><span class="attribute">#[derive(Default)]
 </span><span class="kw">pub struct </span>NullMemory {
   warn: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;,
 }

@@ -61,6 +61,7 @@
 <span id="61">61</span>
 <span id="62">62</span>
 <span id="63">63</span>
+<span id="64">64</span>
 </pre><pre class="rust"><code><span class="kw">mod </span>positions;
 <span class="kw">mod </span>symbols;
 <span class="kw">pub use </span>positions::KeyPosition;
@@ -68,6 +69,7 @@
 
 <span class="doccomment">/// A set of keys that are currently pressed.
 /// Parameter `T` is the type of the key symbols.
+</span><span class="attribute">#[derive(Default)]
 </span><span class="kw">pub struct </span>KeyState&lt;T: PartialEq&gt; {
   pressed: Vec&lt;T&gt;,
 }

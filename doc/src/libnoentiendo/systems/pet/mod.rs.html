@@ -297,8 +297,8 @@
       }
     };
 
-    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">8 </span>{
-      <span class="kw">if </span>state.is_pressed(row[i]) {
+    <span class="kw">for </span>(i, key) <span class="kw">in </span>row.iter().enumerate() {
+      <span class="kw">if </span>state.is_pressed(<span class="kw-2">*</span>key) {
         value &amp;= !(<span class="number">1 </span>&lt;&lt; i);
       }
     }
