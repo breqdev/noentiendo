@@ -502,7 +502,23 @@ impl Execute for System {
         Ok(cycles + 2)
       }
 
-      // TODO: RRA, SAX, LAX, DCP, ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS
+      0x63 | 0x67 | 0x6F | 0x73 | 0x77 | 0x7B | 0x7F => {
+        // RRA: ROR -> ADC
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value >> 1 | (self.registers.sr.read(flags::CARRY) as u8) << 7;
+
+        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        let (value, _cycles) = self.fetch_operand_value(opcode);
+        self.registers.alu_add(value);
+
+        Ok(cycles)
+      }
+
+      // TODO: SAX, LAX, DCP, ISC, ANC, ALR, ARR, XAA, AXS, SBC, SHY, AHX, TAS
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
