@@ -120,7 +120,7 @@ impl Memory for EasyIO {
 
 /// A port of the "Easy6502" system from
 /// <https://skilldrick.github.io/easy6502/>
-pub struct EasySystemFactory {}
+pub struct EasySystemFactory;
 
 impl SystemFactory<RomFile, ()> for EasySystemFactory {
   fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {

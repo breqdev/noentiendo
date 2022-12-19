@@ -2,7 +2,7 @@ use winit::event::VirtualKeyCode;
 
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 
-pub struct WinitAdapter {}
+pub struct WinitAdapter;
 
 impl KeyAdapter<VirtualKeyCode, KeyPosition> for WinitAdapter {
   fn map(state: &KeyState<VirtualKeyCode>) -> KeyState<KeyPosition> {

@@ -55,7 +55,7 @@ pub enum KeySymbol {
 }
 
 /// An adapter that maps physical key positions to symbols.
-pub struct SymbolAdapter {}
+pub struct SymbolAdapter;
 
 impl KeyAdapter<KeyPosition, KeySymbol> for SymbolAdapter {
   fn map(state: &KeyState<KeyPosition>) -> KeyState<KeySymbol> {

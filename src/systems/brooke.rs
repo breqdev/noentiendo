@@ -63,7 +63,7 @@ impl Memory for MappedStdIO {
 }
 
 /// A system which only operates in text mode, for basic testing.
-pub struct BrookeSystemFactory {}
+pub struct BrookeSystemFactory;
 
 impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
   fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {

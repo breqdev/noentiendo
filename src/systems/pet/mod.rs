@@ -138,7 +138,7 @@ pub struct PetSystemConfig {
 }
 
 /// The Commodore PET system.
-pub struct PetSystemFactory {}
+pub struct PetSystemFactory;
 
 impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
   fn create(

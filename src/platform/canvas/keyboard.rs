@@ -1,6 +1,6 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 
-pub struct JavaScriptAdapter {}
+pub struct JavaScriptAdapter;
 
 impl JavaScriptAdapter {
   pub fn new() -> Self {

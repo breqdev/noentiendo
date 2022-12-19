@@ -111,7 +111,7 @@ pub const KEYBOARD_MAPPING: [[Vic20Keys; 8]; 8] = {
 };
 
 /// An adapter that maps standard keyboard positions to keys on the VIC-20 keyboard.
-pub struct Vic20KeyboardAdapter {}
+pub struct Vic20KeyboardAdapter;
 
 impl KeyAdapter<KeyPosition, Vic20Keys> for Vic20KeyboardAdapter {
   fn map(state: &KeyState<KeyPosition>) -> KeyState<Vic20Keys> {
@@ -201,7 +201,7 @@ impl KeyAdapter<KeyPosition, Vic20Keys> for Vic20KeyboardAdapter {
 }
 
 /// An adapter that maps keyboard symbols to keys on the VIC-20 keyboard.
-pub struct Vic20SymbolAdapter {}
+pub struct Vic20SymbolAdapter;
 
 impl KeyAdapter<KeySymbol, Vic20Keys> for Vic20SymbolAdapter {
   fn map(state: &KeyState<KeySymbol>) -> KeyState<Vic20Keys> {

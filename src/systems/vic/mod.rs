@@ -187,7 +187,7 @@ pub struct Vic20SystemConfig {
 }
 
 /// The VIC-20 system by Commodore.
-pub struct Vic20SystemFactory {}
+pub struct Vic20SystemFactory;
 
 impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
   fn create(
