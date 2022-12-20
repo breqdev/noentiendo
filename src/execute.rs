@@ -618,7 +618,11 @@ impl Execute for System {
 
         Ok(cycles + 2)
       }
+
       0x0B | 0x2B => {
+        // TODO: Determine if the following few instructions want me to store anything in
+        // accumulator
+
         // ANC: AND byte with accumulator. If result is negative then carry is set.
         let (value, cycles) = self.fetch_operand_value(opcode);
         let new_val = self.registers.a & value;
@@ -630,20 +634,30 @@ impl Execute for System {
       0x4B => {
         // ALR: AND + LSR
         let (value, cycles) = self.fetch_operand_value(opcode);
-        self.registers.a &= value;
-        self.registers.a = value >> 1;
+        let new_val = (self.registers.a & value) >> 1;
 
-        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
-        self.registers.sr.set_nz(self.registers.a);
+        self.registers.sr.write(flags::CARRY, new_val & 0x01 != 0);
+        self.registers.sr.set_nz(new_val;
 
         Ok(cycles)
       }
 
-      /*
+
             0x6B => {
-              // TODO: ARR
-              Err(())
+              // ARR: AND + ROR
+              let (value, cycles) = self.fetch_operand_value(opcode);
+              let mut new_val = self.registers.a & value;
+
+              let new_val = (new_val >> 1) | (self.registers.sr.read(flags::CARRY) as u8) << 7;
+
+              self.registers.sr.write(flags::CARRY, new_val & 0x40 != 0);
+              self.registers.sr.write(flags::OVERFLOW, new_val & 0x20 != 0);
+              self.registers.sr.set_nz(new_val);
+
+              Ok(cycles)
             }
+
+/*
 
             0x8B => {
               // TODO: XAA
