@@ -147,8 +147,7 @@ impl Memory for VIA {
       0x03 => self.a.ddr,
       0x04 => {
         self.t1.interrupt = false;
-        let value = (self.t1.counter & 0xff) as u8;
-        value
+        (self.t1.counter & 0xff) as u8
       }
       0x05 => ((self.t1.counter >> 8) & 0xff) as u8,
       0x06 => (self.t1.latch & 0xff) as u8,
@@ -245,6 +244,10 @@ impl Memory for VIA {
     }
 
     if self.t2.poll(info) && (self.ier & 0b00100000) != 0 {
+      return ActiveInterrupt::IRQ;
+    }
+
+    if self.a.poll(info) || self.b.poll(info) {
       return ActiveInterrupt::IRQ;
     }
 

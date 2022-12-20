@@ -95,15 +95,15 @@ impl Memory for EasyIO {
         let state = self.platform.get_key_state();
 
         if state.is_pressed(KeyPosition::W) {
-          return b'W';
+          b'W'
         } else if state.is_pressed(KeyPosition::A) {
-          return b'A';
+          b'A'
         } else if state.is_pressed(KeyPosition::S) {
-          return b'S';
+          b'S'
         } else if state.is_pressed(KeyPosition::D) {
-          return b'D';
+          b'D'
         } else {
-          return 0;
+          0
         }
       }
     }
@@ -120,7 +120,7 @@ impl Memory for EasyIO {
 
 /// A port of the "Easy6502" system from
 /// <https://skilldrick.github.io/easy6502/>
-pub struct EasySystemFactory {}
+pub struct EasySystemFactory;
 
 impl SystemFactory<RomFile, ()> for EasySystemFactory {
   fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {

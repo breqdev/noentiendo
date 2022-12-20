@@ -3,7 +3,7 @@ use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 /// A representation for a symbol on a modern keyboard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KeySymbol {
-  // Alphanumeric or symbol keys
+  /// Alphanumeric or symbol keys
   Char(char),
 
   // ASCII control characters
@@ -55,7 +55,7 @@ pub enum KeySymbol {
 }
 
 /// An adapter that maps physical key positions to symbols.
-pub struct SymbolAdapter {}
+pub struct SymbolAdapter;
 
 impl KeyAdapter<KeyPosition, KeySymbol> for SymbolAdapter {
   fn map(state: &KeyState<KeyPosition>) -> KeyState<KeySymbol> {

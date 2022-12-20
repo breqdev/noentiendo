@@ -6,7 +6,9 @@ use crate::platform::PlatformProvider;
 use crate::system::System;
 use crate::systems::SystemFactory;
 use instant::Instant;
-use std::sync::{Arc, Mutex};
+use std::cell::Cell;
+use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 mod vram;
 use vram::PetVram;
@@ -20,7 +22,7 @@ use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
 /// screen drawing reaches the last line), and for setting the active
 /// row of the keyboard matrix.
 pub struct PetPia1PortA {
-  keyboard_row: Arc<Mutex<u8>>,
+  keyboard_row: Rc<Cell<u8>>,
   last_draw_instant: Option<Instant>,
   last_draw_cycle: u64,
 }
@@ -28,20 +30,20 @@ pub struct PetPia1PortA {
 impl PetPia1PortA {
   pub fn new() -> Self {
     Self {
-      keyboard_row: Arc::new(Mutex::new(0)),
+      keyboard_row: Rc::new(Cell::new(0)),
       last_draw_instant: None,
       last_draw_cycle: 0,
     }
   }
 
-  pub fn get_keyboard_row(&self) -> Arc<Mutex<u8>> {
+  pub fn get_keyboard_row(&self) -> Rc<Cell<u8>> {
     self.keyboard_row.clone()
   }
 }
 
 impl Port for PetPia1PortA {
   fn read(&mut self) -> u8 {
-    0b1000_0000 | *self.keyboard_row.lock().unwrap()
+    0b1000_0000 | self.keyboard_row.get()
     //^         diagnostic mode off
     // ^        IEEE488 (not implemented)
     //  ^^      Cassette sense (not implemented)
@@ -49,7 +51,7 @@ impl Port for PetPia1PortA {
   }
 
   fn write(&mut self, value: u8) {
-    *self.keyboard_row.lock().unwrap() = value & 0b1111;
+    self.keyboard_row.set(value & 0b1111);
   }
 
   fn poll(&mut self, info: &SystemInfo) -> bool {
@@ -76,21 +78,21 @@ impl Port for PetPia1PortA {
   }
 
   fn reset(&mut self) {
-    *self.keyboard_row.lock().unwrap() = 0;
+    self.keyboard_row.set(0);
   }
 }
 
 /// Port B on the first PIA.
 /// This is used for reading the keyboard matrix.
 pub struct PetPia1PortB {
-  keyboard_row: Arc<Mutex<u8>>,
+  keyboard_row: Rc<Cell<u8>>,
   mapping_strategy: KeyMappingStrategy,
   platform: Arc<dyn PlatformProvider>,
 }
 
 impl PetPia1PortB {
   pub fn new(
-    keyboard_row: Arc<Mutex<u8>>,
+    keyboard_row: Rc<Cell<u8>>,
     mapping_strategy: KeyMappingStrategy,
     platform: Arc<dyn PlatformProvider>,
   ) -> Self {
@@ -104,7 +106,7 @@ impl PetPia1PortB {
 
 impl Port for PetPia1PortB {
   fn read(&mut self) -> u8 {
-    let row = *self.keyboard_row.lock().unwrap();
+    let row = self.keyboard_row.get();
     let row = KEYBOARD_MAPPING[row as usize % 10];
     let mut value = 0b1111_1111;
 
@@ -115,8 +117,8 @@ impl Port for PetPia1PortB {
       }
     };
 
-    for i in 0..8 {
-      if state.is_pressed(row[i]) {
+    for (i, key) in row.iter().enumerate() {
+      if state.is_pressed(*key) {
         value &= !(1 << i);
       }
     }
@@ -138,7 +140,7 @@ pub struct PetSystemConfig {
 }
 
 /// The Commodore PET system.
-pub struct PetSystemFactory {}
+pub struct PetSystemFactory;
 
 impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
   fn create(

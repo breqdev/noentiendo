@@ -1,7 +1,9 @@
 {
-  "name": "create-wasm-app",
+  "name": "noentiendo",
+  "private": true,
   "version": "0.1.0",
-  "description": "create an app to consume rust-generated wasm packages",
+  "description": "wasm-based emulator for 6502-based systems",
+  "license": "AGPL-3.0-or-later",
   "main": "index.js",
   "bin": {
     "create-wasm-app": ".bin/create-wasm-app.js"
@@ -20,12 +22,7 @@
     "rust",
     "webpack"
   ],
-  "author": "Ashley Williams <ashley666ashley@gmail.com>",
-  "license": "(MIT OR Apache-2.0)",
-  "bugs": {
-    "url": "https://github.com/rustwasm/create-wasm-app/issues"
-  },
-  "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
+  "author": "noentiendo team <noentiendo@breq.dev>",
   "devDependencies": {
     "copy-webpack-plugin": "^5.0.0",
     "noentiendo": "file:../pkg",

@@ -142,7 +142,7 @@ pub const KEYBOARD_MAPPING: [[PetKeys; 8]; 10] = {
 };
 
 /// An adapter that maps standard keyboard positions to keys on the PET's "Graphics" keyboard.
-pub struct PetKeyboardAdapter {}
+pub struct PetKeyboardAdapter;
 
 impl KeyAdapter<KeyPosition, PetKeys> for PetKeyboardAdapter {
   fn map(state: &KeyState<KeyPosition>) -> KeyState<PetKeys> {
@@ -217,7 +217,7 @@ impl KeyAdapter<KeyPosition, PetKeys> for PetKeyboardAdapter {
 }
 
 /// An adapter that maps keyboard symbols to keys on the PET's "Graphics" keyboard.
-pub struct PetSymbolAdapter {}
+pub struct PetSymbolAdapter;
 
 impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
   fn map(state: &KeyState<KeySymbol>) -> KeyState<PetKeys> {

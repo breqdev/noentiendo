@@ -45,9 +45,7 @@ impl BlockMemory {
       );
     }
 
-    for i in 0..file_data.len() {
-      data[i] = file_data[i];
-    }
+    data[..file_data.len()].copy_from_slice(&file_data[..]);
 
     Self {
       size,

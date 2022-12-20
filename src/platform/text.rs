@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 /// without any visible graphical output. This reads from and writes to the
 /// terminal.
 /// This platform runs synchronously.
-pub struct TextPlatform {}
+pub struct TextPlatform;
 
 impl TextPlatform {
   pub fn new() -> Self {
@@ -61,7 +61,7 @@ impl SyncPlatform for TextPlatform {
   }
 }
 
-pub struct TextPlatformProvider {}
+pub struct TextPlatformProvider;
 
 impl TextPlatformProvider {
   pub fn new() -> Self {

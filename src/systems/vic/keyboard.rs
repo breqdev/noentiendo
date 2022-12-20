@@ -35,7 +35,6 @@ pub enum Vic20Keys {
   At,
   Asterisk,
   UpArrow,
-  Restore,
 
   RunStop,
   ShiftLock,
@@ -111,7 +110,7 @@ pub const KEYBOARD_MAPPING: [[Vic20Keys; 8]; 8] = {
 };
 
 /// An adapter that maps standard keyboard positions to keys on the VIC-20 keyboard.
-pub struct Vic20KeyboardAdapter {}
+pub struct Vic20KeyboardAdapter;
 
 impl KeyAdapter<KeyPosition, Vic20Keys> for Vic20KeyboardAdapter {
   fn map(state: &KeyState<KeyPosition>) -> KeyState<Vic20Keys> {
@@ -201,7 +200,7 @@ impl KeyAdapter<KeyPosition, Vic20Keys> for Vic20KeyboardAdapter {
 }
 
 /// An adapter that maps keyboard symbols to keys on the VIC-20 keyboard.
-pub struct Vic20SymbolAdapter {}
+pub struct Vic20SymbolAdapter;
 
 impl KeyAdapter<KeySymbol, Vic20Keys> for Vic20SymbolAdapter {
   fn map(state: &KeyState<KeySymbol>) -> KeyState<Vic20Keys> {
@@ -273,8 +272,8 @@ impl KeyAdapter<KeySymbol, Vic20Keys> for Vic20SymbolAdapter {
         Char('.') => Vic20Keys::Period,
         Char('/') => Vic20Keys::Slash,
         RShift => continue, // Handled separately
-        // TODO: CursorUpDown
-        // TODO: CursorLeftRight
+        DownArrow => Vic20Keys::CursorUpDown,
+        RightArrow => Vic20Keys::CursorLeftRight,
         Char(' ') => Vic20Keys::Space,
 
         F1 => Vic20Keys::F1,
@@ -308,6 +307,9 @@ impl KeyAdapter<KeySymbol, Vic20Keys> for Vic20SymbolAdapter {
           Char('<') => Vic20Keys::Comma,
           Char('>') => Vic20Keys::Period,
           Char('?') => Vic20Keys::Slash,
+
+          UpArrow => Vic20Keys::CursorUpDown,
+          LeftArrow => Vic20Keys::CursorLeftRight,
 
           _ => continue,
         })

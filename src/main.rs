@@ -62,7 +62,10 @@ fn main() {
       platform.provider(),
     ),
     "vic" => Vic20SystemFactory::create(
-      Vic20SystemRoms::from_disk(),
+      Vic20SystemRoms::from_disk(match romfile {
+        Some(_) => Some(args.rom_path.as_str()),
+        None => None,
+      }),
       Vic20SystemConfig { mapping },
       platform.provider(),
     ),

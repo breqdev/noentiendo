@@ -2,38 +2,43 @@
 name = "noentiendo"
 version = "0.1.0"
 edition = "2021"
+authors = ["noentiendo team <noentiendo@breq.dev>", "Brooke Chalmers <breq@breq.dev>"]
+description = "A modular retro emulation framework"
+documentation = "https://noentiendo.breq.dev/doc/libnoentiendo/"
+homepage = "https://noentiendo.breq.dev/"
+repository = "https://github.com/breqdev/noentiendo"
+keywords = ["6502", "emulation", "retro", "wasm", "commodore"]
+license = "AGPL-3.0-or-later"
 
 # Shared dependencies across all targets
 [dependencies]
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 async-trait = "0.1"
-log = "0.4"
+pixels = "0.11"
 
 # Dependencies used for the WebAssembly target
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1"
-console_log = "0.2"
 js-sys = "0.3"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 
 [dependencies.web-sys]
-# We need to stay on an older version to match wgpu, a dependent of pixels
-# ...even though we don't actually use pixels when compiling for wasm32
-version = "0.3.53"
+version = "0.3"
 features = [
   'HtmlCanvasElement',
   'CanvasRenderingContext2d',
   'CssStyleDeclaration',
   'KeyboardEvent',
   'Document',
+  'NamedNodeMap',
+  'Attr',
 ]
 
 # Dependencies used when building for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-winit = "0.26"
-winit_input_helper = "0.12"
-pixels = "0.9"
+winit = "0.27"
+winit_input_helper = "0.13"
 rand = "0.8"
 clap = { version = "3.2", features = ["derive"]}
 

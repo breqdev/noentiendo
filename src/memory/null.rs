@@ -1,6 +1,7 @@
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
 /// Memory that does nothing when read or written to.
+#[derive(Default)]
 pub struct NullMemory {
   warn: Option<&'static str>,
 }

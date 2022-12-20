@@ -32,7 +32,7 @@ impl Memory for MappedStdIO {
         let char = input.chars().next().expect("String is empty");
         ((char as u32) & 0xFF) as u8
       }
-      0x02 => u8::from_str_radix(&input.trim(), 16).expect("Invalid input for u8"),
+      0x02 => u8::from_str_radix(input.trim(), 16).expect("Invalid input for u8"),
       0x03 => panic!("Invalid address for MappedStdIO"),
       _ => unreachable!("Invalid address"),
     }
@@ -63,7 +63,7 @@ impl Memory for MappedStdIO {
 }
 
 /// A system which only operates in text mode, for basic testing.
-pub struct BrookeSystemFactory {}
+pub struct BrookeSystemFactory;
 
 impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
   fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
