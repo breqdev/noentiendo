@@ -465,21 +465,15 @@ impl Execute for System {
       }
 
       0x03 | 0x07 | 0x13 | 0x17 | 0x1B | 0x1F => {
-        // TODO: I think I messed up some of these bc I shouldn't be reading the op value, I
-        // should be using the result from the initial read operation. should have done more
-        // research beforehand oops
-
         // SLO: ASL -> ORA
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
-        let result = value << 1;
-
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
-        self.registers.sr.set_nz(result);
+
+        let result = value << 1;
         self.write(address, result);
 
-        let (value, _cycles) = self.fetch_operand_value(opcode);
-        self.registers.a |= value;
+        self.registers.a |= result;
         self.registers.sr.set_nz(self.registers.a);
 
         Ok(cycles + 2)
@@ -501,14 +495,12 @@ impl Execute for System {
         // RLA: ROL -> AND
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
-        let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
-
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
-        self.registers.sr.set_nz(result);
+
+        let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
         self.write(address, result);
 
-        let (value, _cycles) = self.fetch_operand_value(opcode);
-        self.registers.a &= value;
+        self.registers.a &= result;
         self.registers.sr.set_nz(self.registers.a);
 
         Ok(cycles + 2)
@@ -533,11 +525,9 @@ impl Execute for System {
         let result = value >> 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
-        self.registers.sr.set_nz(result);
         self.write(address, result);
 
-        let (value, _cycles) = self.fetch_operand_value(opcode);
-        self.registers.a ^= value;
+        self.registers.a ^= result;
         self.registers.sr.set_nz(self.registers.a);
 
         Ok(cycles + 2)
@@ -564,20 +554,17 @@ impl Execute for System {
         self.registers.sr.set_nz(result);
         self.write(address, result);
 
-        let (value, _cycles) = self.fetch_operand_value(opcode);
-        self.registers.alu_add(value);
+        self.registers.alu_add(result);
 
         Ok(cycles)
       }
 
       0x83 | 0x87 | 0x8F | 0x97 => {
         // SAX: AND -> STA
-        let (value, cycles) = self.fetch_operand_value(opcode);
-        self.registers.a &= value;
-        self.registers.sr.set_nz(self.registers.a);
-
-        let (address, _cycles) = self.fetch_operand_address(opcode);
-        self.write(address, self.registers.a);
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.registers.x & self.registers.a;
+        self.registers.sr.set_nz(value);
+        self.write(address, value);
 
         Ok(cycles)
       }
