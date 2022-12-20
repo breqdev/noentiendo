@@ -5,7 +5,7 @@ _A modular framework for emulating retro computers._
 <center>
 <div align="center">
 
-[Demo](https://github.breq.dev/noentiendo/) | [Docs](https://github.breq.dev/noentiendo/doc/libnoentiendo/) | [Repo](https://github.com/breqdev/noentiendo/) | [License](https://github.com/breqdev/noentiendo/blob/main/LICENSE.txt)
+[Demo](https://noentiendo.breq.dev/) | [Docs](https://noentiendo.breq.dev/doc/libnoentiendo/) | [Repo](https://github.com/breqdev/noentiendo/) | [License](https://github.com/breqdev/noentiendo/blob/main/LICENSE.txt)
 
 ![](https://i.imgur.com/1KpsVcK.png)
 
