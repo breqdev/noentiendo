@@ -637,32 +637,42 @@ impl Execute for System {
         let new_val = (self.registers.a & value) >> 1;
 
         self.registers.sr.write(flags::CARRY, new_val & 0x01 != 0);
-        self.registers.sr.set_nz(new_val;
+        self.registers.sr.set_nz(new_val);
 
         Ok(cycles)
       }
 
+      0x6B => {
+        // ARR: AND + ROR
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let mut new_val = self.registers.a & value;
 
-            0x6B => {
-              // ARR: AND + ROR
-              let (value, cycles) = self.fetch_operand_value(opcode);
-              let mut new_val = self.registers.a & value;
+        let new_val = (new_val >> 1) | (self.registers.sr.read(flags::CARRY) as u8) << 7;
 
-              let new_val = (new_val >> 1) | (self.registers.sr.read(flags::CARRY) as u8) << 7;
+        self.registers.sr.write(flags::CARRY, new_val & 0x40 != 0);
+        self
+          .registers
+          .sr
+          .write(flags::OVERFLOW, new_val & 0x20 != 0);
+        self.registers.sr.set_nz(new_val);
 
-              self.registers.sr.write(flags::CARRY, new_val & 0x40 != 0);
-              self.registers.sr.write(flags::OVERFLOW, new_val & 0x20 != 0);
-              self.registers.sr.set_nz(new_val);
+        Ok(cycles)
+      }
 
-              Ok(cycles)
-            }
+      0x8B => {
+        // XAA: AND X + AND immediate
+        // Oooo she's highly unstable xx "Do not use" or whatever
 
-/*
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let magic = rand::random::<u8>();
+        self.registers.a |= magic;
+        self.registers.a &= self.registers.x & value;
+        self.registers.sr.set_nz(self.registers.a);
 
-            0x8B => {
-              // TODO: XAA
-              Err(())
-            }
+        Ok(cycles)
+      }
+
+      /*
 
             0xCB => {
               // TODO: AXS
