@@ -737,14 +737,23 @@ impl Execute for System {
               Err(())
             }
 
-            0xBB => {
-              // TODO: LAS
-              Err(())
-            }
       */
+      0xBB => {
+        // LAS: LDA + TSX unholy matrimony
+        // M AND SP -> A, X, SP
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let result = value & self.registers.sp.get();
+
+        self.registers.a = result;
+        self.registers.x = result;
+        self.registers.sp.set(result);
+        self.registers.sr.set_nz(result);
+
+        Ok(cycles)
+      }
+
       0xAB => {
         // ATX or LXA: XAA but instead of and X we store in X
-
         let (value, cycles) = self.fetch_operand_value(opcode);
         let magic: u8;
         #[cfg(not(target_arch = "wasm32"))]
