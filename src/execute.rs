@@ -427,6 +427,7 @@ impl Execute for System {
       }
 
       // === ILLEGAL OPCODES ===
+      // TODO: Verify cycle counts
       0x04 | 0x0C | 0x14 | 0x1A | 0x1C | 0x34 | 0x3A | 0x3C | 0x44 | 0x54 | 0x5A | 0x5C | 0x64
       | 0x74 | 0x7A | 0x7C | 0x80 | 0x82 | 0x89 | 0xC2 | 0xD4 | 0xDA | 0xDC | 0xE2 | 0xF4
       | 0xFA | 0xFC => {
@@ -464,6 +465,10 @@ impl Execute for System {
       }
 
       0x03 | 0x07 | 0x13 | 0x17 | 0x1B | 0x1F => {
+        // TODO: I think I messed up some of these bc I shouldn't be reading the op value, I
+        // should be using the result from the initial read operation. should have done more
+        // research beforehand oops
+
         // SLO: ASL -> ORA
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
@@ -621,13 +626,20 @@ impl Execute for System {
 
         Ok(cycles)
       }
+
+      0x4B => {
+        // ALR: AND + LSR
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        self.registers.a &= value;
+        self.registers.a = value >> 1;
+
+        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(cycles)
+      }
+
       /*
-
-            0x4B => {
-              // TODO: ALR
-              Err(())
-            }
-
             0x6B => {
               // TODO: ARR
               Err(())
