@@ -733,12 +733,20 @@ impl Execute for System {
               // TODO: LAS
               Err(())
             }
-
-            0xAB => {
-              // TODO: ATX
-              Err(())
-            }
       */
+      0xAB => {
+        // ATX or LXA: XAA but instead of and X we store in X
+
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let magic = rand::random::<u8>();
+        self.registers.a |= magic;
+        self.registers.a &= value;
+        self.registers.x = self.registers.a;
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(cycles)
+      }
+
       _ => {
         println!("Unimplemented opcode: {:02X}", opcode);
         Err(())
