@@ -618,9 +618,6 @@ impl Execute for System {
       }
 
       0x0B | 0x2B => {
-        // TODO: Determine if the following few instructions want me to store anything in
-        // accumulator
-
         // ANC: AND byte with accumulator. If result is negative then carry is set.
         let (value, cycles) = self.fetch_operand_value(opcode);
         let new_val = self.registers.a & value;
