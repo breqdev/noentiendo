@@ -602,8 +602,6 @@ impl Execute for System {
         self.registers.sr.set_nz(result);
         self.write(address, result);
 
-        self.registers.sr.clear(flags::CARRY);
-
         Ok(cycles + 2)
       }
 
@@ -672,13 +670,19 @@ impl Execute for System {
         Ok(cycles)
       }
 
+      0xCB => {
+        // AXS: AND -> DEX -> STX
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        self.registers.x &= self.registers.a;
+
+        self.registers.sr.set(flags::CARRY);
+        self.registers.x = self.registers.x.wrapping_sub(value);
+        self.registers.sr.set_nz(self.registers.x);
+
+        Ok(cycles)
+      }
+
       /*
-
-            0xCB => {
-              // TODO: AXS
-              Err(())
-            }
-
             0xEB => {
               // TODO: SBC
               Err(())
