@@ -613,11 +613,15 @@ impl Execute for System {
 
         Ok(cycles + 2)
       }
+      0x0B | 0x2B => {
+        // ANC: AND byte with accumulator. If result is negative then carry is set.
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let new_val = self.registers.a & value;
+        self.registers.sr.write(flags::CARRY, new_val & 0x80 != 0);
+
+        Ok(cycles)
+      }
       /*
-            0x0B | 0x2B => {
-              // TODO: ANC
-              Err(())
-            }
 
             0x4B => {
               // TODO: ALR
