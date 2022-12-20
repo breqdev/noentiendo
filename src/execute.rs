@@ -730,14 +730,20 @@ impl Execute for System {
         Ok(cycles + 2)
       }
 
-      /*
+      0x9B => {
+        // TAS: TSX with accumulator and AHX
+        // A AND X -> SP
+        // A AND X AND (H+1) -> M
+        self.registers.sp.set(self.registers.a & self.registers.x);
 
-            0x9B => {
-              // TODO: TAS
-              Err(())
-            }
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = address.to_be_bytes().iter().next().unwrap().clone();
+        let result = self.registers.a & self.registers.x & (value.wrapping_add(1));
+        self.write(address, result);
 
-      */
+        Ok(cycles + 2)
+      }
+
       0xBB => {
         // LAS: LDA + TSX unholy matrimony
         // M AND SP -> A, X, SP
@@ -770,12 +776,12 @@ impl Execute for System {
         self.registers.sr.set_nz(self.registers.a);
 
         Ok(cycles)
-      }
-
-      _ => {
-        println!("Unimplemented opcode: {:02X}", opcode);
-        Err(())
-      }
+      } /* @breqdev change to unreachable or entirely omit?
+        _ => {
+          println!("Unimplemented opcode: {:02X}", opcode);
+          Err(())
+        }
+         */
     }
   }
 }
