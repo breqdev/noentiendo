@@ -662,7 +662,15 @@ impl Execute for System {
         // Oooo she's highly unstable xx "Do not use" or whatever
 
         let (value, cycles) = self.fetch_operand_value(opcode);
-        let magic = rand::random::<u8>();
+        let magic: u8;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+          magic = rand::random::<u8>();
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+          magic = 0xFF;
+        }
         self.registers.a |= magic;
         self.registers.a &= self.registers.x & value;
         self.registers.sr.set_nz(self.registers.a);
@@ -738,7 +746,15 @@ impl Execute for System {
         // ATX or LXA: XAA but instead of and X we store in X
 
         let (value, cycles) = self.fetch_operand_value(opcode);
-        let magic = rand::random::<u8>();
+        let magic: u8;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+          magic = rand::random::<u8>();
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+          magic = 0xFF;
+        }
         self.registers.a |= magic;
         self.registers.a &= value;
         self.registers.x = self.registers.a;
