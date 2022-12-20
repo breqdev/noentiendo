@@ -700,12 +700,18 @@ impl Execute for System {
         Ok(cycles + 2)
       }
 
-      /*
+      0x9E => {
+        // SHX: (X & high(addr) + 1) -> addr
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = address.to_be_bytes().iter().next().unwrap().clone();
+        let result = self.registers.x & (value.wrapping_add(1));
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
 
-            0x9E => {
-              // TODO: SHX
-              Err(())
-            }
+        Ok(cycles + 2)
+      }
+
+      /*
 
             0x93 | 0x9F => {
               // TODO: AHX
