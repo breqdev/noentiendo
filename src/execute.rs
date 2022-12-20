@@ -682,11 +682,14 @@ impl Execute for System {
         Ok(cycles)
       }
 
+      0xEB => {
+        // SBC (same as official sbc)
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        self.registers.alu_subtract(value);
+        Ok(cycles)
+      }
+
       /*
-            0xEB => {
-              // TODO: SBC
-              Err(())
-            }
 
             0x9C => {
               // TODO: SHY
