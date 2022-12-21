@@ -6,8 +6,8 @@ permissions:
   contents: write
 
 jobs:
-  ci:
-    name: CI
+  desktop-build:
+    name: Build for Desktop
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -30,6 +30,20 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
+
+  web-build:
+    name: Build for Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -54,6 +68,32 @@ jobs:
           command: doc
           args: --no-deps
 
+      - name: Copy files
+        run: |
+          mkdir pages
+          cp -r www/dist/* pages
+          cp -r target/doc pages
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          folder: pages
+
+  tests-coverage:
+    name: Tests and Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
       - name: Run tests and collect coverage
         run: LLVM_PROFILE_FILE='cargo-test-%p-%m.profraw' RUSTFLAGS="-Cinstrument-coverage -Clink-dead-code" cargo test
 
@@ -71,16 +111,3 @@ jobs:
         with:
           files: ./target/coverage/lcov.info
           fail_ci_if_error: true
-
-      - name: Copy files
-        run: |
-          mkdir pages
-          cp -r www/dist/* pages
-          cp -r target/doc pages
-          cp -r target/coverage pages
-
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        if: github.ref == 'refs/heads/main'
-        with:
-          folder: pages
