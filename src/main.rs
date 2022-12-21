@@ -36,7 +36,7 @@ fn main() {
   let args = Args::parse();
 
   let mut platform: Box<dyn SyncPlatform> = match args.platform.as_str() {
-    "text" => Box::new(TextPlatform::new()),
+    "text" => Box::new(TextPlatform::new(false)),
     "winit" => Box::new(WinitPlatform::new()),
     _ => panic!("Unknown platform"),
   };

@@ -11,11 +11,13 @@ use std::time::{Duration, Instant};
 /// without any visible graphical output. This reads from and writes to the
 /// terminal.
 /// This platform runs synchronously.
-pub struct TextPlatform;
+pub struct TextPlatform {
+  report: bool,
+}
 
 impl TextPlatform {
-  pub fn new() -> Self {
-    Self {}
+  pub fn new(report: bool) -> Self {
+    Self { report }
   }
 }
 
@@ -52,7 +54,7 @@ impl SyncPlatform for TextPlatform {
       }
       last_tick = now;
 
-      if now - last_report > std::time::Duration::from_secs_f64(0.1) {
+      if self.report && (now - last_report > std::time::Duration::from_secs_f64(0.1)) {
         let pc = system.registers.pc.address();
         println!("Program Counter: {:02x}", pc);
         last_report = now;

@@ -4,6 +4,7 @@ use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
 use crate::system::System;
 use crate::systems::SystemFactory;
+use std::io::Write;
 use std::sync::Arc;
 
 /// A Memory implementation that can be used to read from or write to
@@ -48,8 +49,8 @@ impl Memory for MappedStdIO {
       0x01 => self.provider.print(&format!("{}\n", value as char)),
       0x02 => self.provider.print(&format!("{:02X}\n", value)),
       0x03 => {
-        // print!("{}", value as char);
-        // std::io::stdout().flush().unwrap();
+        print!("{}", value as char);
+        std::io::stdout().flush().unwrap();
       }
       _ => unreachable!(),
     }
