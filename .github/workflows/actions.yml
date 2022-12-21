@@ -81,11 +81,15 @@ jobs:
           command: doc
           args: --no-deps
 
+      - name: Run coverage
+        run: sh scripts/coverage.sh
+
       - name: Copy files
         run: |
           mkdir pages
           cp -r www/dist/* pages
           cp -r target/doc pages
+          cp -r target/coverage pages
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
