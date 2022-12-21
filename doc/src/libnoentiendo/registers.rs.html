@@ -484,7 +484,7 @@
 }
 
 <span class="doccomment">/// The Arithmetic Logic Unit (ALU) of the MOS 6502 processor.
-</span><span class="kw">pub trait </span>ALU {
+</span><span class="kw">pub trait </span>Alu {
   <span class="doccomment">/// Add the given value to the accumulator, setting the N and Z flags, and
   /// storing the result in the accumulator. If the carry flag is set, add 1
   /// to the result. If the result causes a carry, set the carry flag.
@@ -502,7 +502,7 @@
   </span><span class="kw">fn </span>alu_compare(<span class="kw-2">&amp;mut </span><span class="self">self</span>, register: u8, value: u8);
 }
 
-<span class="kw">impl </span>ALU <span class="kw">for </span>Registers {
+<span class="kw">impl </span>Alu <span class="kw">for </span>Registers {
   <span class="kw">fn </span>alu_add(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: u8) {
     <span class="kw">if </span>!<span class="self">self</span>.sr.read(flags::DECIMAL) {
       <span class="kw">let </span>sum = (<span class="self">self</span>.a <span class="kw">as </span>u16)
@@ -534,7 +534,7 @@
 
       <span class="self">self</span>.sr.write(flags::CARRY, (msd &amp; <span class="number">0xFF00</span>) != <span class="number">0</span>);
 
-      <span class="kw">let </span>sum = (msd <span class="kw">as </span>u8) | (lsd <span class="kw">as </span>u8);
+      <span class="kw">let </span>sum = (msd <span class="kw">as </span>u8) | lsd;
       <span class="self">self</span>.sr.set_nz(sum);
       <span class="self">self</span>.a = sum;
     }
@@ -571,7 +571,7 @@
 
       <span class="self">self</span>.sr.write(flags::CARRY, (msd &amp; <span class="number">0xFF00</span>) != <span class="number">0</span>);
 
-      <span class="kw">let </span>sum = (msd <span class="kw">as </span>u8) | (lsd <span class="kw">as </span>u8);
+      <span class="kw">let </span>sum = (msd <span class="kw">as </span>u8) | lsd;
       <span class="self">self</span>.sr.set_nz(sum);
       <span class="self">self</span>.a = sum;
     }

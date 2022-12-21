@@ -515,6 +515,24 @@
 <span id="515">515</span>
 <span id="516">516</span>
 <span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span>std::cell::RefCell;
@@ -704,6 +722,7 @@
     // 0x2000 -&gt; 0x0000
     // 0x2FFF -&gt; 0x0FFF
 
+    </span><span class="attribute">#[allow(clippy::identity_op)]
     </span><span class="kw">match </span>address &amp; (<span class="number">1 </span>&lt;&lt; <span class="number">13</span>) {
       <span class="number">0 </span>=&gt; <span class="number">0x8000 </span>+ (address &amp; <span class="number">0x1fff</span>),
       <span class="kw">_ </span>=&gt; <span class="number">0x0000 </span>+ (address &amp; <span class="number">0x1fff</span>),
@@ -1028,8 +1047,25 @@
     chip.last_draw_clock = info.cycle_count;
 
     <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..(chip.column_count <span class="kw">as </span>u16 * chip.row_count <span class="kw">as </span>u16) {
-      chip.redraw(i <span class="kw">as </span>u16, memory);
+      chip.redraw(i, memory);
     }
+  }
+}
+
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+  <span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+  <span class="attribute">#[test]
+  </span><span class="kw">fn </span>test_vic_to_cpu_address() {
+    <span class="macro">assert_eq!</span>(<span class="number">0x8000</span>, VicChip::vic_to_cpu_address(<span class="number">0x0000</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x8FFF</span>, VicChip::vic_to_cpu_address(<span class="number">0x0FFF</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x9000</span>, VicChip::vic_to_cpu_address(<span class="number">0x1000</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x9FFF</span>, VicChip::vic_to_cpu_address(<span class="number">0x1FFF</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x0000</span>, VicChip::vic_to_cpu_address(<span class="number">0x2000</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x0FFF</span>, VicChip::vic_to_cpu_address(<span class="number">0x2FFF</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x1000</span>, VicChip::vic_to_cpu_address(<span class="number">0x3000</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x1FFF</span>, VicChip::vic_to_cpu_address(<span class="number">0x3FFF</span>));
   }
 }
 </code></pre></div>
