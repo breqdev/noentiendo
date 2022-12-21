@@ -96,6 +96,8 @@
 <span id="96">96</span>
 <span id="97">97</span>
 <span id="98">98</span>
+<span id="99">99</span>
+<span id="100">100</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
@@ -109,11 +111,13 @@
 /// without any visible graphical output. This reads from and writes to the
 /// terminal.
 /// This platform runs synchronously.
-</span><span class="kw">pub struct </span>TextPlatform;
+</span><span class="kw">pub struct </span>TextPlatform {
+  report: bool,
+}
 
 <span class="kw">impl </span>TextPlatform {
-  <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
-    <span class="self">Self </span>{}
+  <span class="kw">pub fn </span>new(report: bool) -&gt; <span class="self">Self </span>{
+    <span class="self">Self </span>{ report }
   }
 }
 
@@ -150,7 +154,7 @@
       }
       last_tick = now;
 
-      <span class="kw">if </span>now - last_report &gt; std::time::Duration::from_secs_f64(<span class="number">0.1</span>) {
+      <span class="kw">if </span><span class="self">self</span>.report &amp;&amp; (now - last_report &gt; std::time::Duration::from_secs_f64(<span class="number">0.1</span>)) {
         <span class="kw">let </span>pc = system.registers.pc.address();
         <span class="macro">println!</span>(<span class="string">&quot;Program Counter: {:02x}&quot;</span>, pc);
         last_report = now;

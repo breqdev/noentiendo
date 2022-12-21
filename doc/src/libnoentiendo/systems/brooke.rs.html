@@ -79,12 +79,14 @@
 <span id="79">79</span>
 <span id="80">80</span>
 <span id="81">81</span>
+<span id="82">82</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory};
 <span class="kw">use </span><span class="kw">crate</span>::platform::PlatformProvider;
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
 <span class="kw">use </span><span class="kw">crate</span>::systems::SystemFactory;
+<span class="kw">use </span>std::io::Write;
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="doccomment">/// A Memory implementation that can be used to read from or write to
@@ -129,9 +131,9 @@
       <span class="number">0x01 </span>=&gt; <span class="self">self</span>.provider.print(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}\n&quot;</span>, value <span class="kw">as </span>char)),
       <span class="number">0x02 </span>=&gt; <span class="self">self</span>.provider.print(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{:02X}\n&quot;</span>, value)),
       <span class="number">0x03 </span>=&gt; {
-        <span class="comment">// print!(&quot;{}&quot;, value as char);
-        // std::io::stdout().flush().unwrap();
-      </span>}
+        <span class="macro">print!</span>(<span class="string">&quot;{}&quot;</span>, value <span class="kw">as </span>char);
+        std::io::stdout().flush().unwrap();
+      }
       <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
     }
   }
