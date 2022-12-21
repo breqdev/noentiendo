@@ -1,5 +1,13 @@
 # noentiendo
 
+[![codecov](https://codecov.io/gh/breqdev/noentiendo/branch/main/graph/badge.svg?token=iZqBLp1tGJ)](https://codecov.io/gh/breqdev/noentiendo)
+[![github actions](https://github.com/breqdev/noentiendo/actions/workflows/actions.yml/badge.svg)](https://github.com/breqdev/noentiendo/actions/workflows/actions.yml)
+[![GitHub last commit](https://img.shields.io/github/last-commit/breqdev/noentiendo)](https://github.com/breqdev/noentiendo/)
+[![demo status](https://img.shields.io/website?label=demo&url=https%3A%2F%2Fnoentiendo.breq.dev%2F)](https://noentiendo.breq.dev/)
+[![docs status](https://img.shields.io/website?label=docs&url=https%3A%2F%2Fnoentiendo.breq.dev%2Fdoc%2Flibnoentiendo%2F)](https://noentiendo.breq.dev/doc/libnoentiendo/)
+![powered by rust](https://img.shields.io/badge/powered%20by-rust-orange?logo=rust)
+![made with love](https://img.shields.io/badge/made%20with-%F0%9F%A4%8D-lightgrey)
+
 _A modular framework for emulating retro computers._
 
 <center>
