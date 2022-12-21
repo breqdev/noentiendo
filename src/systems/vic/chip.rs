@@ -515,3 +515,20 @@ impl DMA for VicChipDMA {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_vic_to_cpu_address() {
+    assert_eq!(0x8000, VicChip::vic_to_cpu_address(0x0000));
+    assert_eq!(0x8FFF, VicChip::vic_to_cpu_address(0x0FFF));
+    assert_eq!(0x9000, VicChip::vic_to_cpu_address(0x1000));
+    assert_eq!(0x9FFF, VicChip::vic_to_cpu_address(0x1FFF));
+    assert_eq!(0x0000, VicChip::vic_to_cpu_address(0x2000));
+    assert_eq!(0x0FFF, VicChip::vic_to_cpu_address(0x2FFF));
+    assert_eq!(0x1000, VicChip::vic_to_cpu_address(0x3000));
+    assert_eq!(0x1FFF, VicChip::vic_to_cpu_address(0x3FFF));
+  }
+}
