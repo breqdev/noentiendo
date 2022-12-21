@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![allow(clippy::new_without_default)]
 
 mod execute;
 mod fetch;

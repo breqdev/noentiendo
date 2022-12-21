@@ -7,7 +7,7 @@ permissions:
 
 jobs:
   desktop-build:
-    name: Build for Desktop
+    name: Desktop Build and Style Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
@@ -26,13 +26,19 @@ jobs:
           command: fmt
           args: --all -- --check
 
+      - name: Check clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all -- -D warnings
+
       - name: Build for desktop
         uses: actions-rs/cargo@v1
         with:
           command: build
 
   web-build:
-    name: Build for Web
+    name: WASM Build, Docs Build, and Web Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources

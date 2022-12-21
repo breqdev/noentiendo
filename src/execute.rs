@@ -1,5 +1,5 @@
 use crate::fetch::Fetch;
-use crate::registers::{flags, ALU};
+use crate::registers::{flags, Alu};
 use crate::system::{InterruptHandler, MemoryIO, Stack, System};
 
 pub trait Execute {

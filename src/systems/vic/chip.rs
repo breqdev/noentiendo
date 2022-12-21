@@ -187,6 +187,7 @@ impl VicChip {
     // 0x2000 -> 0x0000
     // 0x2FFF -> 0x0FFF
 
+    #[allow(clippy::identity_op)]
     match address & (1 << 13) {
       0 => 0x8000 + (address & 0x1fff),
       _ => 0x0000 + (address & 0x1fff),
@@ -511,7 +512,7 @@ impl DMA for VicChipDMA {
     chip.last_draw_clock = info.cycle_count;
 
     for i in 0..(chip.column_count as u16 * chip.row_count as u16) {
-      chip.redraw(i as u16, memory);
+      chip.redraw(i, memory);
     }
   }
 }
