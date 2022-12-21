@@ -6,24 +6,19 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build for Desktop
+  desktop-build:
+    name: Desktop Build and Style Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install stable toolchain
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
-
-      - name: Check syntax
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
 
       - name: Check formatting
         uses: actions-rs/cargo@v1
@@ -31,24 +26,25 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - name: Run build
+      - name: Check clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all -- -D warnings
+
+      - name: Build for desktop
         uses: actions-rs/cargo@v1
         with:
           command: build
 
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-  web:
-    name: Deploy Web
+  web-build:
+    name: WASM Build, Docs Build, and Web Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
 
-      - name: Install stable toolchain
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -61,21 +57,18 @@ jobs:
           node-version: 16
 
       - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build WASM module
         run: wasm-pack build
 
-      - name: Webpack build
+      - name: Build Webpack app
         run: |
           cd www
           npm install
           npm run build
 
-      - name: Build documentation
+      - name: Generate documentation
         uses: actions-rs/cargo@v1
         with:
           command: doc
@@ -92,3 +85,35 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           folder: pages
+
+  tests-coverage:
+    name: Tests and Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Run tests and collect coverage
+        run: LLVM_PROFILE_FILE='cargo-test-%p-%m.profraw' RUSTFLAGS="-Cinstrument-coverage -Clink-dead-code" cargo test
+
+      - name: Install coverage tools (llvm-tools-preview)
+        run: rustup component add llvm-tools-preview
+
+      - name: Install coverage tools (grcov)
+        run: curl -L https://github.com/mozilla/grcov/releases/latest/download/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf -
+
+      - name: Generate coverage report
+        run: mkdir ./target/coverage/ && ./grcov . -s . --binary-path ./target/debug/ -t lcov --branch --ignore-not-existing -o ./target/coverage/lcov.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./target/coverage/lcov.info
+          fail_ci_if_error: true

@@ -187,6 +187,7 @@ impl VicChip {
     // 0x2000 -> 0x0000
     // 0x2FFF -> 0x0FFF
 
+    #[allow(clippy::identity_op)]
     match address & (1 << 13) {
       0 => 0x8000 + (address & 0x1fff),
       _ => 0x0000 + (address & 0x1fff),
@@ -511,7 +512,24 @@ impl DMA for VicChipDMA {
     chip.last_draw_clock = info.cycle_count;
 
     for i in 0..(chip.column_count as u16 * chip.row_count as u16) {
-      chip.redraw(i as u16, memory);
+      chip.redraw(i, memory);
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_vic_to_cpu_address() {
+    assert_eq!(0x8000, VicChip::vic_to_cpu_address(0x0000));
+    assert_eq!(0x8FFF, VicChip::vic_to_cpu_address(0x0FFF));
+    assert_eq!(0x9000, VicChip::vic_to_cpu_address(0x1000));
+    assert_eq!(0x9FFF, VicChip::vic_to_cpu_address(0x1FFF));
+    assert_eq!(0x0000, VicChip::vic_to_cpu_address(0x2000));
+    assert_eq!(0x0FFF, VicChip::vic_to_cpu_address(0x2FFF));
+    assert_eq!(0x1000, VicChip::vic_to_cpu_address(0x3000));
+    assert_eq!(0x1FFF, VicChip::vic_to_cpu_address(0x3FFF));
   }
 }

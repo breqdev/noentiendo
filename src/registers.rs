@@ -180,7 +180,7 @@ impl StatusRegister {
 }
 
 /// The Arithmetic Logic Unit (ALU) of the MOS 6502 processor.
-pub trait ALU {
+pub trait Alu {
   /// Add the given value to the accumulator, setting the N and Z flags, and
   /// storing the result in the accumulator. If the carry flag is set, add 1
   /// to the result. If the result causes a carry, set the carry flag.
@@ -198,7 +198,7 @@ pub trait ALU {
   fn alu_compare(&mut self, register: u8, value: u8);
 }
 
-impl ALU for Registers {
+impl Alu for Registers {
   fn alu_add(&mut self, value: u8) {
     if !self.sr.read(flags::DECIMAL) {
       let sum = (self.a as u16)
@@ -230,7 +230,7 @@ impl ALU for Registers {
 
       self.sr.write(flags::CARRY, (msd & 0xFF00) != 0);
 
-      let sum = (msd as u8) | (lsd as u8);
+      let sum = (msd as u8) | lsd;
       self.sr.set_nz(sum);
       self.a = sum;
     }
@@ -267,7 +267,7 @@ impl ALU for Registers {
 
       self.sr.write(flags::CARRY, (msd & 0xFF00) != 0);
 
-      let sum = (msd as u8) | (lsd as u8);
+      let sum = (msd as u8) | lsd;
       self.sr.set_nz(sum);
       self.a = sum;
     }
