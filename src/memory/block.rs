@@ -76,3 +76,67 @@ impl Memory for BlockMemory {
     ActiveInterrupt::None
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_ram() {
+    let mut mem = BlockMemory::ram(0x1000);
+    assert_eq!(0x00, mem.read(0x123));
+
+    mem.write(0x123, 0x45);
+    assert_eq!(0x45, mem.read(0x123));
+    assert_eq!(0x00, mem.read(0x124));
+
+    // test wraparound
+    assert_eq!(0x45, mem.read(0x1123));
+
+    mem.reset();
+    assert_eq!(0x00, mem.read(0x123));
+  }
+
+  #[test]
+  fn test_rom() {
+    let mut mem = BlockMemory::rom(0x1000);
+    assert_eq!(0x00, mem.read(0x123));
+
+    mem.write(0x123, 0x45);
+    assert_eq!(0x45, mem.read(0x123));
+    assert_eq!(0x00, mem.read(0x124));
+
+    mem.reset();
+    // persistent memory should not be reset
+    assert_eq!(0x45, mem.read(0x123));
+  }
+
+  #[test]
+  fn test_from_file() {
+    let file = RomFile::new(vec![0x12, 0x34, 0x56, 0x78]);
+    let mut mem = BlockMemory::from_file(0x1000, file);
+
+    assert_eq!(0x12, mem.read(0x000));
+    assert_eq!(0x34, mem.read(0x001));
+    assert_eq!(0x56, mem.read(0x002));
+    assert_eq!(0x78, mem.read(0x003));
+
+    // test wraparound
+    assert_eq!(0x12, mem.read(0x1000));
+
+    mem.reset();
+    // persistent memory should not be reset
+    assert_eq!(0x12, mem.read(0x000));
+
+    // test that the rest of the memory is zeroed
+    assert_eq!(0x00, mem.read(0x004));
+    assert_eq!(0x00, mem.read(0xFFF));
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_from_file_too_large() {
+    let file = RomFile::new(vec![0x12, 0x34, 0x56, 0x78]);
+    BlockMemory::from_file(0x03, file);
+  }
+}

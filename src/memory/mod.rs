@@ -11,6 +11,7 @@ pub use null::NullMemory;
 pub use ports::{NullPort, Port};
 
 /// Represents the state of the interrupts on the system.
+#[derive(Debug, PartialEq, Eq)]
 pub enum ActiveInterrupt {
   /// No interrupts are active.
   None,
@@ -22,6 +23,7 @@ pub enum ActiveInterrupt {
 
 /// Information about the system that Memory implementations can use to
 /// determine if an interrupt should be triggered.
+#[derive(Debug, Default)]
 pub struct SystemInfo {
   pub cycles_per_second: u64,
   pub cycle_count: u64,

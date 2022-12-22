@@ -46,3 +46,16 @@ impl Memory for NullMemory {
     ActiveInterrupt::None
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_null() {
+    let mut memory = NullMemory::new();
+    assert_eq!(memory.read(0x0000), 0);
+    memory.write(0x0000, 0x12);
+    assert_eq!(memory.read(0x0000), 0);
+  }
+}
