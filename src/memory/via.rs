@@ -1,6 +1,7 @@
 use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
 
 // MOS 6522
+// http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf
 
 struct PortRegisters {
   port: Box<dyn Port>,
@@ -114,6 +115,7 @@ impl ShiftRegister {
   }
 }
 
+/// The MOS 6522 Versatile Interface Adapter (VIA).
 pub struct VIA {
   a: PortRegisters,
   b: PortRegisters,
@@ -122,6 +124,17 @@ pub struct VIA {
   sr: ShiftRegister,
   pcr: u8, // peripheral control register
   ier: u8, // interrupt enable register
+}
+
+pub mod ier_bits {
+  pub const MASTER: u8 = 0b10000000;
+  pub const T1_ENABLE: u8 = 0b01000000;
+  pub const T2_ENABLE: u8 = 0b00100000;
+  pub const CB1_ENABLE: u8 = 0b00010000;
+  pub const CB2_ENABLE: u8 = 0b00001000;
+  pub const SR_ENABLE: u8 = 0b00000100;
+  pub const CA1_ENABLE: u8 = 0b00000010;
+  pub const CA2_ENABLE: u8 = 0b00000001;
 }
 
 impl VIA {
@@ -170,14 +183,14 @@ impl Memory for VIA {
       0x0d => {
         let mut value = 0;
         if self.t1.interrupt {
-          value |= 0b01000000;
+          value |= ier_bits::T1_ENABLE;
         }
         if self.t2.interrupt {
-          value |= 0b00100000;
+          value |= ier_bits::T2_ENABLE;
         }
 
         if (value & self.ier) != 0 {
-          value |= 0b10000000; // master flag
+          value |= ier_bits::MASTER;
         }
         value
       }
@@ -220,14 +233,22 @@ impl Memory for VIA {
       }
       0x0c => self.pcr = value,
       0x0d => {
-        if (value & 0b01000000) == 0 {
+        if (value & ier_bits::T1_ENABLE) == 0 {
           self.t1.interrupt = false;
         }
-        if (value & 0b00100000) == 0 {
+        if (value & ier_bits::T2_ENABLE) == 0 {
           self.t2.interrupt = false;
         }
       }
-      0x0e => self.ier = value,
+      0x0e => {
+        if (value & ier_bits::MASTER) != 0 {
+          // set bits
+          self.ier |= value & 0b01111111;
+        } else {
+          // clear bits
+          self.ier &= !(value & 0b01111111);
+        }
+      }
       0x0f => self.a.write(value),
       _ => unreachable!(),
     }
@@ -239,11 +260,11 @@ impl Memory for VIA {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    if self.t1.poll(info) && (self.ier & 0b01000000) != 0 {
+    if self.t1.poll(info) && (self.ier & ier_bits::T1_ENABLE) != 0 {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.t2.poll(info) && (self.ier & 0b00100000) != 0 {
+    if self.t2.poll(info) && (self.ier & ier_bits::T2_ENABLE) != 0 {
       return ActiveInterrupt::IRQ;
     }
 
@@ -252,5 +273,222 @@ impl Memory for VIA {
     }
 
     ActiveInterrupt::None
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::memory::NullPort;
+
+  use super::*;
+
+  #[test]
+  fn test_read_write() {
+    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // writes without DDR shouldn't be reflected in reads
+    via.write(0x00, 0b10101010);
+    assert_eq!(0, via.read(0x00));
+    via.write(0x01, 0b00110011);
+    assert_eq!(0, via.read(0x01));
+
+    // write to the DDR
+    via.write(0x02, 0b11110000);
+    via.write(0x03, 0b00111100);
+
+    // now, our past writes should be reflected in reads
+    // (masked by the DDR)
+    assert_eq!(0b10100000, via.read(0x00));
+    assert_eq!(0b11110000, via.read(0x02));
+    assert_eq!(0b00110000, via.read(0x01));
+    assert_eq!(0b00111100, via.read(0x03));
+
+    // and future writes should be reflected in reads
+    via.write(0x00, 0b01010101);
+    assert_eq!(0b01010000, via.read(0x00));
+  }
+
+  #[test]
+  fn test_timer_1() {
+    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer 1 interrupts
+    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+
+    // set the timer to count down from 0x10
+    via.write(0x04, 0x10);
+    via.write(0x05, 0x00);
+
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(&SystemInfo::default()));
+
+    // polling again shouldn't do anything
+    for _ in 0..0x20 {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+  }
+
+  #[test]
+  fn test_timer_2() {
+    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer 2 interrupts
+    via.write(0x0e, ier_bits::MASTER | ier_bits::T2_ENABLE);
+
+    // set the timer to count down from 0x1234
+    via.write(0x08, 0x34);
+
+    // polling now shouldn't do anything
+    assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+
+    // timer begins when the high byte is written
+    via.write(0x09, 0x12);
+
+    for _ in 0..0x1233 {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(&SystemInfo::default()));
+  }
+
+  #[test]
+  fn test_t1_continuous() {
+    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer 1 interrupts
+    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+
+    // set timer 1 to continuous mode
+    via.write(0x0b, 0b01000000);
+
+    // set the timer to count down from 0x10
+    via.write(0x04, 0x10);
+    via.write(0x05, 0x00);
+
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(&SystemInfo::default()));
+
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(&SystemInfo::default()));
+  }
+
+  #[test]
+  fn test_ier_register() {
+    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // put something in the register
+    via.write(
+      0x0e,
+      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::SR_ENABLE,
+    );
+
+    // we should read this with the master bit cleared
+    assert_eq!(ier_bits::T1_ENABLE | ier_bits::SR_ENABLE, via.read(0x0e));
+
+    // *set* bits -- this shouldn't clear any
+    via.write(
+      0x0e,
+      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+    );
+    assert_eq!(
+      ier_bits::T1_ENABLE | ier_bits::SR_ENABLE | ier_bits::T2_ENABLE,
+      via.read(0x0e)
+    );
+
+    // *clear* bits
+    via.write(0x0e, ier_bits::T2_ENABLE | ier_bits::SR_ENABLE);
+    assert_eq!(ier_bits::T1_ENABLE, via.read(0x0e));
+  }
+
+  #[test]
+  fn test_ier_timers() {
+    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer 1 interrupts
+    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+
+    // set timer 1 to count down from 0x10
+    via.write(0x04, 0x10);
+    via.write(0x05, 0x00);
+
+    // set timer 2 to count down from 0x08
+    via.write(0x08, 0x08);
+    via.write(0x09, 0x00);
+
+    // timer 1 should interrupt first
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(&SystemInfo::default()));
+  }
+
+  #[test]
+  fn test_ifr() {
+    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer 1 interrupts
+    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+
+    // set timer 1 to continuous mode
+    via.write(0x0b, 0b01000000);
+
+    // set timer 1 to count down from 0x10
+    via.write(0x04, 0x10);
+    via.write(0x05, 0x00);
+
+    // set timer 2 to count down from 0x08
+    via.write(0x08, 0x08);
+    via.write(0x09, 0x00);
+
+    // timer 2 shouldn't trigger an interrupt
+    for _ in 0..0x08 {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+
+    // ...but the flag register should be set
+    assert_eq!(ier_bits::T2_ENABLE, via.read(0x0d));
+
+    // timer 1 should then trigger an interrupt
+    for _ in 0..0x07 {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(&SystemInfo::default()));
+
+    // ...and set the corresponding flag, plus the master bit
+    assert_eq!(
+      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      via.read(0x0d)
+    );
+
+    // clearing the master bit should have no effect
+    via.write(0x0d, !ier_bits::MASTER);
+    assert_eq!(
+      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      via.read(0x0d)
+    );
+
+    // clearing just timer 1 should clear the master bit
+    via.write(0x0d, !ier_bits::T1_ENABLE);
+    assert_eq!(ier_bits::T2_ENABLE, via.read(0x0d));
+
+    // clearing timer 2 should work as expected
+    via.write(0x0d, !ier_bits::T2_ENABLE);
+    assert_eq!(0, via.read(0x0d));
+
+    // if we let timer 1 run again, it should set the flag again
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, via.poll(&SystemInfo::default()));
+    }
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(&SystemInfo::default()));
   }
 }
