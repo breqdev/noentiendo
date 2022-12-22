@@ -131,3 +131,60 @@ impl Memory for PIA {
     }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::memory::NullPort;
+
+  use super::*;
+
+  #[test]
+  fn test_read() {
+    let mut pia = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // deselect the DDR
+    pia.write(0x01, control_bits::DDR_SELECT);
+
+    assert_eq!(0, pia.read(0x00));
+    assert_eq!(control_bits::DDR_SELECT, pia.read(0x01));
+    assert_eq!(0, pia.read(0x02));
+    assert_eq!(0, pia.read(0x03));
+
+    // wraps around
+    assert_eq!(0, pia.read(0x04));
+
+    // select the DDR
+    pia.write(0x01, 0);
+
+    assert_eq!(0, pia.read(0x00));
+    assert_eq!(0, pia.read(0x01));
+    assert_eq!(0, pia.read(0x02));
+    assert_eq!(0, pia.read(0x03));
+  }
+
+  #[test]
+  fn test_write() {
+    let mut pia = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // deselect the DDR
+    pia.write(0x01, control_bits::DDR_SELECT);
+
+    // writes without DDR shouldn't be reflected in reads
+    pia.write(0x00, 0b10101010);
+    assert_eq!(0, pia.read(0x00));
+
+    // write to the DDR
+    pia.write(0x01, 0);
+    pia.write(0x00, 0b11110000);
+
+    // now, our past writes should be reflected in reads
+    // (masked by the DDR)
+    pia.write(0x01, control_bits::DDR_SELECT);
+    assert_eq!(0b10100000, pia.read(0x00));
+    assert_eq!(control_bits::DDR_SELECT, pia.read(0x01));
+
+    // and future writes should be reflected in reads
+    pia.write(0x00, 0b01010101);
+    assert_eq!(0b01010000, pia.read(0x00));
+  }
+}
