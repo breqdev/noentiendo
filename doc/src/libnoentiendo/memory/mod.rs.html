@@ -57,6 +57,8 @@
 <span id="57">57</span>
 <span id="58">58</span>
 <span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
 </pre><pre class="rust"><code><span class="kw">mod </span>block;
 <span class="kw">mod </span>branch;
 <span class="kw">mod </span>null;
@@ -70,6 +72,7 @@
 <span class="kw">pub use </span>ports::{NullPort, Port};
 
 <span class="doccomment">/// Represents the state of the interrupts on the system.
+</span><span class="attribute">#[derive(Debug, PartialEq, Eq)]
 </span><span class="kw">pub enum </span>ActiveInterrupt {
   <span class="doccomment">/// No interrupts are active.
   </span><span class="prelude-val">None</span>,
@@ -81,6 +84,7 @@
 
 <span class="doccomment">/// Information about the system that Memory implementations can use to
 /// determine if an interrupt should be triggered.
+</span><span class="attribute">#[derive(Debug, Default)]
 </span><span class="kw">pub struct </span>SystemInfo {
   <span class="kw">pub </span>cycles_per_second: u64,
   <span class="kw">pub </span>cycle_count: u64,

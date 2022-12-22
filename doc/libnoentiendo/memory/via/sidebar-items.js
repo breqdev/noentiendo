@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":[["sr_control_bits",""]],"struct":[["VIA",""]]};
+window.SIDEBAR_ITEMS = {"mod":[["ier_bits",""],["sr_control_bits",""]],"struct":[["VIA","The MOS 6522 Versatile Interface Adapter (VIA)."]]};
