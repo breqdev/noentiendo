@@ -9,3 +9,8 @@ coverage:
           - unit
         paths:
           - "src"
+    patch:
+      default:
+        target: auto
+        threshold: 100%
+        base: auto
