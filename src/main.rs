@@ -31,7 +31,9 @@ struct Args {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-  use libnoentiendo::systems::{pet::PetSystemConfig, vic::Vic20SystemConfig};
+  use libnoentiendo::systems::{
+    pet::PetSystemConfig, vic::Vic20SystemConfig, C64SystemConfig, C64SystemFactory, C64SystemRoms,
+  };
 
   let args = Args::parse();
 
@@ -67,6 +69,11 @@ fn main() {
         None => None,
       }),
       Vic20SystemConfig { mapping },
+      platform.provider(),
+    ),
+    "c64" => C64SystemFactory::create(
+      C64SystemRoms::from_disk(),
+      C64SystemConfig { mapping },
       platform.provider(),
     ),
     _ => panic!("Unknown system"),
