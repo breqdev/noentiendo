@@ -117,14 +117,16 @@ impl Timer {
 
   fn poll(&mut self, _info: &SystemInfo) -> bool {
     if self.counter == 0 {
-      if self.continuous {
+      if !self.continuous {
         self.counter = self.latch
       } else {
         return false;
       }
     }
 
-    self.counter = self.counter.wrapping_sub(1);
+    if self.running {
+      self.counter = self.counter.wrapping_sub(1);
+    }
 
     if self.counter == 0 {
       self.interrupt = true;
@@ -282,6 +284,7 @@ impl CIA {
 
 impl Memory for CIA {
   fn read(&mut self, address: u16) -> u8 {
+    // println!("Read from CIA at address {:04x}", address);
     match address % 0x10 {
       0x00 => self.a.read(),
       0x01 => self.b.read(),
@@ -312,6 +315,10 @@ impl Memory for CIA {
   }
 
   fn write(&mut self, address: u16, value: u8) {
+    // println!(
+    //   "Write to CIA at address {:04x}, value {:02x}",
+    //   address, value
+    // );
     match address % 0x10 {
       0x00 => self.a.write(value),
       0x01 => self.b.write(value),
