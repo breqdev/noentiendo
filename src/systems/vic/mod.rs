@@ -1,5 +1,5 @@
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-use crate::memory::via::VIA;
+use crate::memory::interface::VIA;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;

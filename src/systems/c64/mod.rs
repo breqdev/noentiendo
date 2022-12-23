@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use crate::{
   keyboard::KeyMappingStrategy,
-  memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, SystemInfo},
+  memory::{
+    interface::CIA, ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort,
+    SystemInfo,
+  },
   platform::{Color, PlatformProvider, WindowConfig},
   roms::RomFile,
   system::System,
@@ -122,7 +125,9 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
     let cartridge_low = NullMemory::new();
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let high_ram = BlockMemory::ram(0x1000);
-    let character_rom = NullMemory::new(); // BlockMemory::from_file(0x1000, roms.character);
+    let vic_ii = NullMemory::new();
+    let cia_1 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let cia_2 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
     let kernal_rom = BlockMemory::from_file(0x2000, roms.kernal);
 
     let memory = BranchMemory::new()
@@ -132,7 +137,9 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       .map(0x8000, Box::new(cartridge_low))
       .map(0xA000, Box::new(basic_rom))
       .map(0xC000, Box::new(high_ram))
-      .map(0xD000, Box::new(character_rom))
+      .map(0xD000, Box::new(vic_ii))
+      .map(0xDC00, Box::new(cia_1))
+      .map(0xDD00, Box::new(cia_2))
       .map(0xE000, Box::new(kernal_rom));
 
     System::new(Box::new(memory), 1_000_000)
