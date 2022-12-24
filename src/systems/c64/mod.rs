@@ -6,12 +6,8 @@ use std::{
 
 use crate::{
   keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
-  memory::{
-    interface::CIA, ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort, Port,
-    SystemInfo,
-  },
-  platform::{Color, PlatformProvider, WindowConfig},
-  roms::RomFile,
+  memory::{interface::CIA, BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo},
+  platform::PlatformProvider,
   system::System,
   systems::SystemFactory,
 };
@@ -142,7 +138,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       platform.clone(),
       Box::new(character_rom),
     )));
-    let vic_io = VicIIChipIO::new(vic_ii.clone());
+    let vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: map
     let color_ram = BlockMemory::ram(0x0400);
     let port_a = C64Cia1PortA::new();
     let keyboard_col = port_a.get_keyboard_col();

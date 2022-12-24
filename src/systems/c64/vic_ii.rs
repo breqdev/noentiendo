@@ -8,7 +8,6 @@ const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
 const CHAR_WIDTH: u32 = 8;
 const CHAR_HEIGHT: u32 = 8;
-const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 struct Sprite {
@@ -34,17 +33,6 @@ impl Sprite {
       multicolor: false,
       data_priority: false,
     }
-  }
-
-  pub fn reset(&mut self) {
-    self.x = 0;
-    self.y = 0;
-    self.color = 0;
-    self.enabled = false;
-    self.x_expansion = false;
-    self.y_expansion = false;
-    self.multicolor = false;
-    self.data_priority = false;
   }
 }
 
@@ -75,8 +63,8 @@ pub struct VicIIChip {
 impl VicIIChip {
   pub fn new(platform: Arc<dyn PlatformProvider>, character_rom: Box<dyn Memory>) -> Self {
     platform.request_window(WindowConfig::new(
-      WIDTH as u32 * CHAR_WIDTH,
-      HEIGHT as u32 * CHAR_HEIGHT,
+      WIDTH * CHAR_WIDTH,
+      HEIGHT * CHAR_HEIGHT,
       2.0,
     ));
 
@@ -128,7 +116,7 @@ impl VicIIChip {
   /// The character is 8 bits wide and 8 bits tall, so this returns a vec![0; 8].
   /// Each byte is a horizontal row, which are ordered from top to bottom.
   /// Bits are ordered with the MSB at the left and the LSB at the right.
-  fn get_character(&mut self, value: u8, memory: &mut Box<dyn Memory>) -> Vec<u8> {
+  fn get_character(&mut self, value: u8, _memory: &mut Box<dyn Memory>) -> Vec<u8> {
     let character_index = (value as u16) * 8;
 
     let mut character = vec![0; 8];
@@ -216,7 +204,7 @@ impl Memory for VicIIChipIO {
 
         match sprite_index % 2 {
           0 => chip.sprites[sprite_index].x as u8,
-          1 => chip.sprites[sprite_index].y as u8,
+          1 => chip.sprites[sprite_index].y,
           _ => unreachable!(),
         }
       }
