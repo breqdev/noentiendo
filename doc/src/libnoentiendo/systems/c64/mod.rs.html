@@ -174,6 +174,131 @@
 <span id="174">174</span>
 <span id="175">175</span>
 <span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
+<span id="180">180</span>
+<span id="181">181</span>
+<span id="182">182</span>
+<span id="183">183</span>
+<span id="184">184</span>
+<span id="185">185</span>
+<span id="186">186</span>
+<span id="187">187</span>
+<span id="188">188</span>
+<span id="189">189</span>
+<span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
+<span id="193">193</span>
+<span id="194">194</span>
+<span id="195">195</span>
+<span id="196">196</span>
+<span id="197">197</span>
+<span id="198">198</span>
+<span id="199">199</span>
+<span id="200">200</span>
+<span id="201">201</span>
+<span id="202">202</span>
+<span id="203">203</span>
+<span id="204">204</span>
+<span id="205">205</span>
+<span id="206">206</span>
+<span id="207">207</span>
+<span id="208">208</span>
+<span id="209">209</span>
+<span id="210">210</span>
+<span id="211">211</span>
+<span id="212">212</span>
+<span id="213">213</span>
+<span id="214">214</span>
+<span id="215">215</span>
+<span id="216">216</span>
+<span id="217">217</span>
+<span id="218">218</span>
+<span id="219">219</span>
+<span id="220">220</span>
+<span id="221">221</span>
+<span id="222">222</span>
+<span id="223">223</span>
+<span id="224">224</span>
+<span id="225">225</span>
+<span id="226">226</span>
+<span id="227">227</span>
+<span id="228">228</span>
+<span id="229">229</span>
+<span id="230">230</span>
+<span id="231">231</span>
+<span id="232">232</span>
+<span id="233">233</span>
+<span id="234">234</span>
+<span id="235">235</span>
+<span id="236">236</span>
+<span id="237">237</span>
+<span id="238">238</span>
+<span id="239">239</span>
+<span id="240">240</span>
+<span id="241">241</span>
+<span id="242">242</span>
+<span id="243">243</span>
+<span id="244">244</span>
+<span id="245">245</span>
+<span id="246">246</span>
+<span id="247">247</span>
+<span id="248">248</span>
+<span id="249">249</span>
+<span id="250">250</span>
+<span id="251">251</span>
+<span id="252">252</span>
+<span id="253">253</span>
+<span id="254">254</span>
+<span id="255">255</span>
+<span id="256">256</span>
+<span id="257">257</span>
+<span id="258">258</span>
+<span id="259">259</span>
+<span id="260">260</span>
+<span id="261">261</span>
+<span id="262">262</span>
+<span id="263">263</span>
+<span id="264">264</span>
+<span id="265">265</span>
+<span id="266">266</span>
+<span id="267">267</span>
+<span id="268">268</span>
+<span id="269">269</span>
+<span id="270">270</span>
+<span id="271">271</span>
+<span id="272">272</span>
+<span id="273">273</span>
+<span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
   cell::{Cell, RefCell},
   rc::Rc,
@@ -182,7 +307,10 @@
 
 <span class="kw">use crate</span>::{
   keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
-  memory::{interface::CIA, BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo},
+  memory::{
+    interface::CIA, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort,
+    Port, SystemInfo,
+  },
   platform::PlatformProvider,
   system::System,
   systems::SystemFactory,
@@ -199,7 +327,8 @@
   vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO},
 };
 
-<span class="kw">struct </span>C64Cia1PortA {
+<span class="doccomment">/// Port A on the first CIA chip on the C64 deals with setting the keyboard row being scanned.
+</span><span class="kw">struct </span>C64Cia1PortA {
   keyboard_row: Rc&lt;Cell&lt;u8&gt;&gt;,
 }
 
@@ -211,7 +340,7 @@
   }
 
   <span class="doccomment">/// Return a reference to the keyboard column&#39;s current value.
-  </span><span class="kw">pub fn </span>get_keyboard_col(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rc&lt;Cell&lt;u8&gt;&gt; {
+  </span><span class="kw">pub fn </span>get_keyboard_row(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Rc&lt;Cell&lt;u8&gt;&gt; {
     <span class="self">self</span>.keyboard_row.clone()
   }
 }
@@ -232,8 +361,9 @@
   <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {}
 }
 
-<span class="kw">struct </span>C64Cia1PortB {
-  keyboard_col: Rc&lt;Cell&lt;u8&gt;&gt;,
+<span class="doccomment">/// Port B on the first CIA chip on the C64 deals with reading columns of the keyboard matrix.
+</span><span class="kw">struct </span>C64Cia1PortB {
+  keyboard_row: Rc&lt;Cell&lt;u8&gt;&gt;,
   mapping_strategy: KeyMappingStrategy,
   platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
 }
@@ -242,12 +372,12 @@
   <span class="doccomment">/// Create a new instance of the port, with the given keyboard column,
   /// reading the key status from the given platform.
   </span><span class="kw">pub fn </span>new(
-    keyboard_col: Rc&lt;Cell&lt;u8&gt;&gt;,
+    keyboard_row: Rc&lt;Cell&lt;u8&gt;&gt;,
     mapping_strategy: KeyMappingStrategy,
     platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
   ) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{
-      keyboard_col,
+      keyboard_row,
       mapping_strategy,
       platform,
     }
@@ -256,7 +386,7 @@
 
 <span class="kw">impl </span>Port <span class="kw">for </span>C64Cia1PortB {
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
-    <span class="kw">let </span>col_mask = <span class="self">self</span>.keyboard_col.get();
+    <span class="kw">let </span>row_mask = <span class="self">self</span>.keyboard_row.get();
 
     <span class="kw">let </span><span class="kw-2">mut </span>value = <span class="number">0b1111_1111</span>;
 
@@ -269,7 +399,7 @@
 
     <span class="kw">for </span>(y, row) <span class="kw">in </span>KEYBOARD_MAPPING.iter().enumerate() {
       <span class="kw">for </span>(x, key) <span class="kw">in </span>row.iter().enumerate() {
-        <span class="kw">if </span>((!col_mask &amp; (<span class="number">1 </span>&lt;&lt; y)) != <span class="number">0</span>) &amp;&amp; state.is_pressed(<span class="kw-2">*</span>key) {
+        <span class="kw">if </span>((!row_mask &amp; (<span class="number">1 </span>&lt;&lt; y)) != <span class="number">0</span>) &amp;&amp; state.is_pressed(<span class="kw-2">*</span>key) {
           value &amp;= !(<span class="number">1 </span>&lt;&lt; x);
         }
       }
@@ -289,6 +419,79 @@
   <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {}
 }
 
+<span class="doccomment">/// Bank switching implementation performed using the 6510&#39;s I/O port.
+/// Source: https://www.c64-wiki.com/wiki/Bank_Switching
+</span><span class="kw">pub struct </span>C64BankSwitching {
+  <span class="doccomment">/// CPU Control Lines
+  </span>hiram: bool,
+  loram: bool,
+  charen: bool,
+
+  <span class="doccomment">/// Selectors to choose what is mapped in each memory region.
+  </span>selectors: [Rc&lt;Cell&lt;usize&gt;&gt;; <span class="number">6</span>],
+}
+
+<span class="kw">impl </span>C64BankSwitching {
+  <span class="kw">pub fn </span>new(<span class="kw-2">mut </span>selectors: [Rc&lt;Cell&lt;usize&gt;&gt;; <span class="number">6</span>]) -&gt; <span class="self">Self </span>{
+    selectors.iter_mut().for_each(|s| s.set(<span class="number">0</span>));
+    <span class="self">Self </span>{
+      hiram: <span class="bool-val">true</span>,
+      loram: <span class="bool-val">true</span>,
+      charen: <span class="bool-val">true</span>,
+      selectors,
+    }
+  }
+}
+
+<span class="kw">impl </span>Port <span class="kw">for </span>C64BankSwitching {
+  <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
+    (<span class="self">self</span>.loram <span class="kw">as </span>u8) | (<span class="self">self</span>.hiram <span class="kw">as </span>u8) &lt;&lt; <span class="number">1 </span>| (<span class="self">self</span>.charen <span class="kw">as </span>u8) &lt;&lt; <span class="number">2
+  </span>}
+
+  <span class="attribute">#[allow(clippy::bool_to_int_with_if)]
+  </span><span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: u8) {
+    <span class="self">self</span>.loram = (value &amp; <span class="number">0b001</span>) != <span class="number">0</span>;
+    <span class="self">self</span>.hiram = (value &amp; <span class="number">0b010</span>) != <span class="number">0</span>;
+    <span class="self">self</span>.charen = (value &amp; <span class="number">0b100</span>) != <span class="number">0</span>;
+
+    <span class="comment">// TODO: EXROM, GAME signals
+
+    // Region 2: RAM or inaccessible
+    </span><span class="self">self</span>.selectors[<span class="number">0</span>].set(<span class="number">0</span>);
+
+    <span class="comment">// Region 3: RAM or Cartridge ROM Low
+    </span><span class="self">self</span>.selectors[<span class="number">1</span>].set(<span class="number">0</span>);
+
+    <span class="comment">// Region 4: BASIC ROM, RAM, Cartridge ROM High, or inaccessible
+    </span><span class="self">self</span>.selectors[<span class="number">2</span>].set(<span class="kw">if </span><span class="self">self</span>.hiram &amp;&amp; <span class="self">self</span>.loram { <span class="number">0 </span>} <span class="kw">else </span>{ <span class="number">1 </span>});
+
+    <span class="comment">// Region 5: RAM or inaccessible
+    </span><span class="self">self</span>.selectors[<span class="number">3</span>].set(<span class="number">0</span>);
+
+    <span class="comment">// Region 6: I/O, RAM, or character rom
+    </span><span class="self">self</span>.selectors[<span class="number">4</span>].set(<span class="kw">if </span>!<span class="self">self</span>.hiram &amp;&amp; !<span class="self">self</span>.loram {
+      <span class="number">1
+    </span>} <span class="kw">else if </span>!<span class="self">self</span>.charen {
+      <span class="number">2
+    </span>} <span class="kw">else </span>{
+      <span class="number">0
+    </span>});
+
+    <span class="comment">// Region 7: Kernal ROM or RAM
+    </span><span class="self">self</span>.selectors[<span class="number">5</span>].set(<span class="kw">if </span>!<span class="self">self</span>.hiram { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
+  }
+
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+    <span class="bool-val">false
+  </span>}
+
+  <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="self">self</span>.hiram = <span class="bool-val">true</span>;
+    <span class="self">self</span>.loram = <span class="bool-val">true</span>;
+    <span class="self">self</span>.charen = <span class="bool-val">true</span>;
+  }
+}
+
 <span class="doccomment">/// Configuration for a Commodore 64 system.
 </span><span class="kw">pub struct </span>C64SystemConfig {
   <span class="kw">pub </span>mapping: KeyMappingStrategy,
@@ -303,21 +506,47 @@
     config: C64SystemConfig,
     platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
   ) -&gt; System {
-    <span class="kw">let </span>ram = BlockMemory::ram(<span class="number">0x0400</span>);
-    <span class="kw">let </span>vram = BlockMemory::ram(<span class="number">0x0400</span>);
-    <span class="kw">let </span>basic_ram = BlockMemory::ram(<span class="number">0x9800</span>);
-    <span class="kw">let </span>cartridge_low = NullMemory::new();
-    <span class="kw">let </span>basic_rom = BlockMemory::from_file(<span class="number">0x2000</span>, roms.basic);
-    <span class="kw">let </span>high_ram = BlockMemory::ram(<span class="number">0x1000</span>);
-    <span class="kw">let </span>character_rom = BlockMemory::from_file(<span class="number">0x1000</span>, roms.character);
+    <span class="comment">// Region 1: 0x0000 - 0x0FFF
+    </span><span class="kw">let </span>region1 = BlockMemory::ram(<span class="number">0x1000</span>);
+
+    <span class="comment">// Region 2: 0x1000 - 0x7FFF
+    </span><span class="kw">let </span>selector2 = Rc::new(Cell::new(<span class="number">0</span>));
+    <span class="kw">let </span>region2 = BankedMemory::new(selector2.clone())
+      .bank(Box::new(BlockMemory::ram(<span class="number">0x7000</span>)))
+      .bank(Box::new(NullMemory::new()));
+
+    <span class="comment">// Region 3: 0x8000 - 0x9FFF
+    </span><span class="kw">let </span>selector3 = Rc::new(Cell::new(<span class="number">0</span>));
+    <span class="kw">let </span>region3 = BankedMemory::new(selector3.clone())
+      .bank(Box::new(BlockMemory::ram(<span class="number">0x2000</span>)))
+      .bank(Box::new(NullMemory::new())); <span class="comment">// TODO: Cartridge Rom Low
+
+    // Region 4: 0xA000 - 0xBFFF
+    </span><span class="kw">let </span>selector4 = Rc::new(Cell::new(<span class="number">0</span>));
+    <span class="kw">let </span>region4 = BankedMemory::new(selector4.clone())
+      .bank(Box::new(BlockMemory::from_file(<span class="number">0x2000</span>, roms.basic)))
+      .bank(Box::new(BlockMemory::ram(<span class="number">0x2000</span>)))
+      .bank(Box::new(NullMemory::new())) <span class="comment">// TODO: Cartridge Rom High
+      </span>.bank(Box::new(NullMemory::new()));
+
+    <span class="comment">// Region 5: 0xC000 - 0xCFFF
+    </span><span class="kw">let </span>selector5 = Rc::new(Cell::new(<span class="number">0</span>));
+    <span class="kw">let </span>region5 = BankedMemory::new(selector5.clone())
+      .bank(Box::new(BlockMemory::ram(<span class="number">0x1000</span>)))
+      .bank(Box::new(NullMemory::new()));
+
+    <span class="comment">// Region 6: 0xD000 - 0xDFFF
+    </span><span class="kw">let </span>selector6 = Rc::new(Cell::new(<span class="number">0</span>));
+
+    <span class="kw">let </span>character_rom = BlockMemory::from_file(<span class="number">0x1000</span>, roms.character.clone());
     <span class="kw">let </span>vic_ii = Rc::new(RefCell::new(VicIIChip::new(
       platform.clone(),
       Box::new(character_rom),
     )));
-    <span class="kw">let </span>_vic_io = VicIIChipIO::new(vic_ii.clone()); <span class="comment">// TODO: bank switching!
-    </span><span class="kw">let </span>color_ram = BlockMemory::ram(<span class="number">0x0400</span>);
-    <span class="kw">let </span>port_a = C64Cia1PortA::new();
-    <span class="kw">let </span>keyboard_col = port_a.get_keyboard_col();
+    <span class="kw">let </span>vic_io = VicIIChipIO::new(vic_ii.clone()); <span class="comment">// TODO: bank switching!
+
+    </span><span class="kw">let </span>port_a = C64Cia1PortA::new();
+    <span class="kw">let </span>keyboard_col = port_a.get_keyboard_row();
     <span class="kw">let </span>cia_1 = CIA::new(
       Box::new(port_a),
       Box::new(C64Cia1PortB::new(
@@ -326,22 +555,43 @@
         platform.clone(),
       )),
     );
+
     <span class="kw">let </span>cia_2 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
-    <span class="kw">let </span>kernal_rom = BlockMemory::from_file(<span class="number">0x2000</span>, roms.kernal);
+
+    <span class="kw">let </span>region6 = BankedMemory::new(selector6.clone())
+      .bank(Box::new(
+        BranchMemory::new()
+          .map(<span class="number">0x000</span>, Box::new(vic_io))
+          .map(<span class="number">0x400</span>, Box::new(NullMemory::new())) <span class="comment">// TODO: SID
+          </span>.map(<span class="number">0x800</span>, Box::new(BlockMemory::ram(<span class="number">0x0400</span>)))
+          .map(<span class="number">0xC00</span>, Box::new(cia_1))
+          .map(<span class="number">0xD00</span>, Box::new(cia_2))
+          .map(<span class="number">0xE00</span>, Box::new(NullMemory::new())) <span class="comment">// TODO: Expansion card
+          </span>.map(<span class="number">0xF00</span>, Box::new(NullMemory::new())), <span class="comment">// TODO: Expansion card
+      </span>))
+      .bank(Box::new(BlockMemory::ram(<span class="number">0x1000</span>)))
+      .bank(Box::new(BlockMemory::from_file(<span class="number">0x1000</span>, roms.character)));
+
+    <span class="comment">// Region 7: 0xE000 - 0xFFFF
+    </span><span class="kw">let </span>selector7 = Rc::new(Cell::new(<span class="number">0</span>));
+    <span class="kw">let </span>region7 = BankedMemory::new(selector7.clone())
+      .bank(Box::new(BlockMemory::from_file(<span class="number">0x2000</span>, roms.kernal)))
+      .bank(Box::new(BlockMemory::ram(<span class="number">0x2000</span>)))
+      .bank(Box::new(NullMemory::new())); <span class="comment">// TODO: Cartidge Rom High
+
+    </span><span class="kw">let </span>bank_switching = C64BankSwitching::new([
+      selector2, selector3, selector4, selector5, selector6, selector7,
+    ]);
 
     <span class="kw">let </span>memory = BranchMemory::new()
-      .map(<span class="number">0x0000</span>, Box::new(ram))
-      .map(<span class="number">0x0400</span>, Box::new(vram))
-      .map(<span class="number">0x0800</span>, Box::new(basic_ram))
-      .map(<span class="number">0x8000</span>, Box::new(cartridge_low))
-      .map(<span class="number">0xA000</span>, Box::new(basic_rom))
-      .map(<span class="number">0xC000</span>, Box::new(high_ram))
-      .map(<span class="number">0xD000</span>, Box::new(NullMemory::new()))
-      .map(<span class="number">0xD400</span>, Box::new(NullMemory::new())) <span class="comment">// TODO: SID chip
-      </span>.map(<span class="number">0xD800</span>, Box::new(color_ram))
-      .map(<span class="number">0xDC00</span>, Box::new(cia_1))
-      .map(<span class="number">0xDD00</span>, Box::new(cia_2))
-      .map(<span class="number">0xE000</span>, Box::new(kernal_rom));
+      .map(<span class="number">0x0000</span>, Box::new(Mos6510Port::new(Box::new(bank_switching))))
+      .map(<span class="number">0x0002</span>, Box::new(region1))
+      .map(<span class="number">0x1000</span>, Box::new(region2))
+      .map(<span class="number">0x8000</span>, Box::new(region3))
+      .map(<span class="number">0xA000</span>, Box::new(region4))
+      .map(<span class="number">0xC000</span>, Box::new(region5))
+      .map(<span class="number">0xD000</span>, Box::new(region6))
+      .map(<span class="number">0xE000</span>, Box::new(region7));
 
     <span class="kw">let </span><span class="kw-2">mut </span>system = System::new(Box::new(memory), <span class="number">1_000_000</span>);
 

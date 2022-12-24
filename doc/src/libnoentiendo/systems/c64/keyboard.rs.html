@@ -315,9 +315,15 @@
 <span id="315">315</span>
 <span id="316">316</span>
 <span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+<span id="322">322</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
-<span class="attribute">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+<span class="doccomment">/// Keys found on a Commodore 64 keyboard.
+</span><span class="attribute">#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 </span><span class="kw">pub enum </span>C64Keys {
   LeftArrow,
   Digit1,
@@ -391,7 +397,9 @@
   F7,
 }
 
-<span class="kw">pub const </span>KEYBOARD_MAPPING: [[C64Keys; <span class="number">8</span>]; <span class="number">8</span>] = {
+<span class="doccomment">/// The keyboard matrix found on a Commodore 64.
+/// Source: https://www.c64-wiki.com/wiki/Keyboard
+</span><span class="kw">pub const </span>KEYBOARD_MAPPING: [[C64Keys; <span class="number">8</span>]; <span class="number">8</span>] = {
   <span class="kw">use </span>C64Keys::<span class="kw-2">*</span>;
 
   [
@@ -419,7 +427,8 @@
   ]
 };
 
-<span class="kw">pub struct </span>C64KeyboardAdapter;
+<span class="doccomment">/// An adapter for mapping positions on a standard keyboard to keys on a Commodore 64.
+</span><span class="kw">pub struct </span>C64KeyboardAdapter;
 
 <span class="kw">impl </span>KeyAdapter&lt;KeyPosition, C64Keys&gt; <span class="kw">for </span>C64KeyboardAdapter {
   <span class="kw">fn </span>map(state: <span class="kw-2">&amp;</span>KeyState&lt;KeyPosition&gt;) -&gt; KeyState&lt;C64Keys&gt; {
@@ -508,7 +517,8 @@
   }
 }
 
-<span class="kw">pub struct </span>C64SymbolAdapter;
+<span class="doccomment">/// An adapter for mapping symbols pressed on a standard keyboard to keys pressed on a Commodore 64.
+</span><span class="kw">pub struct </span>C64SymbolAdapter;
 
 <span class="kw">impl </span>KeyAdapter&lt;KeySymbol, C64Keys&gt; <span class="kw">for </span>C64SymbolAdapter {
   <span class="kw">fn </span>map(state: <span class="kw-2">&amp;</span>KeyState&lt;KeySymbol&gt;) -&gt; KeyState&lt;C64Keys&gt; {

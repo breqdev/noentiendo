@@ -26,6 +26,7 @@
 <span id="26">26</span>
 <span id="27">27</span>
 <span id="28">28</span>
+<span id="29">29</span>
 </pre><pre class="rust"><code><span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">mod </span>disk;
 
@@ -40,6 +41,7 @@
 
 <span class="doccomment">/// Represents a predefined, immutable ROM file.
 /// Useful for storing character, BASIC, kernal, etc. ROMs.
+</span><span class="attribute">#[derive(Clone, Debug)]
 </span><span class="kw">pub struct </span>RomFile {
   data: Vec&lt;u8&gt;,
 }
