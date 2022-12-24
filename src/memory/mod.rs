@@ -1,9 +1,11 @@
+mod banked;
 mod block;
 mod branch;
 pub mod interface;
 mod null;
 pub mod ports;
 
+pub use banked::BankedMemory;
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
 pub use null::NullMemory;
