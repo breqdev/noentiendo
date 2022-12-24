@@ -326,7 +326,9 @@ impl Memory for VicIIChipIO {
         chip.row_select = (value & 0b0000_1000) != 0;
         chip.y_scroll = value & 0b0000_0111;
       }
-      0x12 => chip.raster_counter = (chip.raster_counter & 0xFF00) | value as u16,
+      0x12 => {
+        // TODO: set raster comparator to trigger interrupt
+      }
       0x13 => chip.light_pen.0 = value,
       0x14 => chip.light_pen.1 = value,
       0x15 => {
@@ -378,7 +380,9 @@ impl Memory for VicIIChipIO {
     self.chip.borrow_mut().reset();
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
+    self.chip.borrow_mut().raster_counter = ((info.cycle_count / 83) % 312) as u16;
+
     ActiveInterrupt::None
   }
 }
