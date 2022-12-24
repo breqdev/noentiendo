@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use crate::{
   keyboard::KeyMappingStrategy,
@@ -13,6 +13,7 @@ use crate::{
 };
 
 mod roms;
+mod vic_ii;
 
 /// TODO: This is bad because the vram can be remapped!!
 struct C64Vram {
@@ -105,6 +106,8 @@ impl Memory for C64Vram {
 
 pub use roms::C64SystemRoms;
 
+use self::vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO};
+
 /// Configuration for a Commodore 64 system.
 pub struct C64SystemConfig {
   pub mapping: KeyMappingStrategy,
@@ -120,12 +123,18 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
     platform: Arc<dyn PlatformProvider>,
   ) -> System {
     let ram = BlockMemory::ram(0x0400);
-    let vram = C64Vram::new(roms.character, platform.clone());
+    let vram = BlockMemory::ram(0x0400);
     let basic_ram = BlockMemory::ram(0x9800);
     let cartridge_low = NullMemory::new();
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let high_ram = BlockMemory::ram(0x1000);
-    let vic_ii = NullMemory::new();
+    let character_rom = BlockMemory::from_file(0x1000, roms.character);
+    let vic_ii = Rc::new(RefCell::new(VicIIChip::new(
+      platform.clone(),
+      Box::new(character_rom),
+    )));
+    let vic_io = VicIIChipIO::new(vic_ii.clone());
+    let color_ram = BlockMemory::ram(0x0400);
     let cia_1 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
     let cia_2 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
     let kernal_rom = BlockMemory::from_file(0x2000, roms.kernal);
@@ -137,11 +146,16 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       .map(0x8000, Box::new(cartridge_low))
       .map(0xA000, Box::new(basic_rom))
       .map(0xC000, Box::new(high_ram))
-      .map(0xD000, Box::new(vic_ii))
+      .map(0xD000, Box::new(NullMemory::new()))
+      .map(0xD800, Box::new(color_ram))
       .map(0xDC00, Box::new(cia_1))
       .map(0xDD00, Box::new(cia_2))
       .map(0xE000, Box::new(kernal_rom));
 
-    System::new(Box::new(memory), 1_000_000)
+    let mut system = System::new(Box::new(memory), 1_000_000);
+
+    system.attach_dma(Box::new(VicIIChipDMA::new(vic_ii)));
+
+    system
   }
 }
