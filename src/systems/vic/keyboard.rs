@@ -1,7 +1,7 @@
 use crate::keyboard::commodore::C64Keys;
 
 /// The keyboard matrix in a VIC-20 system.
-/// Source: https://www.lemon64.com/forum/viewtopic.php?t=68210&sid=8b976b9f8699fc3588c5622b43a1f4b1
+/// Source: <https://www.lemon64.com/forum/viewtopic.php?t=68210&sid=8b976b9f8699fc3588c5622b43a1f4b1>
 pub const KEYBOARD_MAPPING: [[C64Keys; 8]; 8] = {
   use C64Keys::*;
 

@@ -3,9 +3,6 @@ use crate::memory::{
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
-// MOS 6522
-// http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf
-
 pub mod sr_control_bits {
   pub const SHIFT_DISABLED: u8 = 0b000;
   pub const SHIFT_IN_BY_T2: u8 = 0b001;
@@ -26,6 +23,7 @@ pub mod sr_control_bits {
 }
 
 /// The MOS 6522 Versatile Interface Adapter (VIA).
+/// Source: <http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf>
 pub struct Via {
   a: PortRegisters,
   b: PortRegisters,

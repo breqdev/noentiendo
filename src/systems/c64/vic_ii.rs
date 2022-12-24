@@ -217,7 +217,8 @@ impl VicIIChip {
 }
 
 /// Represents the I/O mapping for the MOS 6560 VIC.
-/// Sources: https://www.c64-wiki.com/wiki/Page_208-211 and http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+/// Sources: <https://www.c64-wiki.com/wiki/Page_208-211>
+/// and <http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt>.
 pub struct VicIIChipIO {
   chip: Rc<RefCell<VicIIChip>>,
 }

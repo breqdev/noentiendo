@@ -18,6 +18,7 @@ pub struct RomFile {
 }
 
 impl RomFile {
+  /// Creates a new ROM file from the given data.
   pub fn new(data: Vec<u8>) -> Self {
     Self { data }
   }

@@ -2,9 +2,10 @@ mod banked;
 mod block;
 mod branch;
 mod mos6510;
+/// The various interface adapters (6520, 6522, 6526) for the MOS 6502 CPU.
 pub mod mos652x;
 mod null;
-pub mod ports;
+mod ports;
 
 pub use banked::BankedMemory;
 pub use block::BlockMemory;

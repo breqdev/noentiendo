@@ -1,7 +1,7 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
 /// The keys found on the PET's "Graphics" keyboard.
-/// https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg
+/// Source: <https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PetKeys {
   Exclamation,
@@ -87,7 +87,7 @@ pub enum PetKeys {
 }
 
 /// The keyboard matrix for the PET's "Graphics" keyboard.
-/// Source: https://www.lemon64.com/forum/viewtopic.php?t=68210&sid=8b976b9f8699fc3588c5622b43a1f4b1
+/// Source: <https://www.lemon64.com/forum/viewtopic.php?t=68210&sid=8b976b9f8699fc3588c5622b43a1f4b1>
 pub const KEYBOARD_MAPPING: [[PetKeys; 8]; 10] = {
   use PetKeys::*;
 

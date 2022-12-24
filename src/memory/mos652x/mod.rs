@@ -1,5 +1,8 @@
+/// The MOS 6526 Complex Interface Adapter (CIA).
 pub mod cia;
+/// The MOS 6520 Peripheral Interface Adapter (PIA).
 pub mod pia;
+/// The MOS 6522 Versatile Interface Adapter (VIA).
 pub mod via;
 
 pub use cia::Cia;

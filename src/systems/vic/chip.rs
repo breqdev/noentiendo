@@ -63,11 +63,10 @@ impl VicChipLightPen {
   }
 }
 
-// Source: http://tinyvga.com/6561
-
 /// The MOS 6560 VIC (Video Interface Chip).
 /// Uses VRAM memory, character memory, and color memory to draw the screen.
 /// Also handles the speakers and light pen.
+/// Source: <http://tinyvga.com/6561>
 pub struct VicChip {
   platform: Arc<dyn PlatformProvider>,
   // Registers
@@ -178,7 +177,7 @@ impl VicChip {
   }
 
   /// The Vic-20 only has 14 address lines, see:
-  /// http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327
+  /// <http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327>
   fn vic_to_cpu_address(address: u16) -> u16 {
     // 0x0000 -> 0x8000
     // 0x0FFF -> 0x8FFF

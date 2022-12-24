@@ -1,13 +1,16 @@
 use crate::keyboard::{KeyPosition, KeyState};
 use crate::system::System;
-#[cfg(target_arch = "wasm32")]
-mod canvas;
-#[cfg(not(target_arch = "wasm32"))]
-mod text;
-#[cfg(not(target_arch = "wasm32"))]
-mod winit;
 use async_trait::async_trait;
 use std::sync::Arc;
+
+#[cfg(target_arch = "wasm32")]
+mod canvas;
+
+#[cfg(not(target_arch = "wasm32"))]
+mod text;
+
+#[cfg(not(target_arch = "wasm32"))]
+mod winit;
 
 #[cfg(target_arch = "wasm32")]
 pub use self::canvas::{CanvasPlatform, CanvasPlatformProvider};

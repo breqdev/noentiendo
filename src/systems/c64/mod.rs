@@ -122,7 +122,7 @@ impl Port for C64Cia1PortB {
 }
 
 /// Bank switching implementation performed using the 6510's I/O port.
-/// Source: https://www.c64-wiki.com/wiki/Bank_Switching
+/// Source: <https://www.c64-wiki.com/wiki/Bank_Switching>
 pub struct C64BankSwitching {
   /// CPU Control Lines
   hiram: bool,

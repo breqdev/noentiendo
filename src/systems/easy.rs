@@ -7,7 +7,7 @@ use crate::systems::SystemFactory;
 use std::sync::Arc;
 
 /// VRAM based around the Easy6502 display system from
-/// https://skilldrick.github.io/easy6502/
+/// <https://skilldrick.github.io/easy6502/>.
 /// This is a 32x32 pixel display with 16 colors. Writing a byte to an
 /// address in the VRAM will set the color of the pixel at that address
 /// to the color in the palette at the index of the byte.
@@ -73,7 +73,7 @@ impl Memory for EasyVram {
 }
 
 /// Memory-mapped I/O for the Easy6502 system.
-/// https://skilldrick.github.io/easy6502/
+/// <https://skilldrick.github.io/easy6502/>.
 /// Reading from address 0 returns a random number between 0 and 255,
 /// and reading from address 1 returns the ASCII code of the key most recently
 /// pressed. Writing to this memory does nothing.

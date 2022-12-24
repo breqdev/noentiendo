@@ -1,7 +1,7 @@
 use crate::keyboard::commodore::C64Keys;
 
 /// The keyboard matrix found on a Commodore 64.
-/// Source: https://www.c64-wiki.com/wiki/Keyboard
+/// Source: <https://www.c64-wiki.com/wiki/Keyboard>.
 pub const KEYBOARD_MAPPING: [[C64Keys; 8]; 8] = {
   use C64Keys::*;
 

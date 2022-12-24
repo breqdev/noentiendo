@@ -2,12 +2,16 @@ use std::{cell::Cell, rc::Rc};
 
 use super::{ActiveInterrupt, Memory, SystemInfo};
 
+/// Represents the memory banking features found in the Commodore 64 and other
+/// devices. Multiple memory implementations are all mapped to the same
+/// address space. The active implementation is selected by external logic.
 pub struct BankedMemory {
   banks: Vec<Box<dyn Memory>>,
   active: Rc<Cell<usize>>,
 }
 
 impl BankedMemory {
+  /// Create a new, empty banked memory.
   pub fn new(active: Rc<Cell<usize>>) -> Self {
     Self {
       banks: Vec::new(),
@@ -15,6 +19,7 @@ impl BankedMemory {
     }
   }
 
+  /// Add a new memory implementation to the banked memory.
   pub fn bank(mut self, memory: Box<dyn Memory>) -> Self {
     self.banks.push(memory);
 
