@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["C64SystemConfig","Configuration for a Commodore 64 system."],["C64SystemFactory","The Commodore 64 system."],["C64SystemRoms","The set of ROM files required to run a Commodore 64 system."]]};

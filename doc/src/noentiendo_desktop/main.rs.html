@@ -74,6 +74,13 @@
 <span id="74">74</span>
 <span id="75">75</span>
 <span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
 </pre><pre class="rust"><code><span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">use </span>libnoentiendo::{
   keyboard::KeyMappingStrategy,
@@ -107,7 +114,9 @@
 
 <span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">fn </span>main() {
-  <span class="kw">use </span>libnoentiendo::systems::{pet::PetSystemConfig, vic::Vic20SystemConfig};
+  <span class="kw">use </span>libnoentiendo::systems::{
+    pet::PetSystemConfig, vic::Vic20SystemConfig, C64SystemConfig, C64SystemFactory, C64SystemRoms,
+  };
 
   <span class="kw">let </span>args = Args::parse();
 
@@ -143,6 +152,11 @@
         <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
       }),
       Vic20SystemConfig { mapping },
+      platform.provider(),
+    ),
+    <span class="string">&quot;c64&quot; </span>=&gt; C64SystemFactory::create(
+      C64SystemRoms::from_disk(),
+      C64SystemConfig { mapping },
       platform.provider(),
     ),
     <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Unknown system&quot;</span>),

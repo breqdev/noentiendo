@@ -927,7 +927,7 @@
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; u8 {
     <span class="kw">let </span>chip = <span class="self">self</span>.chip.borrow();
 
-    <span class="kw">match </span>address % <span class="number">0xF </span>{
+    <span class="kw">match </span>address % <span class="number">0x10 </span>{
       <span class="number">0x0 </span>=&gt; chip.left_draw_offset | (chip.scan_mode <span class="kw">as </span>u8) &lt;&lt; <span class="number">7</span>,
       <span class="number">0x1 </span>=&gt; chip.top_draw_offset,
       <span class="number">0x2 </span>=&gt; chip.column_count | (chip.color_ram_mapping <span class="kw">as </span>u8) &lt;&lt; <span class="number">7</span>,
@@ -954,7 +954,7 @@
 
   <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
     <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.borrow_mut();
-    <span class="kw">match </span>address &amp; <span class="number">0xF </span>{
+    <span class="kw">match </span>address &amp; <span class="number">0x10 </span>{
       <span class="number">0x0 </span>=&gt; {
         chip.scan_mode = (value &amp; <span class="number">0x80</span>) != <span class="number">0</span>;
         chip.left_draw_offset = value &amp; <span class="number">0x7F</span>;
