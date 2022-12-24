@@ -392,7 +392,6 @@ impl Memory for CIA {
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
     if self.timer_a.poll(info) && (self.interrupts.interrupt_enable & interrupt_bits::TIMER_A) != 0
     {
-      println!("timer a interrupt");
       return ActiveInterrupt::IRQ;
     }
 

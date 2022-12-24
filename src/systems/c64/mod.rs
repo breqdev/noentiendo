@@ -1,9 +1,13 @@
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{
+  cell::{Cell, RefCell},
+  rc::Rc,
+  sync::Arc,
+};
 
 use crate::{
-  keyboard::KeyMappingStrategy,
+  keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
   memory::{
-    interface::CIA, ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort,
+    interface::CIA, ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, NullPort, Port,
     SystemInfo,
   },
   platform::{Color, PlatformProvider, WindowConfig},
@@ -12,101 +16,106 @@ use crate::{
   systems::SystemFactory,
 };
 
+mod keyboard;
 mod roms;
 mod vic_ii;
 
-/// TODO: This is bad because the vram can be remapped!!
-struct C64Vram {
-  data: Vec<u8>,
-  platform: Arc<dyn PlatformProvider>,
-  character_rom: Vec<u8>,
-  foreground: Color,
-  background: Color,
-}
-
-const WIDTH: u32 = 40;
-const HEIGHT: u32 = 25;
-const CHAR_WIDTH: u32 = 8;
-const CHAR_HEIGHT: u32 = 8;
-const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
-
-impl C64Vram {
-  pub fn new(character_rom: RomFile, platform: Arc<dyn PlatformProvider>) -> Self {
-    platform.request_window(WindowConfig::new(
-      WIDTH * CHAR_WIDTH,
-      HEIGHT * CHAR_HEIGHT,
-      2.0,
-    ));
-
-    Self {
-      data: vec![0; VRAM_SIZE],
-      platform,
-      character_rom: character_rom.get_data(),
-      foreground: Color::new(0, 255, 0),
-      background: Color::new(0, 0, 0),
-    }
-  }
-}
-
-impl Memory for C64Vram {
-  fn read(&mut self, address: u16) -> u8 {
-    self.data[address as usize % VRAM_SIZE]
-  }
-
-  fn write(&mut self, address: u16, value: u8) {
-    self.data[address as usize % VRAM_SIZE] = value;
-
-    if address >= (HEIGHT * WIDTH) as u16 {
-      return; // ignore writes to the extra bytes
-    }
-
-    let column = (address % WIDTH as u16) as u32;
-    let row = (address / WIDTH as u16) as u32;
-
-    let character_index = (value as usize) * 8;
-
-    let mut character = self.character_rom[character_index..(character_index + 8)].to_vec();
-
-    if value & 0x80 != 0 {
-      character = character.iter().map(|&x| !x).collect();
-    }
-
-    for line in 0..CHAR_HEIGHT {
-      let line_data = character[line as usize];
-      for pixel in 0..CHAR_WIDTH {
-        let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
-          self.foreground
-        } else {
-          self.background
-        };
-
-        self
-          .platform
-          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
-      }
-    }
-  }
-
-  fn reset(&mut self) {
-    for i in 0..self.data.len() {
-      self.data[i] = 0;
-    }
-
-    for x in 0..(WIDTH * CHAR_WIDTH) {
-      for y in 0..(HEIGHT * CHAR_HEIGHT) {
-        self.platform.set_pixel(x, y, self.background);
-      }
-    }
-  }
-
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
-    ActiveInterrupt::None
-  }
-}
-
 pub use roms::C64SystemRoms;
 
-use self::vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO};
+use self::{
+  keyboard::{C64KeyboardAdapter, C64SymbolAdapter, KEYBOARD_MAPPING},
+  vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO},
+};
+
+struct C64Cia1PortA {
+  keyboard_row: Rc<Cell<u8>>,
+}
+
+impl C64Cia1PortA {
+  pub fn new() -> Self {
+    Self {
+      keyboard_row: Rc::new(Cell::new(0)),
+    }
+  }
+
+  /// Return a reference to the keyboard column's current value.
+  pub fn get_keyboard_col(&self) -> Rc<Cell<u8>> {
+    self.keyboard_row.clone()
+  }
+}
+
+impl Port for C64Cia1PortA {
+  fn read(&mut self) -> u8 {
+    self.keyboard_row.get()
+  }
+
+  fn write(&mut self, value: u8) {
+    self.keyboard_row.set(value);
+  }
+
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
+    false
+  }
+
+  fn reset(&mut self) {}
+}
+
+struct C64Cia1PortB {
+  keyboard_col: Rc<Cell<u8>>,
+  mapping_strategy: KeyMappingStrategy,
+  platform: Arc<dyn PlatformProvider>,
+}
+
+impl C64Cia1PortB {
+  /// Create a new instance of the port, with the given keyboard column,
+  /// reading the key status from the given platform.
+  pub fn new(
+    keyboard_col: Rc<Cell<u8>>,
+    mapping_strategy: KeyMappingStrategy,
+    platform: Arc<dyn PlatformProvider>,
+  ) -> Self {
+    Self {
+      keyboard_col,
+      mapping_strategy,
+      platform,
+    }
+  }
+}
+
+impl Port for C64Cia1PortB {
+  fn read(&mut self) -> u8 {
+    let col_mask = self.keyboard_col.get();
+
+    let mut value = 0b1111_1111;
+
+    let state = match &self.mapping_strategy {
+      KeyMappingStrategy::Physical => C64KeyboardAdapter::map(&self.platform.get_key_state()),
+      KeyMappingStrategy::Symbolic => {
+        C64SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
+      }
+    };
+
+    for (y, row) in KEYBOARD_MAPPING.iter().enumerate() {
+      for (x, key) in row.iter().enumerate() {
+        if ((!col_mask & (1 << y)) != 0) && state.is_pressed(*key) {
+          value &= !(1 << x);
+        }
+      }
+    }
+
+    value
+  }
+
+  fn write(&mut self, _value: u8) {
+    panic!("Tried to write to keyboard row");
+  }
+
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
+    false
+  }
+
+  fn reset(&mut self) {}
+}
 
 /// Configuration for a Commodore 64 system.
 pub struct C64SystemConfig {
@@ -135,7 +144,16 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
     )));
     let vic_io = VicIIChipIO::new(vic_ii.clone());
     let color_ram = BlockMemory::ram(0x0400);
-    let cia_1 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let port_a = C64Cia1PortA::new();
+    let keyboard_col = port_a.get_keyboard_col();
+    let cia_1 = CIA::new(
+      Box::new(port_a),
+      Box::new(C64Cia1PortB::new(
+        keyboard_col,
+        config.mapping,
+        platform.clone(),
+      )),
+    );
     let cia_2 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
     let kernal_rom = BlockMemory::from_file(0x2000, roms.kernal);
 
