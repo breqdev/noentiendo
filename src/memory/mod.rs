@@ -1,9 +1,8 @@
 mod block;
 mod branch;
+pub mod interface;
 mod null;
-pub mod pia;
 pub mod ports;
-pub mod via;
 
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
