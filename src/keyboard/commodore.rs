@@ -290,3 +290,88 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
     mapped
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_positional() {
+    let mut positions = KeyState::<KeyPosition>::new();
+
+    positions.press(KeyPosition::Q);
+    positions.press(KeyPosition::Digit2);
+    positions.press(KeyPosition::Comma);
+    positions.press(KeyPosition::Enter);
+
+    let mapped = C64KeyboardAdapter::map(&positions);
+
+    assert_eq!(
+      &vec![C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::Return],
+      mapped.pressed()
+    );
+
+    positions.press(KeyPosition::LShift);
+    positions.release(KeyPosition::Enter);
+
+    let mapped = C64KeyboardAdapter::map(&positions);
+
+    assert_eq!(
+      &vec![C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::LShift],
+      mapped.pressed()
+    );
+  }
+
+  #[test]
+  fn test_symbols_unshifted() {
+    let mut symbols = KeyState::<KeySymbol>::new();
+
+    symbols.press(KeySymbol::Char('q'));
+    symbols.press(KeySymbol::Char('2'));
+    symbols.press(KeySymbol::Char(','));
+    symbols.press(KeySymbol::Return);
+
+    let mapped = C64SymbolAdapter::map(&symbols);
+
+    assert_eq!(
+      &vec![C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::Return],
+      mapped.pressed()
+    );
+  }
+
+  #[test]
+  fn test_symbols_shifted() {
+    let mut symbols = KeyState::<KeySymbol>::new();
+
+    symbols.press(KeySymbol::Char('!'));
+    symbols.press(KeySymbol::Char('<'));
+    symbols.press(KeySymbol::Char('>'));
+
+    let mapped = C64SymbolAdapter::map(&symbols);
+
+    assert_eq!(
+      &vec![
+        C64Keys::Digit1,
+        C64Keys::Comma,
+        C64Keys::Period,
+        C64Keys::LShift
+      ],
+      mapped.pressed()
+    );
+  }
+
+  #[test]
+  fn test_mixed_shifted() {
+    let mut symbols = KeyState::<KeySymbol>::new();
+
+    symbols.press(KeySymbol::Char('1'));
+    symbols.press(KeySymbol::Char('%'));
+    symbols.press(KeySymbol::Char('"'));
+    symbols.press(KeySymbol::Return);
+
+    let mapped = C64SymbolAdapter::map(&symbols);
+
+    // Do a "best effort" mapping, dropping the shifted keys
+    assert_eq!(&vec![C64Keys::Digit1, C64Keys::Return], mapped.pressed());
+  }
+}
