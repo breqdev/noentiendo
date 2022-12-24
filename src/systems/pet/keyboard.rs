@@ -321,9 +321,6 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
         Char('-') => PetKeys::NumMinus,
         Char('=') => PetKeys::NumEquals,
 
-        RightArrow => PetKeys::CursorLeftRight,
-        DownArrow => PetKeys::CursorUpDown,
-
         _ => continue,
       })
     }
