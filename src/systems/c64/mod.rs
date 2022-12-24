@@ -256,9 +256,12 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       .bank(Box::new(
         BranchMemory::new()
           // .map(0x000, Box::new(vic_io))
-          .map(0x400, Box::new(NullMemory::new()))
+          .map(0x400, Box::new(NullMemory::new())) // TODO: SID
+          .map(0x800, Box::new(BlockMemory::ram(0x0400)))
           .map(0xC00, Box::new(cia_1))
-          .map(0xD00, Box::new(cia_2)),
+          .map(0xD00, Box::new(cia_2))
+          .map(0xE00, Box::new(NullMemory::new())) // TODO: Expansion card
+          .map(0xF00, Box::new(NullMemory::new())), // TODO: Expansion card
       ))
       .bank(Box::new(BlockMemory::ram(0x1000)))
       .bank(Box::new(BlockMemory::from_file(0x1000, roms.character)));
