@@ -182,7 +182,7 @@
 <span id="182">182</span>
 <span id="183">183</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-<span class="kw">use </span><span class="kw">crate</span>::memory::interface::{PIA, VIA};
+<span class="kw">use </span><span class="kw">crate</span>::memory::mos652x::{Pia, Via};
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::platform::PlatformProvider;
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
@@ -342,9 +342,9 @@
 
     <span class="kw">let </span>port_a = PetPia1PortA::new();
     <span class="kw">let </span>port_b = PetPia1PortB::new(port_a.get_keyboard_row(), config.mapping, platform);
-    <span class="kw">let </span>pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
-    <span class="kw">let </span>pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
-    <span class="kw">let </span>via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    <span class="kw">let </span>pia1 = Pia::new(Box::new(port_a), Box::new(port_b));
+    <span class="kw">let </span>pia2 = Pia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    <span class="kw">let </span>via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="kw">let </span>kernel_rom = BlockMemory::from_file(<span class="number">0x1000</span>, roms.kernal);
 

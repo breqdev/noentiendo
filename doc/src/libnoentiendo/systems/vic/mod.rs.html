@@ -249,7 +249,7 @@
 <span id="249">249</span>
 <span id="250">250</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-<span class="kw">use </span><span class="kw">crate</span>::memory::interface::VIA;
+<span class="kw">use </span><span class="kw">crate</span>::memory::mos652x::Via;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::platform::PlatformProvider;
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
@@ -453,12 +453,12 @@
     <span class="kw">let </span>main_ram = BlockMemory::ram(<span class="number">0x0E00</span>);
 
     <span class="kw">let </span>vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
-    <span class="kw">let </span>via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    <span class="kw">let </span>via1 = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="kw">let </span>b = VicVia2PortB::new();
     <span class="kw">let </span>a = VicVia2PortA::new(b.get_keyboard_col(), config.mapping, platform);
 
-    <span class="kw">let </span>via2 = VIA::new(Box::new(a), Box::new(b));
+    <span class="kw">let </span>via2 = Via::new(Box::new(a), Box::new(b));
 
     <span class="kw">let </span>basic_rom = BlockMemory::from_file(<span class="number">0x2000</span>, roms.basic);
     <span class="kw">let </span>kernel_rom = BlockMemory::from_file(<span class="number">0x2000</span>, roms.kernal);

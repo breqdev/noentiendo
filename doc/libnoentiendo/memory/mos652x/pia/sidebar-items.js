@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["pia_control_bits","The meanings of each bit in the control register."]],"struct":[["Pia","A MOS 6520 PIA, containing two ports."]]};
