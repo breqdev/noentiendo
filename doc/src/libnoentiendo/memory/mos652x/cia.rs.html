@@ -409,6 +409,8 @@
 <span id="409">409</span>
 <span id="410">410</span>
 <span id="411">411</span>
+<span id="412">412</span>
+<span id="413">413</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{
   mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer},
   ActiveInterrupt, Memory, Port, SystemInfo,
@@ -475,7 +477,9 @@
   <span class="kw">pub const </span>MASTER: u8 = <span class="number">0b1000_0000</span>;
 }
 
-<span class="kw">pub struct </span>Cia {
+<span class="doccomment">/// The MOS 6526 Complex Interface Adapter (CIA). Contains two ports, two timers,
+/// a real-time clock, a shift register, and interrupt registers.
+</span><span class="kw">pub struct </span>Cia {
   a: PortRegisters,
   b: PortRegisters,
   timer_a: Timer,

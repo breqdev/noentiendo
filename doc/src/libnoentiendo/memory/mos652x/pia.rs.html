@@ -188,6 +188,8 @@
 <span id="188">188</span>
 <span id="189">189</span>
 <span id="190">190</span>
+<span id="191">191</span>
+<span id="192">192</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
 
 <span class="comment">// MOS 6520
@@ -258,7 +260,8 @@
   }
 }
 
-<span class="doccomment">/// The meanings of each bit in the control register.
+<span class="attribute">#[allow(dead_code)]
+</span><span class="doccomment">/// The meanings of each bit in the control register.
 </span><span class="kw">pub mod </span>pia_control_bits {
   <span class="kw">pub const </span>C1_ACTIVE_TRANSITION_FLAG: u8 = <span class="number">0b10000000</span>; <span class="comment">// 1 = 0-&gt;1, 0 = 1-&gt;0
   </span><span class="kw">pub const </span>C2_ACTIVE_TRANSITION_FLAG: u8 = <span class="number">0b01000000</span>;
@@ -268,7 +271,8 @@
   </span><span class="kw">pub const </span>C1_CONTROL: u8 = <span class="number">0b00000011</span>; <span class="comment">// interrupt status control
 </span>}
 
-<span class="doccomment">/// A MOS 6520 PIA, containing two ports.
+<span class="doccomment">/// The MOS 6520 Peripheral Interface Adapter (PIA), containing two ports and
+/// some control lines.
 </span><span class="kw">pub struct </span>Pia {
   a: PiaPortRegisters,
   b: PiaPortRegisters,

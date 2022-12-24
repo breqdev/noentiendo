@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"constant":[["C1_ACTIVE_TRANSITION_FLAG",""],["C1_CONTROL",""],["C2_ACTIVE_TRANSITION_FLAG",""],["C2_CONTROL",""],["C2_DIRECTION",""],["DDR_SELECT",""]]};

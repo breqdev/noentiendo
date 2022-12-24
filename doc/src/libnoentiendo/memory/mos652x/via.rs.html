@@ -413,12 +413,19 @@
 <span id="413">413</span>
 <span id="414">414</span>
 <span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{
   mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer, TimerOutput},
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
-<span class="kw">pub mod </span>sr_control_bits {
+<span class="attribute">#[allow(dead_code)]
+</span><span class="kw">pub mod </span>sr_control_bits {
   <span class="kw">pub const </span>SHIFT_DISABLED: u8 = <span class="number">0b000</span>;
   <span class="kw">pub const </span>SHIFT_IN_BY_T2: u8 = <span class="number">0b001</span>;
   <span class="kw">pub const </span>SHIFT_IN_BY_SYSTEM_CLOCK: u8 = <span class="number">0b010</span>;
@@ -437,7 +444,8 @@
   </span><span class="kw">pub const </span>C1_CONTROL: u8 = <span class="number">0b00000011</span>; <span class="comment">// interrupt status control
 </span>}
 
-<span class="doccomment">/// The MOS 6522 Versatile Interface Adapter (VIA).
+<span class="doccomment">/// The MOS 6522 Versatile Interface Adapter (VIA). Contains two ports,
+/// two timers, a shift register, and some interrupt and control registers.
 /// Source: &lt;http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf&gt;
 </span><span class="kw">pub struct </span>Via {
   a: PortRegisters,
@@ -449,7 +457,8 @@
   pcr: u8, <span class="comment">// peripheral control register
 </span>}
 
-<span class="kw">pub mod </span>ier_bits {
+<span class="attribute">#[allow(dead_code)]
+</span><span class="kw">pub mod </span>interrupt_bits {
   <span class="kw">pub const </span>MASTER: u8 = <span class="number">0b10000000</span>;
   <span class="kw">pub const </span>T1_ENABLE: u8 = <span class="number">0b01000000</span>;
   <span class="kw">pub const </span>T2_ENABLE: u8 = <span class="number">0b00100000</span>;
@@ -518,10 +527,10 @@
       <span class="number">0x0d </span>=&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>value = <span class="number">0</span>;
         <span class="kw">if </span><span class="self">self</span>.t1.interrupt {
-          value |= ier_bits::T1_ENABLE;
+          value |= interrupt_bits::T1_ENABLE;
         }
         <span class="kw">if </span><span class="self">self</span>.t2.interrupt {
-          value |= ier_bits::T2_ENABLE;
+          value |= interrupt_bits::T2_ENABLE;
         }
 
         <span class="self">self</span>.interrupts.read_flags(value)
@@ -577,10 +586,10 @@
       }
       <span class="number">0x0c </span>=&gt; <span class="self">self</span>.pcr = value,
       <span class="number">0x0d </span>=&gt; {
-        <span class="kw">if </span>(value &amp; ier_bits::T1_ENABLE) == <span class="number">0 </span>{
+        <span class="kw">if </span>(value &amp; interrupt_bits::T1_ENABLE) == <span class="number">0 </span>{
           <span class="self">self</span>.t1.interrupt = <span class="bool-val">false</span>;
         }
-        <span class="kw">if </span>(value &amp; ier_bits::T2_ENABLE) == <span class="number">0 </span>{
+        <span class="kw">if </span>(value &amp; interrupt_bits::T2_ENABLE) == <span class="number">0 </span>{
           <span class="self">self</span>.t2.interrupt = <span class="bool-val">false</span>;
         }
       }
@@ -596,11 +605,11 @@
   }
 
   <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
-    <span class="kw">if </span><span class="self">self</span>.t1.poll(info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(ier_bits::T1_ENABLE) {
+    <span class="kw">if </span><span class="self">self</span>.t1.poll(info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(interrupt_bits::T1_ENABLE) {
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
-    <span class="kw">if </span><span class="self">self</span>.t2.poll(info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(ier_bits::T2_ENABLE) {
+    <span class="kw">if </span><span class="self">self</span>.t2.poll(info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(interrupt_bits::T2_ENABLE) {
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
@@ -649,7 +658,7 @@
     <span class="kw">let </span><span class="kw-2">mut </span>via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="comment">// enable timer 1 interrupts
-    </span>via.write(<span class="number">0x0e</span>, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    </span>via.write(<span class="number">0x0e</span>, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     <span class="comment">// set the timer to count down from 0x10
     </span>via.write(<span class="number">0x04</span>, <span class="number">0x10</span>);
@@ -672,7 +681,7 @@
     <span class="kw">let </span><span class="kw-2">mut </span>via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="comment">// enable timer 2 interrupts
-    </span>via.write(<span class="number">0x0e</span>, ier_bits::MASTER | ier_bits::T2_ENABLE);
+    </span>via.write(<span class="number">0x0e</span>, interrupt_bits::MASTER | interrupt_bits::T2_ENABLE);
 
     <span class="comment">// set the timer to count down from 0x1234
     </span>via.write(<span class="number">0x08</span>, <span class="number">0x34</span>);
@@ -695,7 +704,7 @@
     <span class="kw">let </span><span class="kw-2">mut </span>via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="comment">// enable timer 1 interrupts
-    </span>via.write(<span class="number">0x0e</span>, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    </span>via.write(<span class="number">0x0e</span>, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     <span class="comment">// set timer 1 to continuous mode
     </span>via.write(<span class="number">0x0b</span>, <span class="number">0b01000000</span>);
@@ -724,25 +733,28 @@
     <span class="comment">// put something in the register
     </span>via.write(
       <span class="number">0x0e</span>,
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::SR_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::SR_ENABLE,
     );
 
     <span class="comment">// we should read this with the master bit cleared
-    </span><span class="macro">assert_eq!</span>(ier_bits::T1_ENABLE | ier_bits::SR_ENABLE, via.read(<span class="number">0x0e</span>));
+    </span><span class="macro">assert_eq!</span>(
+      interrupt_bits::T1_ENABLE | interrupt_bits::SR_ENABLE,
+      via.read(<span class="number">0x0e</span>)
+    );
 
     <span class="comment">// *set* bits -- this shouldn&#39;t clear any
     </span>via.write(
       <span class="number">0x0e</span>,
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::T2_ENABLE,
     );
     <span class="macro">assert_eq!</span>(
-      ier_bits::T1_ENABLE | ier_bits::SR_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::T1_ENABLE | interrupt_bits::SR_ENABLE | interrupt_bits::T2_ENABLE,
       via.read(<span class="number">0x0e</span>)
     );
 
     <span class="comment">// *clear* bits
-    </span>via.write(<span class="number">0x0e</span>, ier_bits::T2_ENABLE | ier_bits::SR_ENABLE);
-    <span class="macro">assert_eq!</span>(ier_bits::T1_ENABLE, via.read(<span class="number">0x0e</span>));
+    </span>via.write(<span class="number">0x0e</span>, interrupt_bits::T2_ENABLE | interrupt_bits::SR_ENABLE);
+    <span class="macro">assert_eq!</span>(interrupt_bits::T1_ENABLE, via.read(<span class="number">0x0e</span>));
   }
 
   <span class="attribute">#[test]
@@ -750,7 +762,7 @@
     <span class="kw">let </span><span class="kw-2">mut </span>via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="comment">// enable timer 1 interrupts
-    </span>via.write(<span class="number">0x0e</span>, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    </span>via.write(<span class="number">0x0e</span>, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     <span class="comment">// set timer 1 to count down from 0x10
     </span>via.write(<span class="number">0x04</span>, <span class="number">0x10</span>);
@@ -773,7 +785,7 @@
     <span class="kw">let </span><span class="kw-2">mut </span>via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     <span class="comment">// enable timer 1 interrupts
-    </span>via.write(<span class="number">0x0e</span>, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    </span>via.write(<span class="number">0x0e</span>, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     <span class="comment">// set timer 1 to continuous mode
     </span>via.write(<span class="number">0x0b</span>, <span class="number">0b01000000</span>);
@@ -792,7 +804,7 @@
     }
 
     <span class="comment">// ...but the flag register should be set
-    </span><span class="macro">assert_eq!</span>(ier_bits::T2_ENABLE, via.read(<span class="number">0x0d</span>));
+    </span><span class="macro">assert_eq!</span>(interrupt_bits::T2_ENABLE, via.read(<span class="number">0x0d</span>));
 
     <span class="comment">// timer 1 should then trigger an interrupt
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x07 </span>{
@@ -802,23 +814,23 @@
 
     <span class="comment">// ...and set the corresponding flag, plus the master bit
     </span><span class="macro">assert_eq!</span>(
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::T2_ENABLE,
       via.read(<span class="number">0x0d</span>)
     );
 
     <span class="comment">// clearing the master bit should have no effect
-    </span>via.write(<span class="number">0x0d</span>, !ier_bits::MASTER);
+    </span>via.write(<span class="number">0x0d</span>, !interrupt_bits::MASTER);
     <span class="macro">assert_eq!</span>(
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::T2_ENABLE,
       via.read(<span class="number">0x0d</span>)
     );
 
     <span class="comment">// clearing just timer 1 should clear the master bit
-    </span>via.write(<span class="number">0x0d</span>, !ier_bits::T1_ENABLE);
-    <span class="macro">assert_eq!</span>(ier_bits::T2_ENABLE, via.read(<span class="number">0x0d</span>));
+    </span>via.write(<span class="number">0x0d</span>, !interrupt_bits::T1_ENABLE);
+    <span class="macro">assert_eq!</span>(interrupt_bits::T2_ENABLE, via.read(<span class="number">0x0d</span>));
 
     <span class="comment">// clearing timer 2 should work as expected
-    </span>via.write(<span class="number">0x0d</span>, !ier_bits::T2_ENABLE);
+    </span>via.write(<span class="number">0x0d</span>, !interrupt_bits::T2_ENABLE);
     <span class="macro">assert_eq!</span>(<span class="number">0</span>, via.read(<span class="number">0x0d</span>));
 
     <span class="comment">// if we let timer 1 run again, it should set the flag again

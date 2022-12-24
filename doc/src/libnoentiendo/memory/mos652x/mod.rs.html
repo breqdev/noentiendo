@@ -282,15 +282,9 @@
 <span id="282">282</span>
 <span id="283">283</span>
 <span id="284">284</span>
-<span id="285">285</span>
-<span id="286">286</span>
-<span id="287">287</span>
-</pre><pre class="rust"><code><span class="doccomment">/// The MOS 6526 Complex Interface Adapter (CIA).
-</span><span class="kw">pub mod </span>cia;
-<span class="doccomment">/// The MOS 6520 Peripheral Interface Adapter (PIA).
-</span><span class="kw">pub mod </span>pia;
-<span class="doccomment">/// The MOS 6522 Versatile Interface Adapter (VIA).
-</span><span class="kw">pub mod </span>via;
+</pre><pre class="rust"><code><span class="kw">mod </span>cia;
+<span class="kw">mod </span>pia;
+<span class="kw">mod </span>via;
 
 <span class="kw">pub use </span>cia::Cia;
 <span class="kw">pub use </span>pia::Pia;
