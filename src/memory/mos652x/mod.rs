@@ -170,7 +170,7 @@ impl Timer {
   /// Handle a write to the timer's data register on the MOS 6526 CIA.
   fn write_cia(&mut self, value: u8) {
     self.running = (value & 0b0000_0001) != 0;
-    self.continuous = !((value & 0b0000_1000) != 0);
+    self.continuous = (value & 0b0000_1000) == 0;
 
     self.output = match value & 0b0000_0110 {
       0b0000_0000 => TimerOutput::None,
