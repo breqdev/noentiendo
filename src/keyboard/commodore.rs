@@ -374,4 +374,39 @@ mod tests {
     // Do a "best effort" mapping, dropping the shifted keys
     assert_eq!(&vec![C64Keys::Digit1, C64Keys::Return], mapped.pressed());
   }
+
+  #[test]
+  fn test_cursor_keys() {
+    let mut state = KeyState::<KeySymbol>::new();
+
+    state.press(KeySymbol::DownArrow);
+    assert_eq!(
+      &vec![C64Keys::CursorUpDown],
+      C64SymbolAdapter::map(&state).pressed()
+    );
+
+    state.release(KeySymbol::DownArrow);
+    state.press(KeySymbol::UpArrow);
+    assert_eq!(
+      &vec![C64Keys::CursorUpDown, C64Keys::LShift],
+      C64SymbolAdapter::map(&state).pressed()
+    );
+
+    state.press(KeySymbol::LeftArrow);
+    assert_eq!(
+      &vec![
+        C64Keys::CursorUpDown,
+        C64Keys::CursorLeftRight,
+        C64Keys::LShift
+      ],
+      C64SymbolAdapter::map(&state).pressed()
+    );
+
+    // map the right arrow, but give up on the rest
+    state.press(KeySymbol::RightArrow);
+    assert_eq!(
+      &vec![C64Keys::CursorLeftRight],
+      C64SymbolAdapter::map(&state).pressed()
+    );
+  }
 }
