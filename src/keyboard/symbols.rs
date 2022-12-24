@@ -314,3 +314,184 @@ impl KeyAdapter<KeyPosition, KeySymbol> for SymbolAdapter {
     symbols
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_letter_mapping() {
+    let mut positions = KeyState::<KeyPosition>::new();
+    positions.press(KeyPosition::B);
+    positions.press(KeyPosition::M);
+    positions.press(KeyPosition::C);
+
+    let symbols = SymbolAdapter::map(&positions);
+    assert_eq!(
+      &vec![
+        KeySymbol::Char('b'),
+        KeySymbol::Char('m'),
+        KeySymbol::Char('c'),
+      ],
+      symbols.pressed()
+    );
+  }
+
+  #[test]
+  fn test_capital_letters() {
+    let mut positions = KeyState::<KeyPosition>::new();
+    positions.press(KeyPosition::B);
+    positions.press(KeyPosition::M);
+    positions.press(KeyPosition::LShift);
+    positions.press(KeyPosition::C);
+
+    let symbols = SymbolAdapter::map(&positions);
+    assert_eq!(
+      &vec![
+        KeySymbol::Char('B'),
+        KeySymbol::Char('M'),
+        KeySymbol::Char('C'),
+      ],
+      symbols.pressed()
+    );
+  }
+
+  #[test]
+  fn test_digit_mapping() {
+    let mut positions = KeyState::<KeyPosition>::new();
+    positions.press(KeyPosition::Digit1);
+    positions.press(KeyPosition::Digit2);
+    positions.press(KeyPosition::Digit3);
+
+    let symbols = SymbolAdapter::map(&positions);
+    assert_eq!(
+      &vec![
+        KeySymbol::Char('1'),
+        KeySymbol::Char('2'),
+        KeySymbol::Char('3'),
+      ],
+      symbols.pressed()
+    );
+
+    positions.press(KeyPosition::LShift);
+
+    let symbols = SymbolAdapter::map(&positions);
+    assert_eq!(
+      &vec![
+        KeySymbol::Char('!'),
+        KeySymbol::Char('@'),
+        KeySymbol::Char('#'),
+      ],
+      symbols.pressed()
+    );
+  }
+
+  #[test]
+  fn test_special_keys() {
+    let mut positions = KeyState::<KeyPosition>::new();
+    positions.press(KeyPosition::Enter);
+    positions.press(KeyPosition::Backspace);
+    positions.press(KeyPosition::Space);
+
+    let symbols = SymbolAdapter::map(&positions);
+    assert_eq!(
+      &vec![
+        KeySymbol::Return,
+        KeySymbol::Backspace,
+        KeySymbol::Char(' '),
+      ],
+      symbols.pressed()
+    );
+  }
+
+  #[test]
+  fn test_mixed_keys() {
+    let mut positions = KeyState::<KeyPosition>::new();
+
+    // letter keys
+    positions.press(KeyPosition::Q);
+    positions.press(KeyPosition::A);
+    positions.press(KeyPosition::B);
+
+    // digit keys
+    positions.press(KeyPosition::Digit6);
+    positions.press(KeyPosition::Digit7);
+    positions.press(KeyPosition::Digit8);
+
+    // symbol keys
+    positions.press(KeyPosition::Minus);
+    positions.press(KeyPosition::Backslash);
+    positions.press(KeyPosition::Semicolon);
+    positions.press(KeyPosition::Comma);
+
+    // special keys
+    positions.press(KeyPosition::Enter);
+    positions.press(KeyPosition::LAlt);
+
+    let symbols = SymbolAdapter::map(&positions);
+
+    assert_eq!(
+      &vec![
+        KeySymbol::Char('q'),
+        KeySymbol::Char('a'),
+        KeySymbol::Char('b'),
+        KeySymbol::Char('6'),
+        KeySymbol::Char('7'),
+        KeySymbol::Char('8'),
+        KeySymbol::Char('-'),
+        KeySymbol::Char('\\'),
+        KeySymbol::Char(';'),
+        KeySymbol::Char(','),
+        KeySymbol::Return,
+        KeySymbol::LAlt,
+      ],
+      symbols.pressed()
+    );
+
+    positions.press(KeyPosition::LShift);
+
+    let symbols = SymbolAdapter::map(&positions);
+
+    assert_eq!(
+      &vec![
+        KeySymbol::Char('Q'),
+        KeySymbol::Char('A'),
+        KeySymbol::Char('B'),
+        KeySymbol::Char('^'),
+        KeySymbol::Char('&'),
+        KeySymbol::Char('*'),
+        KeySymbol::Char('_'),
+        KeySymbol::Char('|'),
+        KeySymbol::Char(':'),
+        KeySymbol::Char('<'),
+        KeySymbol::Return,
+        KeySymbol::LAlt,
+      ],
+      symbols.pressed()
+    );
+  }
+
+  #[test]
+  fn test_press_release() {
+    let mut positions = KeyState::<KeyPosition>::new();
+
+    positions.press(KeyPosition::Q);
+    positions.press(KeyPosition::A);
+    positions.press(KeyPosition::B);
+    positions.release(KeyPosition::A);
+    positions.press(KeyPosition::M);
+    positions.release(KeyPosition::Q);
+    positions.press(KeyPosition::C);
+
+    let symbols = SymbolAdapter::map(&positions);
+
+    assert_eq!(
+      &vec![
+        KeySymbol::Char('b'),
+        KeySymbol::Char('m'),
+        KeySymbol::Char('c'),
+      ],
+      symbols.pressed()
+    );
+  }
+}
