@@ -532,7 +532,6 @@
 <span id="532">532</span>
 <span id="533">533</span>
 <span id="534">534</span>
-<span id="535">535</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span>std::cell::RefCell;
@@ -598,11 +597,10 @@
   }
 }
 
-<span class="comment">// Source: http://tinyvga.com/6561
-
-</span><span class="doccomment">/// The MOS 6560 VIC (Video Interface Chip).
+<span class="doccomment">/// The MOS 6560 VIC (Video Interface Chip).
 /// Uses VRAM memory, character memory, and color memory to draw the screen.
 /// Also handles the speakers and light pen.
+/// Source: &lt;http://tinyvga.com/6561&gt;
 </span><span class="kw">pub struct </span>VicChip {
   platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
   <span class="comment">// Registers
@@ -713,7 +711,7 @@
   }
 
   <span class="doccomment">/// The Vic-20 only has 14 address lines, see:
-  /// http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327
+  /// &lt;http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327&gt;
   </span><span class="kw">fn </span>vic_to_cpu_address(address: u16) -&gt; u16 {
     <span class="comment">// 0x0000 -&gt; 0x8000
     // 0x0FFF -&gt; 0x8FFF

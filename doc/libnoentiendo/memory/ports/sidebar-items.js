@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"struct":[["NullPort","A Port that does nothing."]],"trait":[["Port","A Port that can be read from, written to, reset, or polled for interrupts. Used in the MOS 6520 PIA and the 6522 VIA."]]};

@@ -413,17 +413,12 @@
 <span id="413">413</span>
 <span id="414">414</span>
 <span id="415">415</span>
-<span id="416">416</span>
-<span id="417">417</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{
   mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer, TimerOutput},
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
-<span class="comment">// MOS 6522
-// http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf
-
-</span><span class="kw">pub mod </span>sr_control_bits {
+<span class="kw">pub mod </span>sr_control_bits {
   <span class="kw">pub const </span>SHIFT_DISABLED: u8 = <span class="number">0b000</span>;
   <span class="kw">pub const </span>SHIFT_IN_BY_T2: u8 = <span class="number">0b001</span>;
   <span class="kw">pub const </span>SHIFT_IN_BY_SYSTEM_CLOCK: u8 = <span class="number">0b010</span>;
@@ -443,6 +438,7 @@
 </span>}
 
 <span class="doccomment">/// The MOS 6522 Versatile Interface Adapter (VIA).
+/// Source: &lt;http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf&gt;
 </span><span class="kw">pub struct </span>Via {
   a: PortRegisters,
   b: PortRegisters,

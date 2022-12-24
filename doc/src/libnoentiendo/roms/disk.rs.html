@@ -15,15 +15,17 @@
 <span id="15">15</span>
 <span id="16">16</span>
 <span id="17">17</span>
+<span id="18">18</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 <span class="kw">use </span>std::{fs::File, io::Read};
 
-<span class="kw">pub trait </span>DiskLoadable {
-  <span class="kw">fn </span>from_file(path: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>;
+<span class="doccomment">/// Represents a value which can be loaded from a file.
+</span><span class="kw">pub trait </span>DiskLoadable {
+  <span class="doccomment">/// Creates a ROM file by loading the contents of a file.
+  </span><span class="kw">fn </span>from_file(path: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self</span>;
 }
 
-<span class="doccomment">/// Creates a ROM file by loading the contents of a file.
-</span><span class="kw">impl </span>DiskLoadable <span class="kw">for </span>RomFile {
+<span class="kw">impl </span>DiskLoadable <span class="kw">for </span>RomFile {
   <span class="kw">fn </span>from_file(path: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
     <span class="kw">let </span><span class="kw-2">mut </span>file = File::open(path).expect(<span class="string">&quot;Could not open file&quot;</span>);
     <span class="kw">let </span><span class="kw-2">mut </span>data = Vec::new();

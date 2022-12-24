@@ -62,13 +62,15 @@
 <span id="62">62</span>
 <span id="63">63</span>
 <span id="64">64</span>
+<span id="65">65</span>
 </pre><pre class="rust"><code><span class="kw">mod </span>banked;
 <span class="kw">mod </span>block;
 <span class="kw">mod </span>branch;
 <span class="kw">mod </span>mos6510;
-<span class="kw">pub mod </span>mos652x;
+<span class="doccomment">/// The various interface adapters (6520, 6522, 6526) for the MOS 6502 CPU.
+</span><span class="kw">pub mod </span>mos652x;
 <span class="kw">mod </span>null;
-<span class="kw">pub mod </span>ports;
+<span class="kw">mod </span>ports;
 
 <span class="kw">pub use </span>banked::BankedMemory;
 <span class="kw">pub use </span>block::BlockMemory;

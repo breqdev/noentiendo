@@ -63,24 +63,34 @@
 <span id="63">63</span>
 <span id="64">64</span>
 <span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{cell::Cell, rc::Rc};
 
 <span class="kw">use super</span>::{ActiveInterrupt, Memory, SystemInfo};
 
-<span class="kw">pub struct </span>BankedMemory {
+<span class="doccomment">/// Represents the memory banking features found in the Commodore 64 and other
+/// devices. Multiple memory implementations are all mapped to the same
+/// address space. The active implementation is selected by external logic.
+</span><span class="kw">pub struct </span>BankedMemory {
   banks: Vec&lt;Box&lt;<span class="kw">dyn </span>Memory&gt;&gt;,
   active: Rc&lt;Cell&lt;usize&gt;&gt;,
 }
 
 <span class="kw">impl </span>BankedMemory {
-  <span class="kw">pub fn </span>new(active: Rc&lt;Cell&lt;usize&gt;&gt;) -&gt; <span class="self">Self </span>{
+  <span class="doccomment">/// Create a new, empty banked memory.
+  </span><span class="kw">pub fn </span>new(active: Rc&lt;Cell&lt;usize&gt;&gt;) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{
       banks: Vec::new(),
       active,
     }
   }
 
-  <span class="kw">pub fn </span>bank(<span class="kw-2">mut </span><span class="self">self</span>, memory: Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; <span class="self">Self </span>{
+  <span class="doccomment">/// Add a new memory implementation to the banked memory.
+  </span><span class="kw">pub fn </span>bank(<span class="kw-2">mut </span><span class="self">self</span>, memory: Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; <span class="self">Self </span>{
     <span class="self">self</span>.banks.push(memory);
 
     <span class="self">self

@@ -63,9 +63,21 @@
 <span id="63">63</span>
 <span id="64">64</span>
 <span id="65">65</span>
-</pre><pre class="rust"><code><span class="kw">pub mod </span>commodore;
-<span class="kw">mod </span>positions;
-<span class="kw">mod </span>symbols;
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+</pre><pre class="rust"><code><span class="doccomment">/// Keys and adapters for the Commodore 64, VIC-20, and other Commodore machines.
+</span><span class="kw">pub mod </span>commodore;
+
+<span class="doccomment">/// Keys used for positional keyboard mapping.
+</span><span class="kw">mod </span>positions;
+
+<span class="doccomment">/// Keys used for symbolic keyboard mapping.
+</span><span class="kw">mod </span>symbols;
+
 <span class="kw">pub use </span>positions::KeyPosition;
 <span class="kw">pub use </span>symbols::{KeySymbol, SymbolAdapter};
 

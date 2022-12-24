@@ -27,6 +27,7 @@
 <span id="27">27</span>
 <span id="28">28</span>
 <span id="29">29</span>
+<span id="30">30</span>
 </pre><pre class="rust"><code><span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">mod </span>disk;
 
@@ -47,7 +48,8 @@
 }
 
 <span class="kw">impl </span>RomFile {
-  <span class="kw">pub fn </span>new(data: Vec&lt;u8&gt;) -&gt; <span class="self">Self </span>{
+  <span class="doccomment">/// Creates a new ROM file from the given data.
+  </span><span class="kw">pub fn </span>new(data: Vec&lt;u8&gt;) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{ data }
   }
 
