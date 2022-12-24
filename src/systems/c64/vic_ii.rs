@@ -170,7 +170,8 @@ impl VicIIChip {
       let line_data = character[line as usize];
       for pixel in 0..CHAR_WIDTH {
         let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
-          self.get_foreground(address, memory)
+          // self.get_foreground(address, memory)
+          Color::new(255, 0, 0)
         } else {
           VicIIChip::get_color(self.background_color[0])
         };

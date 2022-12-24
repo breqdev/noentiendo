@@ -6,7 +6,9 @@ use std::{
 
 use crate::{
   keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
-  memory::{interface::CIA, BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo},
+  memory::{
+    interface::CIA, BankedMemory, BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo,
+  },
   platform::PlatformProvider,
   system::System,
   systems::SystemFactory,
@@ -127,19 +129,45 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
     config: C64SystemConfig,
     platform: Arc<dyn PlatformProvider>,
   ) -> System {
-    let ram = BlockMemory::ram(0x0400);
-    let vram = BlockMemory::ram(0x0400);
-    let basic_ram = BlockMemory::ram(0x9800);
-    let cartridge_low = NullMemory::new();
-    let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
-    let high_ram = BlockMemory::ram(0x1000);
-    let character_rom = BlockMemory::from_file(0x1000, roms.character);
+    // Region 1: 0x0000 - 0x0FFF
+    let region1 = BlockMemory::ram(0x1000);
+
+    // Region 2: 0x1000 - 0x7FFF
+    let selector2 = Rc::new(Cell::new(0));
+    let region2 = BankedMemory::new(selector2)
+      .bank(Box::new(BlockMemory::ram(0x7000)))
+      .bank(Box::new(NullMemory::new()));
+
+    // Region 3: 0x8000 - 0x9FFF
+    let selector3 = Rc::new(Cell::new(0));
+    let region3 = BankedMemory::new(selector3)
+      .bank(Box::new(BlockMemory::ram(0x2000)))
+      .bank(Box::new(NullMemory::new())); // TODO: Cartridge Rom Low
+
+    // Region 4: 0xA000 - 0xBFFF
+    let selector4 = Rc::new(Cell::new(0));
+    let region4 = BankedMemory::new(selector4)
+      .bank(Box::new(BlockMemory::from_file(0x2000, roms.basic)))
+      .bank(Box::new(BlockMemory::ram(0x2000)))
+      .bank(Box::new(NullMemory::new())) // TODO: Cartridge Rom High
+      .bank(Box::new(NullMemory::new()));
+
+    // Region 5: 0xC000 - 0xCFFF
+    let selector5 = Rc::new(Cell::new(0));
+    let region5 = BankedMemory::new(selector5)
+      .bank(Box::new(BlockMemory::ram(0x1000)))
+      .bank(Box::new(NullMemory::new()));
+
+    // Region 6: 0xD000 - 0xDFFF
+    let selector6 = Rc::new(Cell::new(0));
+
+    let character_rom = BlockMemory::from_file(0x1000, roms.character.clone());
     let vic_ii = Rc::new(RefCell::new(VicIIChip::new(
       platform.clone(),
       Box::new(character_rom),
     )));
-    let _vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: bank switching!
-    let color_ram = BlockMemory::ram(0x0400);
+    let vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: bank switching!
+
     let port_a = C64Cia1PortA::new();
     let keyboard_col = port_a.get_keyboard_col();
     let cia_1 = CIA::new(
@@ -150,22 +178,35 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
         platform.clone(),
       )),
     );
+
     let cia_2 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
-    let kernal_rom = BlockMemory::from_file(0x2000, roms.kernal);
+
+    let region6 = BankedMemory::new(selector6)
+      .bank(Box::new(
+        BranchMemory::new()
+          // .map(0x000, Box::new(vic_io))
+          .map(0x400, Box::new(NullMemory::new()))
+          .map(0xC00, Box::new(cia_1))
+          .map(0xD00, Box::new(cia_2)),
+      ))
+      .bank(Box::new(BlockMemory::ram(0x1000)))
+      .bank(Box::new(BlockMemory::from_file(0x1000, roms.character)));
+
+    // Region 7: 0xE000 - 0xFFFF
+    let selector7 = Rc::new(Cell::new(0));
+    let region7 = BankedMemory::new(selector7)
+      .bank(Box::new(BlockMemory::from_file(0x2000, roms.kernal)))
+      .bank(Box::new(BlockMemory::ram(0x2000)))
+      .bank(Box::new(NullMemory::new())); // TODO: Cartidge Rom High
 
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(ram))
-      .map(0x0400, Box::new(vram))
-      .map(0x0800, Box::new(basic_ram))
-      .map(0x8000, Box::new(cartridge_low))
-      .map(0xA000, Box::new(basic_rom))
-      .map(0xC000, Box::new(high_ram))
-      .map(0xD000, Box::new(NullMemory::new()))
-      .map(0xD400, Box::new(NullMemory::new())) // TODO: SID chip
-      .map(0xD800, Box::new(color_ram))
-      .map(0xDC00, Box::new(cia_1))
-      .map(0xDD00, Box::new(cia_2))
-      .map(0xE000, Box::new(kernal_rom));
+      .map(0x0000, Box::new(region1))
+      .map(0x1000, Box::new(region2))
+      .map(0x8000, Box::new(region3))
+      .map(0xA000, Box::new(region4))
+      .map(0xC000, Box::new(region5))
+      .map(0xD000, Box::new(region6))
+      .map(0xE000, Box::new(region7));
 
     let mut system = System::new(Box::new(memory), 1_000_000);
 
