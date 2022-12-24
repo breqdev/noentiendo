@@ -1,49 +1,10 @@
-use crate::memory::{mos652x::PortRegisters, ActiveInterrupt, Memory, Port, SystemInfo};
+use crate::memory::{
+  mos652x::{PortRegisters, Timer, TimerOutput},
+  ActiveInterrupt, Memory, Port, SystemInfo,
+};
 
 // MOS 6522
 // http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf
-
-struct Timer {
-  latch: u16,
-  counter: u16,
-  interrupt: bool,
-  continuous: bool, // if false, the timer will fire once; if true, it will load the latch into the counter and keep going
-  pulse_counting: bool, // if true, the timer will output a set number of pulses on PB6
-  output_enable: bool, // if true, the timer will output a pulse on PB7
-}
-
-impl Timer {
-  pub fn new() -> Self {
-    Self {
-      latch: 0,
-      counter: 0,
-      interrupt: false,
-      continuous: false,
-      pulse_counting: false,
-      output_enable: false,
-    }
-  }
-
-  pub fn poll(&mut self, _info: &SystemInfo) -> bool {
-    if self.counter == 0 {
-      if self.continuous {
-        self.counter = self.latch
-      } else {
-        return false;
-      }
-    }
-
-    self.counter = self.counter.wrapping_sub(1);
-
-    if self.counter == 0 {
-      self.interrupt = true;
-
-      true
-    } else {
-      false
-    }
-  }
-}
 
 pub mod sr_control_bits {
   pub const SHIFT_DISABLED: u8 = 0b000;
@@ -135,9 +96,21 @@ impl Memory for Via {
       0x09 => ((self.t2.counter >> 8) & 0xff) as u8,
       0x0a => self.sr.data,
       0x0b => {
-        (self.t1.output_enable as u8) << 7
+        let t1_output_enable = match self.t1.output {
+          TimerOutput::None => false,
+          TimerOutput::Pulse => true,
+          _ => unreachable!(),
+        };
+
+        let t2_pulse_counting = match self.t2.output {
+          TimerOutput::None => false,
+          TimerOutput::PulseCount => true,
+          _ => unreachable!(),
+        };
+
+        (t1_output_enable as u8) << 7
           | (self.t1.continuous as u8) << 6
-          | (self.t2.pulse_counting as u8) << 5
+          | (t2_pulse_counting as u8) << 5
           | self.sr.control << 2
           | (self.b.latch_enabled as u8) << 1
           | (self.a.latch_enabled as u8)
@@ -187,12 +160,21 @@ impl Memory for Via {
       }
       0x0a => self.sr.data = value,
       0x0b => {
-        self.t1.output_enable = (value & 0b10000000) != 0;
         self.t1.continuous = (value & 0b01000000) != 0;
-        self.t2.pulse_counting = (value & 0b00100000) != 0;
         self.sr.control = (value & 0b00011100) >> 2;
         self.b.latch_enabled = (value & 0b00000010) != 0;
         self.a.latch_enabled = (value & 0b00000001) != 0;
+
+        self.t1.output = if (value & 0b10000000) != 0 {
+          TimerOutput::Pulse
+        } else {
+          TimerOutput::None
+        };
+        self.t2.output = if (value & 0b00100000) != 0 {
+          TimerOutput::PulseCount
+        } else {
+          TimerOutput::None
+        };
       }
       0x0c => self.pcr = value,
       0x0d => {

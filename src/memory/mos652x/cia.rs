@@ -1,107 +1,7 @@
-use crate::memory::{mos652x::PortRegisters, ActiveInterrupt, Memory, Port, SystemInfo};
-
-enum TimerClockSource {
-  Phi2,        // system clock pulses
-  Count,       // external CNT pin
-  TimerA,      // timer A underflow
-  TimerACount, // timer A underflow and external CNT pin
-}
-
-struct Timer {
-  latch: u16,
-  counter: u16,
-  running: bool,
-
-  /// if 1, the timer will output a pulse on PB6 (timer A) or PB7 (timer B)
-  output_enable: bool,
-
-  /// if 0, the timer will output a one-tick pulse; if 1, the timer will toggle the output
-  toggle_pulse: bool,
-
-  /// if 0, the timer will start counting again after reaching 0; if 1, the timer will stop
-  continuous: bool,
-
-  clock_source: TimerClockSource,
-
-  interrupt: bool,
-}
-
-impl Timer {
-  fn new() -> Self {
-    Self {
-      latch: 0,
-      counter: 0,
-      running: false,
-      output_enable: false,
-      toggle_pulse: false,
-      continuous: false,
-      clock_source: TimerClockSource::Phi2,
-      interrupt: false,
-    }
-  }
-
-  fn read(&self) -> u8 {
-    let clock_source = match self.clock_source {
-      TimerClockSource::Phi2 => 0,
-      TimerClockSource::Count => 1,
-      TimerClockSource::TimerA => 2,
-      TimerClockSource::TimerACount => 3,
-    };
-
-    (clock_source << 4)
-      | (self.continuous as u8) << 3
-      | (self.toggle_pulse as u8) << 2
-      | (self.output_enable as u8) << 1
-      | (self.running as u8)
-  }
-
-  fn write(&mut self, value: u8) {
-    self.running = (value & 0b0000_0001) != 0;
-    self.output_enable = (value & 0b0000_0010) != 0;
-    self.toggle_pulse = (value & 0b0000_0100) != 0;
-    self.continuous = (value & 0b0000_1000) != 0;
-
-    self.clock_source = match value & 0b0011_0000 {
-      0b0000_0000 => TimerClockSource::Phi2,
-      0b0001_0000 => TimerClockSource::Count,
-      0b0010_0000 => TimerClockSource::TimerA,
-      0b0011_0000 => TimerClockSource::TimerACount,
-      _ => unreachable!(),
-    };
-  }
-
-  fn reset(&mut self) {
-    self.latch = 0;
-    self.counter = 0;
-    self.running = false;
-    self.output_enable = false;
-    self.toggle_pulse = false;
-    self.continuous = false;
-    self.clock_source = TimerClockSource::Phi2;
-  }
-
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
-    if self.counter == 0 {
-      if !self.continuous {
-        self.counter = self.latch
-      } else {
-        return false;
-      }
-    }
-
-    if self.running {
-      self.counter = self.counter.wrapping_sub(1);
-    }
-
-    if self.counter == 0 {
-      self.interrupt = true;
-
-      true
-    } else {
-      false
-    }
-  }
-}
+use crate::memory::{
+  mos652x::{PortRegisters, Timer},
+  ActiveInterrupt, Memory, Port, SystemInfo,
+};
 
 struct TimeRegisters {
   tenth_seconds: u8,
@@ -271,11 +171,11 @@ impl Memory for Cia {
       0x0C => self.shift_register.data,
       0x0D => self.interrupts.read(),
       0x0E => {
-        (self.timer_a.read() & 0b0011_1111)
+        (self.timer_a.read_cia() & 0b0011_1111)
           | ((self.shift_register.direction as u8) << 6)
           | ((self.time_clock.rtc_rate as u8) << 7)
       }
-      0x0F => self.timer_b.read() | ((self.time_clock.write_action as u8) << 7),
+      0x0F => self.timer_b.read_cia() | ((self.time_clock.write_action as u8) << 7),
       _ => unreachable!(),
     }
   }
@@ -333,12 +233,12 @@ impl Memory for Cia {
       0x0C => self.shift_register.data = value,
       0x0D => self.interrupts.write(value),
       0x0E => {
-        self.timer_a.write(value & 0b0011_1111);
+        self.timer_a.write_cia(value & 0b0011_1111);
         self.shift_register.direction = value & 0b0100_0000 != 0;
         self.time_clock.rtc_rate = value & 0b1000_0000 != 0;
       }
       0x0F => {
-        self.timer_b.write(value & 0b0111_1111);
+        self.timer_b.write_cia(value & 0b0111_1111);
         self.time_clock.write_action = value & 0b1000_0000 != 0;
       }
       _ => unreachable!(),
