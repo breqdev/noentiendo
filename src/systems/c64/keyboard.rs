@@ -1,5 +1,6 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
+/// Keys found on a Commodore 64 keyboard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum C64Keys {
   LeftArrow,
@@ -74,6 +75,8 @@ pub enum C64Keys {
   F7,
 }
 
+/// The keyboard matrix found on a Commodore 64.
+/// Source: https://www.c64-wiki.com/wiki/Keyboard
 pub const KEYBOARD_MAPPING: [[C64Keys; 8]; 8] = {
   use C64Keys::*;
 
@@ -102,6 +105,7 @@ pub const KEYBOARD_MAPPING: [[C64Keys; 8]; 8] = {
   ]
 };
 
+/// An adapter for mapping positions on a standard keyboard to keys on a Commodore 64.
 pub struct C64KeyboardAdapter;
 
 impl KeyAdapter<KeyPosition, C64Keys> for C64KeyboardAdapter {
@@ -191,6 +195,7 @@ impl KeyAdapter<KeyPosition, C64Keys> for C64KeyboardAdapter {
   }
 }
 
+/// An adapter for mapping symbols pressed on a standard keyboard to keys pressed on a Commodore 64.
 pub struct C64SymbolAdapter;
 
 impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {

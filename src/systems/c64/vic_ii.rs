@@ -36,6 +36,14 @@ impl Sprite {
   }
 }
 
+#[allow(dead_code)]
+mod interrupt_bits {
+  pub const RASTER: u8 = 1 << 0;
+  pub const SPRITE_SPRITE_COLLISION: u8 = 1 << 1;
+  pub const SPRITE_BACKGROUND_COLLISION: u8 = 1 << 2;
+  pub const LIGHT_PEN: u8 = 1 << 3;
+}
+
 pub struct VicIIChip {
   platform: Arc<dyn PlatformProvider>,
   character_rom: Box<dyn Memory>,
@@ -50,11 +58,20 @@ pub struct VicIIChip {
 
   light_pen: (u8, u8), // (x, y)
 
-  raster_counter: u8,
+  raster_counter: u16,
 
-  // TODO
-  control_register_1: u8,
-  control_register_2: u8,
+  interrupts_enabled: u8,
+
+  extended_color_mode: bool,
+  bit_map_mode: bool,
+  multi_color_mode: bool,
+  display_enable: bool,
+  res_bit: bool,
+
+  row_select: bool,
+  column_select: bool,
+  x_scroll: u8,
+  y_scroll: u8,
 
   // drawing
   last_draw_clock: u64,
@@ -77,9 +94,17 @@ impl VicIIChip {
       border_color: 0,
       light_pen: (0, 0),
       raster_counter: 0,
-      control_register_1: 0,
-      control_register_2: 0,
+      interrupts_enabled: 0,
       last_draw_clock: 0,
+      extended_color_mode: false,
+      bit_map_mode: false,
+      multi_color_mode: false,
+      display_enable: false,
+      res_bit: false,
+      row_select: false,
+      column_select: false,
+      x_scroll: 0,
+      y_scroll: 0,
     }
   }
 
@@ -91,9 +116,17 @@ impl VicIIChip {
     self.border_color = 0;
     self.light_pen = (0, 0);
     self.raster_counter = 0;
-    self.control_register_1 = 0;
-    self.control_register_2 = 0;
+    self.interrupts_enabled = 0;
     self.last_draw_clock = 0;
+    self.extended_color_mode = false;
+    self.bit_map_mode = false;
+    self.multi_color_mode = false;
+    self.display_enable = false;
+    self.res_bit = false;
+    self.row_select = false;
+    self.column_select = false;
+    self.x_scroll = 0;
+    self.y_scroll = 0;
   }
 
   /// Read the value of the screen memory at the given address,
@@ -184,6 +217,7 @@ impl VicIIChip {
 }
 
 /// Represents the I/O mapping for the MOS 6560 VIC.
+/// Sources: https://www.c64-wiki.com/wiki/Page_208-211 and http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
 pub struct VicIIChipIO {
   chip: Rc<RefCell<VicIIChip>>,
 }
@@ -213,8 +247,15 @@ impl Memory for VicIIChipIO {
         let shifted = sprite_msb << i;
         acc | shifted
       }),
-      0x11 => chip.control_register_1,
-      0x12 => chip.raster_counter,
+      0x11 => {
+        ((chip.raster_counter & 0x100 >> 8) as u8) << 7
+          | (chip.extended_color_mode as u8) << 6
+          | (chip.bit_map_mode as u8) << 5
+          | (chip.display_enable as u8) << 4
+          | (chip.row_select as u8) << 3
+          | chip.y_scroll & 0b111
+      }
+      0x12 => chip.raster_counter as u8,
       0x13 => chip.light_pen.0,
       0x14 => chip.light_pen.1,
       0x15 => chip
@@ -222,13 +263,19 @@ impl Memory for VicIIChipIO {
         .iter()
         .enumerate()
         .fold(0, |acc, (i, sprite)| acc | ((sprite.enabled as u8) << i)),
-      0x16 => chip.control_register_2,
+      0x16 => {
+        0b1100_0000
+          | (chip.res_bit as u8) << 5
+          | (chip.multi_color_mode as u8) << 4
+          | (chip.column_select as u8) << 3
+          | chip.x_scroll & 0b111
+      }
       0x17 => chip.sprites.iter().enumerate().fold(0, |acc, (i, sprite)| {
         acc | ((sprite.y_expansion as u8) << i)
       }),
       0x18 => 0, // TODO: memory expansion
       0x19 => 0, // TODO: interrupt flags
-      0x1A => 0, // TODO: interrupt enabled
+      0x1A => 0xF0 | chip.interrupts_enabled,
       0x1B => chip.sprites.iter().enumerate().fold(0, |acc, (i, sprite)| {
         acc | ((sprite.data_priority as u8) << i)
       }),
@@ -242,10 +289,10 @@ impl Memory for VicIIChipIO {
       }),
       0x1E => 0, // TODO: sprite-sprite collision
       0x1F => 0, // TODO: sprite-data collision
-      0x20 => chip.border_color,
-      0x21..=0x24 => chip.background_color[(address % 0x40) as usize - 0x21],
-      0x25..=0x26 => chip.sprite_multicolor[(address % 0x40) as usize - 0x25],
-      0x27..=0x2E => chip.sprites[(address % 0x40) as usize - 0x27].color,
+      0x20 => 0xF0 | chip.border_color,
+      0x21..=0x24 => 0xF0 | chip.background_color[(address % 0x40) as usize - 0x21],
+      0x25..=0x26 => 0xF0 | chip.sprite_multicolor[(address % 0x40) as usize - 0x25],
+      0x27..=0x2E => 0xF0 | chip.sprites[(address % 0x40) as usize - 0x27].color,
       0x2F..=0x3F => 0xFF,
       _ => unreachable!(),
     }
@@ -272,8 +319,16 @@ impl Memory for VicIIChipIO {
           chip.sprites[i].x = (chip.sprites[i].x & 0xFF) | (x_msb as u16) << 8;
         }
       }
-      0x11 => chip.control_register_1 = value,
-      0x12 => chip.raster_counter = value,
+      0x11 => {
+        chip.extended_color_mode = (value & 0b0100_0000) != 0;
+        chip.bit_map_mode = (value & 0b0010_0000) != 0;
+        chip.display_enable = (value & 0b0001_0000) != 0;
+        chip.row_select = (value & 0b0000_1000) != 0;
+        chip.y_scroll = value & 0b0000_0111;
+      }
+      0x12 => {
+        // TODO: set raster comparator to trigger interrupt
+      }
       0x13 => chip.light_pen.0 = value,
       0x14 => chip.light_pen.1 = value,
       0x15 => {
@@ -281,7 +336,12 @@ impl Memory for VicIIChipIO {
           chip.sprites[i].enabled = (value & (1 << i)) != 0;
         }
       }
-      0x16 => chip.control_register_2 = value,
+      0x16 => {
+        chip.res_bit = (value & 0b0010_0000) != 0;
+        chip.multi_color_mode = (value & 0b0001_0000) != 0;
+        chip.column_select = (value & 0b0000_1000) != 0;
+        chip.x_scroll = value & 0b0000_0111;
+      }
       0x17 => {
         for i in 0..8 {
           chip.sprites[i].y_expansion = (value & (1 << i)) != 0;
@@ -289,7 +349,7 @@ impl Memory for VicIIChipIO {
       }
       0x18 => {} // TODO: memory expansion
       0x19 => {} // TODO: interrupt flags
-      0x1A => {} // TODO: interrupt enabled
+      0x1A => chip.interrupts_enabled = value & 0x0F,
       0x1B => {
         for i in 0..8 {
           chip.sprites[i].data_priority = (value & (1 << i)) != 0;
@@ -305,8 +365,8 @@ impl Memory for VicIIChipIO {
           chip.sprites[i].x_expansion = (value & (1 << i)) != 0;
         }
       }
-      0x1E => {} // TODO: sprite-sprite collision
-      0x1F => {} // TODO: sprite-data collision
+      0x1E => {}
+      0x1F => {}
       0x20 => chip.border_color = value & 0x0F,
       0x21..=0x24 => chip.background_color[(address % 0x40) as usize - 0x21] = value & 0x0F,
       0x25..=0x26 => chip.sprite_multicolor[(address % 0x40) as usize - 0x25] = value & 0x0F,
@@ -320,7 +380,9 @@ impl Memory for VicIIChipIO {
     self.chip.borrow_mut().reset();
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
+    self.chip.borrow_mut().raster_counter = ((info.cycle_count / 83) % 312) as u16;
+
     ActiveInterrupt::None
   }
 }
