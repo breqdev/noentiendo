@@ -2,12 +2,14 @@ mod banked;
 mod block;
 mod branch;
 pub mod interface;
+mod mos6510;
 mod null;
 pub mod ports;
 
 pub use banked::BankedMemory;
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
+pub use mos6510::Mos6510Port;
 pub use null::NullMemory;
 pub use ports::{NullPort, Port};
 

@@ -7,7 +7,8 @@ use std::{
 use crate::{
   keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
   memory::{
-    interface::CIA, BankedMemory, BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo,
+    interface::CIA, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort,
+    Port, SystemInfo,
   },
   platform::PlatformProvider,
   system::System,
@@ -115,6 +116,76 @@ impl Port for C64Cia1PortB {
   fn reset(&mut self) {}
 }
 
+pub struct C64BankSwitching {
+  /// CPU Control Lines
+  hiram: bool,
+  loram: bool,
+  charen: bool,
+
+  /// Selectors to output to
+  selectors: [Rc<Cell<usize>>; 6],
+}
+
+impl C64BankSwitching {
+  pub fn new(mut selectors: [Rc<Cell<usize>>; 6]) -> Self {
+    selectors.iter_mut().for_each(|s| s.set(0));
+    Self {
+      hiram: true,
+      loram: true,
+      charen: true,
+      selectors,
+    }
+  }
+}
+
+impl Port for C64BankSwitching {
+  fn read(&mut self) -> u8 {
+    (self.loram as u8) | (self.hiram as u8) << 1 | (self.charen as u8) << 2
+  }
+
+  fn write(&mut self, value: u8) {
+    self.loram = (value & 0b001) != 0;
+    self.hiram = (value & 0b010) != 0;
+    self.charen = (value & 0b100) != 0;
+
+    // TODO: EXROM, GAME signals
+
+    // Region 2: RAM or inaccessible
+    self.selectors[0].set(0);
+
+    // Region 3: RAM or Cartridge ROM Low
+    self.selectors[1].set(0);
+
+    // Region 4: BASIC ROM, RAM, Cartridge ROM High, or inaccessible
+    self.selectors[2].set(if self.hiram && self.loram { 0 } else { 1 });
+
+    // Region 5: RAM or inaccessible
+    self.selectors[3].set(0);
+
+    // Region 6: I/O, RAM, or character rom
+    self.selectors[4].set(if !self.hiram && !self.loram {
+      1
+    } else if !self.charen {
+      2
+    } else {
+      0
+    });
+
+    // Region 7: Kernal ROM or RAM
+    self.selectors[5].set(if !self.hiram { 1 } else { 0 });
+  }
+
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
+    false
+  }
+
+  fn reset(&mut self) {
+    self.hiram = true;
+    self.loram = true;
+    self.charen = true;
+  }
+}
+
 /// Configuration for a Commodore 64 system.
 pub struct C64SystemConfig {
   pub mapping: KeyMappingStrategy,
@@ -134,19 +205,19 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
 
     // Region 2: 0x1000 - 0x7FFF
     let selector2 = Rc::new(Cell::new(0));
-    let region2 = BankedMemory::new(selector2)
+    let region2 = BankedMemory::new(selector2.clone())
       .bank(Box::new(BlockMemory::ram(0x7000)))
       .bank(Box::new(NullMemory::new()));
 
     // Region 3: 0x8000 - 0x9FFF
     let selector3 = Rc::new(Cell::new(0));
-    let region3 = BankedMemory::new(selector3)
+    let region3 = BankedMemory::new(selector3.clone())
       .bank(Box::new(BlockMemory::ram(0x2000)))
       .bank(Box::new(NullMemory::new())); // TODO: Cartridge Rom Low
 
     // Region 4: 0xA000 - 0xBFFF
     let selector4 = Rc::new(Cell::new(0));
-    let region4 = BankedMemory::new(selector4)
+    let region4 = BankedMemory::new(selector4.clone())
       .bank(Box::new(BlockMemory::from_file(0x2000, roms.basic)))
       .bank(Box::new(BlockMemory::ram(0x2000)))
       .bank(Box::new(NullMemory::new())) // TODO: Cartridge Rom High
@@ -154,7 +225,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
 
     // Region 5: 0xC000 - 0xCFFF
     let selector5 = Rc::new(Cell::new(0));
-    let region5 = BankedMemory::new(selector5)
+    let region5 = BankedMemory::new(selector5.clone())
       .bank(Box::new(BlockMemory::ram(0x1000)))
       .bank(Box::new(NullMemory::new()));
 
@@ -181,7 +252,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
 
     let cia_2 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
-    let region6 = BankedMemory::new(selector6)
+    let region6 = BankedMemory::new(selector6.clone())
       .bank(Box::new(
         BranchMemory::new()
           // .map(0x000, Box::new(vic_io))
@@ -194,13 +265,18 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
 
     // Region 7: 0xE000 - 0xFFFF
     let selector7 = Rc::new(Cell::new(0));
-    let region7 = BankedMemory::new(selector7)
+    let region7 = BankedMemory::new(selector7.clone())
       .bank(Box::new(BlockMemory::from_file(0x2000, roms.kernal)))
       .bank(Box::new(BlockMemory::ram(0x2000)))
       .bank(Box::new(NullMemory::new())); // TODO: Cartidge Rom High
 
+    let bank_switching = C64BankSwitching::new([
+      selector2, selector3, selector4, selector5, selector6, selector7,
+    ]);
+
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(region1))
+      .map(0x0000, Box::new(Mos6510Port::new(Box::new(bank_switching))))
+      .map(0x0002, Box::new(region1))
       .map(0x1000, Box::new(region2))
       .map(0x8000, Box::new(region3))
       .map(0xA000, Box::new(region4))
