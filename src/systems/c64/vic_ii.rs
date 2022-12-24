@@ -36,6 +36,7 @@ impl Sprite {
   }
 }
 
+#[allow(dead_code)]
 mod interrupt_bits {
   pub const RASTER: u8 = 1 << 0;
   pub const SPRITE_SPRITE_COLLISION: u8 = 1 << 1;

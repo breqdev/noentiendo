@@ -35,12 +35,10 @@ impl Memory for Mos6510Port {
   fn write(&mut self, address: u16, value: u8) {
     match address % 2 {
       0 => {
-        println!("6510 DDR: {:02x}", value);
         self.ddr = value;
         self.port.write(self.writes & self.ddr);
       }
       1 => {
-        println!("6510 writes: {:02x}", value);
         self.writes = value;
         self.port.write(value & self.ddr);
       }
