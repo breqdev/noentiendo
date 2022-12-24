@@ -299,6 +299,9 @@
 <span id="299">299</span>
 <span id="300">300</span>
 <span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
   cell::{Cell, RefCell},
   rc::Rc,
@@ -306,7 +309,10 @@
 };
 
 <span class="kw">use crate</span>::{
-  keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
+  keyboard::{
+    commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+    KeyAdapter, KeyMappingStrategy, SymbolAdapter,
+  },
   memory::{
     mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
     SystemInfo,
@@ -323,7 +329,7 @@
 <span class="kw">pub use </span>roms::C64SystemRoms;
 
 <span class="kw">use </span><span class="self">self</span>::{
-  keyboard::{C64KeyboardAdapter, C64SymbolAdapter, KEYBOARD_MAPPING},
+  keyboard::KEYBOARD_MAPPING,
   vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO},
 };
 

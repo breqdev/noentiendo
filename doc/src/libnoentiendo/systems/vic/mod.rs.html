@@ -248,7 +248,10 @@
 <span id="248">248</span>
 <span id="249">249</span>
 <span id="250">250</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{
+  commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+  KeyAdapter, KeyMappingStrategy, SymbolAdapter,
+};
 <span class="kw">use </span><span class="kw">crate</span>::memory::mos652x::Via;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::platform::PlatformProvider;
@@ -261,8 +264,8 @@
 
 <span class="kw">mod </span>chip;
 <span class="kw">mod </span>keyboard;
-<span class="kw">use </span>chip::{VicChip, VicChipIO};
-<span class="kw">use </span>keyboard::{Vic20KeyboardAdapter, KEYBOARD_MAPPING};
+<span class="kw">use </span><span class="self">self</span>::keyboard::KEYBOARD_MAPPING;
+<span class="kw">use </span>chip::{VicChip, VicChipDMA, VicChipIO};
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">use </span>js_sys::Reflect;
@@ -275,9 +278,6 @@
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">use </span>js_sys::Uint8Array;
-
-<span class="kw">use </span><span class="self">self</span>::chip::VicChipDMA;
-<span class="kw">use </span><span class="self">self</span>::keyboard::Vic20SymbolAdapter;
 
 <span class="doccomment">/// The set of ROM files required to run a VIC-20 system.
 </span><span class="kw">pub struct </span>Vic20SystemRoms {
@@ -409,9 +409,9 @@
     <span class="kw">let </span><span class="kw-2">mut </span>value = <span class="number">0b1111_1111</span>;
 
     <span class="kw">let </span>state = <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.mapping_strategy {
-      KeyMappingStrategy::Physical =&gt; Vic20KeyboardAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()),
+      KeyMappingStrategy::Physical =&gt; C64KeyboardAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()),
       KeyMappingStrategy::Symbolic =&gt; {
-        Vic20SymbolAdapter::map(<span class="kw-2">&amp;</span>SymbolAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()))
+        C64SymbolAdapter::map(<span class="kw-2">&amp;</span>SymbolAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()))
       }
     };
 
