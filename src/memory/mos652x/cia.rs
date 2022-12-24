@@ -108,7 +108,17 @@ impl Memory for Cia {
           | self.time_clock.time.hours
       }
       0x0C => self.shift_register.data,
-      0x0D => self.interrupts.read_flags(0), // TODO: pass actual interrupt flags
+      0x0D => {
+        // TODO: alarm and shift register flags
+        let value = self
+          .interrupts
+          .read_flags((self.timer_a.interrupt as u8) | (self.timer_b.interrupt as u8) << 1);
+
+        self.timer_a.interrupt = false;
+        self.timer_b.interrupt = false;
+
+        value
+      }
       0x0E => {
         (self.timer_a.read_cia() & 0b0011_1111)
           | ((self.shift_register.direction as u8) << 6)
@@ -126,9 +136,15 @@ impl Memory for Cia {
       0x02 => self.a.ddr = value,
       0x03 => self.b.ddr = value,
       0x04 => self.timer_a.latch = (self.timer_a.latch & 0xFF00) | value as u16,
-      0x05 => self.timer_a.latch = (self.timer_a.latch & 0x00FF) | ((value as u16) << 8), // TODO: reset?
+      0x05 => {
+        self.timer_a.latch = (self.timer_a.latch & 0x00FF) | ((value as u16) << 8);
+        self.timer_a.counter = self.timer_a.latch;
+      }
       0x06 => self.timer_b.latch = (self.timer_b.latch & 0xFF00) | value as u16,
-      0x07 => self.timer_b.latch = (self.timer_b.latch & 0x00FF) | ((value as u16) << 8), // TODO: reset?
+      0x07 => {
+        self.timer_b.latch = (self.timer_b.latch & 0x00FF) | ((value as u16) << 8);
+        self.timer_b.counter = self.timer_b.latch;
+      }
       0x08 => match self.time_clock.write_action {
         false => self.time_clock.time.tenth_seconds = value,
         true => self.time_clock.alarm.tenth_seconds = value,
@@ -198,7 +214,6 @@ impl Memory for Cia {
 
     if self.timer_b.poll(info) && (self.interrupts.interrupt_enable & interrupt_bits::TIMER_B) != 0
     {
-      println!("timer b interrupt");
       return ActiveInterrupt::IRQ;
     }
 
@@ -207,5 +222,190 @@ impl Memory for Cia {
     }
 
     ActiveInterrupt::None
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::memory::NullPort;
+
+  use super::*;
+
+  #[test]
+  fn test_read_write() {
+    let mut cia = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // writes without DDR shouldn't be reflected in reads
+    cia.write(0x00, 0b10101010);
+    assert_eq!(0, cia.read(0x00));
+    cia.write(0x01, 0b00110011);
+    assert_eq!(0, cia.read(0x01));
+
+    // write to the DDR
+    cia.write(0x02, 0b11110000);
+    cia.write(0x03, 0b00111100);
+
+    // now, our past writes should be reflected in reads
+    // (masked by the DDR)
+    assert_eq!(0b10100000, cia.read(0x00));
+    assert_eq!(0b11110000, cia.read(0x02));
+    assert_eq!(0b00110000, cia.read(0x01));
+    assert_eq!(0b00111100, cia.read(0x03));
+
+    // and future writes should be reflected in reads
+    cia.write(0x00, 0b01010101);
+    assert_eq!(0b01010000, cia.read(0x00));
+  }
+
+  #[test]
+  fn test_timer_a() {
+    let mut cia = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer A interrupts
+    cia.write(0x0D, interrupt_bits::MASTER | interrupt_bits::TIMER_A);
+
+    // set the timer to count down from 0x10
+    cia.write(0x04, 0x10);
+    cia.write(0x05, 0x00);
+
+    // start the timer, and disable continuous operation
+    cia.write(0x0E, 0b0000_1001);
+
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+
+    // polling again shouldn't do anything
+    for _ in 0..0x20 {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+  }
+
+  #[test]
+  fn test_timer_b() {
+    let mut cia = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer B interrupts
+    cia.write(0x0D, interrupt_bits::MASTER | interrupt_bits::TIMER_B);
+
+    // set the timer to count down from 0x1234
+    cia.write(0x06, 0x34);
+    cia.write(0x07, 0x12);
+
+    // start the timer, and disable continuous operation
+    cia.write(0x0F, 0b0000_1001);
+
+    for _ in 0..0x1233 {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+  }
+
+  #[test]
+  fn test_timer_a_continuous() {
+    let mut cia = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer A interrupts
+    cia.write(0x0D, interrupt_bits::MASTER | interrupt_bits::TIMER_A);
+
+    // set the timer to count down from 0x10
+    cia.write(0x04, 0x10);
+    cia.write(0x05, 0x00);
+
+    // start the timer, and enable continuous operation
+    cia.write(0x0E, 0b0000_0001);
+
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+  }
+
+  #[test]
+  fn test_ier_timers() {
+    let mut cia = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer 1 interrupts
+    cia.write(0x0D, interrupt_bits::MASTER | interrupt_bits::TIMER_A);
+
+    // set timer 1 to count down from 0x10
+    cia.write(0x04, 0x10);
+    cia.write(0x05, 0x00);
+
+    // set timer 2 to count down from 0x08
+    cia.write(0x06, 0x08);
+    cia.write(0x07, 0x00);
+
+    // set timers to running
+    cia.write(0x0E, 0b0000_1001);
+    cia.write(0x0F, 0b0000_1001);
+
+    // timer 1 should interrupt first
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+  }
+
+  #[test]
+  fn test_interrupt_flags() {
+    let mut cia = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // enable timer 1 interrupts
+    cia.write(0x0D, interrupt_bits::MASTER | interrupt_bits::TIMER_A);
+
+    // set timer 1 to continuous mode
+    cia.write(0x0E, 0b0000_0001);
+
+    // set timer 1 to count down from 0x10
+    cia.write(0x04, 0x10);
+    cia.write(0x05, 0x00);
+
+    // set timer 2 to count down from 0x08
+    cia.write(0x06, 0x08);
+    cia.write(0x07, 0x00);
+
+    // timer 2 shouldn't trigger an interrupt
+    for _ in 0..0x08 {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+
+    // ...but the flag register should be set
+    assert_eq!(interrupt_bits::TIMER_B, cia.read(0x0D));
+
+    // and subsequent reads to the flag register should be 0
+    assert_eq!(0x00, cia.read(0x0D));
+
+    // timer 1 should then trigger an interrupt
+    for _ in 0..0x07 {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+
+    // ...and set the corresponding flag, plus the master bit
+    assert_eq!(
+      interrupt_bits::MASTER | interrupt_bits::TIMER_A,
+      cia.read(0x0D)
+    );
+
+    // and subsequent reads to the flag register should be 0
+    assert_eq!(0x00, cia.read(0x0D));
+
+    // if we let timer 1 run again, it should set the flag again
+    for _ in 0..0x0F {
+      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+    }
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
   }
 }

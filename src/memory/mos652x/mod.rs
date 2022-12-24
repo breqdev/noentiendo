@@ -130,6 +130,7 @@ impl Timer {
       if self.continuous {
         self.counter = self.latch
       } else {
+        self.running = false;
         return false;
       }
     }

@@ -129,6 +129,7 @@ impl Memory for Via {
       0x05 => {
         self.t1.latch = (self.t1.latch & 0x00ff) | ((value as u16) << 8);
         self.t1.counter = self.t1.latch;
+        self.t1.running = true;
         self.t1.interrupt = false;
       }
       0x06 => self.t1.latch = (self.t1.latch & 0xff00) | (value as u16),
@@ -138,7 +139,9 @@ impl Memory for Via {
       }
       0x08 => self.t2.latch = (self.t2.latch & 0xff00) | (value as u16),
       0x09 => {
-        self.t2.counter = (self.t2.latch & 0x00ff) | ((value as u16) << 8);
+        self.t2.latch = (self.t2.latch & 0x00ff) | ((value as u16) << 8);
+        self.t2.counter = self.t2.latch;
+        self.t2.running = true;
         self.t2.interrupt = false;
       }
       0x0a => self.sr.data = value,
