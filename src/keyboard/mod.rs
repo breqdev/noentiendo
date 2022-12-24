@@ -1,3 +1,4 @@
+pub mod commodore;
 mod positions;
 mod symbols;
 pub use positions::KeyPosition;

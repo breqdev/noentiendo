@@ -1,4 +1,7 @@
-use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
+use crate::keyboard::{
+  commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+  KeyAdapter, KeyMappingStrategy, SymbolAdapter,
+};
 use crate::memory::mos652x::Via;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
@@ -11,8 +14,8 @@ use std::sync::Arc;
 
 mod chip;
 mod keyboard;
-use chip::{VicChip, VicChipIO};
-use keyboard::{Vic20KeyboardAdapter, KEYBOARD_MAPPING};
+use self::keyboard::KEYBOARD_MAPPING;
+use chip::{VicChip, VicChipDMA, VicChipIO};
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Reflect;
@@ -25,9 +28,6 @@ use wasm_bindgen::JsCast;
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
-
-use self::chip::VicChipDMA;
-use self::keyboard::Vic20SymbolAdapter;
 
 /// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
@@ -159,9 +159,9 @@ impl Port for VicVia2PortA {
     let mut value = 0b1111_1111;
 
     let state = match &self.mapping_strategy {
-      KeyMappingStrategy::Physical => Vic20KeyboardAdapter::map(&self.platform.get_key_state()),
+      KeyMappingStrategy::Physical => C64KeyboardAdapter::map(&self.platform.get_key_state()),
       KeyMappingStrategy::Symbolic => {
-        Vic20SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
+        C64SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
       }
     };
 

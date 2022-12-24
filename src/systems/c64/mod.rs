@@ -5,7 +5,10 @@ use std::{
 };
 
 use crate::{
-  keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
+  keyboard::{
+    commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+    KeyAdapter, KeyMappingStrategy, SymbolAdapter,
+  },
   memory::{
     mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
     SystemInfo,
@@ -22,7 +25,7 @@ mod vic_ii;
 pub use roms::C64SystemRoms;
 
 use self::{
-  keyboard::{C64KeyboardAdapter, C64SymbolAdapter, KEYBOARD_MAPPING},
+  keyboard::KEYBOARD_MAPPING,
   vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO},
 };
 
