@@ -208,6 +208,7 @@ impl ShiftRegister {
   }
 }
 
+#[allow(dead_code)]
 mod interrupt_bits {
   pub const TIMER_A: u8 = 0b0000_0001;
   pub const TIMER_B: u8 = 0b0000_0010;

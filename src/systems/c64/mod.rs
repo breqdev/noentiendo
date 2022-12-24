@@ -138,7 +138,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       platform.clone(),
       Box::new(character_rom),
     )));
-    let vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: map
+    let _vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: bank switching!
     let color_ram = BlockMemory::ram(0x0400);
     let port_a = C64Cia1PortA::new();
     let keyboard_col = port_a.get_keyboard_col();
