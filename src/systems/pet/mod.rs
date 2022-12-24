@@ -1,5 +1,5 @@
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-use crate::memory::interface::{PIA, VIA};
+use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
 use crate::system::System;
@@ -159,9 +159,9 @@ impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
 
     let port_a = PetPia1PortA::new();
     let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), config.mapping, platform);
-    let pia1 = PIA::new(Box::new(port_a), Box::new(port_b));
-    let pia2 = PIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
-    let via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let pia1 = Pia::new(Box::new(port_a), Box::new(port_b));
+    let pia2 = Pia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let kernel_rom = BlockMemory::from_file(0x1000, roms.kernal);
 

@@ -7,8 +7,8 @@ use std::{
 use crate::{
   keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter},
   memory::{
-    interface::CIA, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort,
-    Port, SystemInfo,
+    mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
+    SystemInfo,
   },
   platform::PlatformProvider,
   system::System,
@@ -246,7 +246,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
 
     let port_a = C64Cia1PortA::new();
     let keyboard_col = port_a.get_keyboard_row();
-    let cia_1 = CIA::new(
+    let cia_1 = Cia::new(
       Box::new(port_a),
       Box::new(C64Cia1PortB::new(
         keyboard_col,
@@ -255,7 +255,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       )),
     );
 
-    let cia_2 = CIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let cia_2 = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let region6 = BankedMemory::new(selector6.clone())
       .bank(Box::new(

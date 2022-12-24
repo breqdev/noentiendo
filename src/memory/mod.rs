@@ -1,8 +1,8 @@
 mod banked;
 mod block;
 mod branch;
-pub mod interface;
 mod mos6510;
+pub mod mos652x;
 mod null;
 pub mod ports;
 

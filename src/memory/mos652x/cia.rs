@@ -1,39 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
-
-struct PortRegisters {
-  port: Box<dyn Port>,
-  writes: u8, // if the DDR is write, allow reading the current written value
-  ddr: u8, // data direction register, each bit controls whether the line is an input (0) or output (1)
-}
-
-impl PortRegisters {
-  pub fn new(port: Box<dyn Port>) -> Self {
-    Self {
-      port,
-      writes: 0,
-      ddr: 0,
-    }
-  }
-
-  pub fn read(&mut self) -> u8 {
-    (self.port.read() & !self.ddr) | (self.writes & self.ddr)
-  }
-
-  pub fn write(&mut self, value: u8) {
-    self.writes = value;
-    self.port.write(value & self.ddr);
-  }
-
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
-    self.port.poll(info)
-  }
-
-  pub fn reset(&mut self) {
-    self.ddr = 0;
-
-    self.port.reset();
-  }
-}
+use crate::memory::{mos652x::PortRegisters, ActiveInterrupt, Memory, Port, SystemInfo};
 
 enum TimerClockSource {
   Phi2,        // system clock pulses
@@ -259,7 +224,7 @@ impl InterruptRegister {
   }
 }
 
-pub struct CIA {
+pub struct Cia {
   a: PortRegisters,
   b: PortRegisters,
   timer_a: Timer,
@@ -269,7 +234,7 @@ pub struct CIA {
   interrupts: InterruptRegister,
 }
 
-impl CIA {
+impl Cia {
   pub fn new(port_a: Box<dyn Port>, port_b: Box<dyn Port>) -> Self {
     Self {
       a: PortRegisters::new(port_a),
@@ -283,7 +248,7 @@ impl CIA {
   }
 }
 
-impl Memory for CIA {
+impl Memory for Cia {
   fn read(&mut self, address: u16) -> u8 {
     // println!("Read from CIA at address {:04x}", address);
     match address % 0x10 {

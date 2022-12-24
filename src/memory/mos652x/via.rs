@@ -1,44 +1,7 @@
-use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
+use crate::memory::{mos652x::PortRegisters, ActiveInterrupt, Memory, Port, SystemInfo};
 
 // MOS 6522
 // http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf
-
-struct PortRegisters {
-  port: Box<dyn Port>,
-  writes: u8, // if the DDR is write, allow reading the current written value
-  ddr: u8, // data direction register, each bit controls whether the line is an input (0) or output (1)
-  latch_enabled: bool,
-}
-
-impl PortRegisters {
-  pub fn new(port: Box<dyn Port>) -> Self {
-    Self {
-      port,
-      writes: 0,
-      ddr: 0,
-      latch_enabled: false,
-    }
-  }
-
-  pub fn read(&mut self) -> u8 {
-    (self.port.read() & !self.ddr) | (self.writes & self.ddr)
-  }
-
-  pub fn write(&mut self, value: u8) {
-    self.writes = value;
-    self.port.write(value & self.ddr);
-  }
-
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
-    self.port.poll(info)
-  }
-
-  pub fn reset(&mut self) {
-    self.ddr = 0;
-
-    self.port.reset();
-  }
-}
 
 struct Timer {
   latch: u16,
@@ -116,7 +79,7 @@ impl ShiftRegister {
 }
 
 /// The MOS 6522 Versatile Interface Adapter (VIA).
-pub struct VIA {
+pub struct Via {
   a: PortRegisters,
   b: PortRegisters,
   t1: Timer,
@@ -137,7 +100,7 @@ pub mod ier_bits {
   pub const CA2_ENABLE: u8 = 0b00000001;
 }
 
-impl VIA {
+impl Via {
   pub fn new(a: Box<dyn Port>, b: Box<dyn Port>) -> Self {
     Self {
       a: PortRegisters::new(a),
@@ -151,7 +114,7 @@ impl VIA {
   }
 }
 
-impl Memory for VIA {
+impl Memory for Via {
   fn read(&mut self, address: u16) -> u8 {
     match address % 0x10 {
       0x00 => self.b.read(),
@@ -284,7 +247,7 @@ mod tests {
 
   #[test]
   fn test_read_write() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // writes without DDR shouldn't be reflected in reads
     via.write(0x00, 0b10101010);
@@ -310,7 +273,7 @@ mod tests {
 
   #[test]
   fn test_timer_1() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
@@ -333,7 +296,7 @@ mod tests {
 
   #[test]
   fn test_timer_2() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 2 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T2_ENABLE);
@@ -356,7 +319,7 @@ mod tests {
 
   #[test]
   fn test_t1_continuous() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
@@ -383,7 +346,7 @@ mod tests {
 
   #[test]
   fn test_ier_register() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // put something in the register
     via.write(
@@ -411,7 +374,7 @@ mod tests {
 
   #[test]
   fn test_ier_timers() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
@@ -434,7 +397,7 @@ mod tests {
 
   #[test]
   fn test_ifr() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
