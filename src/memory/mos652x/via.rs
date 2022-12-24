@@ -3,6 +3,7 @@ use crate::memory::{
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
+#[allow(dead_code)]
 pub mod sr_control_bits {
   pub const SHIFT_DISABLED: u8 = 0b000;
   pub const SHIFT_IN_BY_T2: u8 = 0b001;
@@ -22,7 +23,8 @@ pub mod sr_control_bits {
   pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
 }
 
-/// The MOS 6522 Versatile Interface Adapter (VIA).
+/// The MOS 6522 Versatile Interface Adapter (VIA). Contains two ports,
+/// two timers, a shift register, and some interrupt and control registers.
 /// Source: <http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf>
 pub struct Via {
   a: PortRegisters,
@@ -34,7 +36,8 @@ pub struct Via {
   pcr: u8, // peripheral control register
 }
 
-pub mod ier_bits {
+#[allow(dead_code)]
+pub mod interrupt_bits {
   pub const MASTER: u8 = 0b10000000;
   pub const T1_ENABLE: u8 = 0b01000000;
   pub const T2_ENABLE: u8 = 0b00100000;
@@ -103,10 +106,10 @@ impl Memory for Via {
       0x0d => {
         let mut value = 0;
         if self.t1.interrupt {
-          value |= ier_bits::T1_ENABLE;
+          value |= interrupt_bits::T1_ENABLE;
         }
         if self.t2.interrupt {
-          value |= ier_bits::T2_ENABLE;
+          value |= interrupt_bits::T2_ENABLE;
         }
 
         self.interrupts.read_flags(value)
@@ -162,10 +165,10 @@ impl Memory for Via {
       }
       0x0c => self.pcr = value,
       0x0d => {
-        if (value & ier_bits::T1_ENABLE) == 0 {
+        if (value & interrupt_bits::T1_ENABLE) == 0 {
           self.t1.interrupt = false;
         }
-        if (value & ier_bits::T2_ENABLE) == 0 {
+        if (value & interrupt_bits::T2_ENABLE) == 0 {
           self.t2.interrupt = false;
         }
       }
@@ -181,11 +184,11 @@ impl Memory for Via {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    if self.t1.poll(info) && self.interrupts.is_enabled(ier_bits::T1_ENABLE) {
+    if self.t1.poll(info) && self.interrupts.is_enabled(interrupt_bits::T1_ENABLE) {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.t2.poll(info) && self.interrupts.is_enabled(ier_bits::T2_ENABLE) {
+    if self.t2.poll(info) && self.interrupts.is_enabled(interrupt_bits::T2_ENABLE) {
       return ActiveInterrupt::IRQ;
     }
 
@@ -234,7 +237,7 @@ mod tests {
     let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
-    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    via.write(0x0e, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     // set the timer to count down from 0x10
     via.write(0x04, 0x10);
@@ -257,7 +260,7 @@ mod tests {
     let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 2 interrupts
-    via.write(0x0e, ier_bits::MASTER | ier_bits::T2_ENABLE);
+    via.write(0x0e, interrupt_bits::MASTER | interrupt_bits::T2_ENABLE);
 
     // set the timer to count down from 0x1234
     via.write(0x08, 0x34);
@@ -280,7 +283,7 @@ mod tests {
     let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
-    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    via.write(0x0e, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     // set timer 1 to continuous mode
     via.write(0x0b, 0b01000000);
@@ -309,25 +312,28 @@ mod tests {
     // put something in the register
     via.write(
       0x0e,
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::SR_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::SR_ENABLE,
     );
 
     // we should read this with the master bit cleared
-    assert_eq!(ier_bits::T1_ENABLE | ier_bits::SR_ENABLE, via.read(0x0e));
+    assert_eq!(
+      interrupt_bits::T1_ENABLE | interrupt_bits::SR_ENABLE,
+      via.read(0x0e)
+    );
 
     // *set* bits -- this shouldn't clear any
     via.write(
       0x0e,
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::T2_ENABLE,
     );
     assert_eq!(
-      ier_bits::T1_ENABLE | ier_bits::SR_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::T1_ENABLE | interrupt_bits::SR_ENABLE | interrupt_bits::T2_ENABLE,
       via.read(0x0e)
     );
 
     // *clear* bits
-    via.write(0x0e, ier_bits::T2_ENABLE | ier_bits::SR_ENABLE);
-    assert_eq!(ier_bits::T1_ENABLE, via.read(0x0e));
+    via.write(0x0e, interrupt_bits::T2_ENABLE | interrupt_bits::SR_ENABLE);
+    assert_eq!(interrupt_bits::T1_ENABLE, via.read(0x0e));
   }
 
   #[test]
@@ -335,7 +341,7 @@ mod tests {
     let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
-    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    via.write(0x0e, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     // set timer 1 to count down from 0x10
     via.write(0x04, 0x10);
@@ -358,7 +364,7 @@ mod tests {
     let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
-    via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
+    via.write(0x0e, interrupt_bits::MASTER | interrupt_bits::T1_ENABLE);
 
     // set timer 1 to continuous mode
     via.write(0x0b, 0b01000000);
@@ -377,7 +383,7 @@ mod tests {
     }
 
     // ...but the flag register should be set
-    assert_eq!(ier_bits::T2_ENABLE, via.read(0x0d));
+    assert_eq!(interrupt_bits::T2_ENABLE, via.read(0x0d));
 
     // timer 1 should then trigger an interrupt
     for _ in 0..0x07 {
@@ -387,23 +393,23 @@ mod tests {
 
     // ...and set the corresponding flag, plus the master bit
     assert_eq!(
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::T2_ENABLE,
       via.read(0x0d)
     );
 
     // clearing the master bit should have no effect
-    via.write(0x0d, !ier_bits::MASTER);
+    via.write(0x0d, !interrupt_bits::MASTER);
     assert_eq!(
-      ier_bits::MASTER | ier_bits::T1_ENABLE | ier_bits::T2_ENABLE,
+      interrupt_bits::MASTER | interrupt_bits::T1_ENABLE | interrupt_bits::T2_ENABLE,
       via.read(0x0d)
     );
 
     // clearing just timer 1 should clear the master bit
-    via.write(0x0d, !ier_bits::T1_ENABLE);
-    assert_eq!(ier_bits::T2_ENABLE, via.read(0x0d));
+    via.write(0x0d, !interrupt_bits::T1_ENABLE);
+    assert_eq!(interrupt_bits::T2_ENABLE, via.read(0x0d));
 
     // clearing timer 2 should work as expected
-    via.write(0x0d, !ier_bits::T2_ENABLE);
+    via.write(0x0d, !interrupt_bits::T2_ENABLE);
     assert_eq!(0, via.read(0x0d));
 
     // if we let timer 1 run again, it should set the flag again

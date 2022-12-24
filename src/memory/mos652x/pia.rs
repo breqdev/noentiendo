@@ -68,6 +68,7 @@ impl PiaPortRegisters {
   }
 }
 
+#[allow(dead_code)]
 /// The meanings of each bit in the control register.
 pub mod pia_control_bits {
   pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000; // 1 = 0->1, 0 = 1->0
@@ -78,7 +79,8 @@ pub mod pia_control_bits {
   pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
 }
 
-/// A MOS 6520 PIA, containing two ports.
+/// The MOS 6520 Peripheral Interface Adapter (PIA), containing two ports and
+/// some control lines.
 pub struct Pia {
   a: PiaPortRegisters,
   b: PiaPortRegisters,

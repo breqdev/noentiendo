@@ -64,6 +64,8 @@ mod interrupt_bits {
   pub const MASTER: u8 = 0b1000_0000;
 }
 
+/// The MOS 6526 Complex Interface Adapter (CIA). Contains two ports, two timers,
+/// a real-time clock, a shift register, and interrupt registers.
 pub struct Cia {
   a: PortRegisters,
   b: PortRegisters,
