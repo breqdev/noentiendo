@@ -1,5 +1,5 @@
 use crate::memory::{
-  mos652x::{PortRegisters, ShiftRegister, Timer},
+  mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer},
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
@@ -64,47 +64,6 @@ mod interrupt_bits {
   pub const MASTER: u8 = 0b1000_0000;
 }
 
-pub struct InterruptRegister {
-  pub interrupt_enable: u8,
-  pub interrupt_flag: u8,
-}
-
-impl InterruptRegister {
-  fn read(&self) -> u8 {
-    let mut value = 0;
-
-    if (value & self.interrupt_enable) != 0 {
-      value |= interrupt_bits::MASTER;
-    }
-
-    value
-  }
-
-  fn write(&mut self, value: u8) {
-    if (value & interrupt_bits::MASTER) != 0 {
-      // set bits
-      self.interrupt_enable |= value & 0b01111111;
-    } else {
-      // clear bits
-      self.interrupt_enable &= !(value & 0b01111111);
-    }
-  }
-}
-
-impl InterruptRegister {
-  fn new() -> Self {
-    Self {
-      interrupt_enable: 0,
-      interrupt_flag: 0,
-    }
-  }
-
-  fn reset(&mut self) {
-    self.interrupt_enable = 0;
-    self.interrupt_flag = 0;
-  }
-}
-
 pub struct Cia {
   a: PortRegisters,
   b: PortRegisters,
@@ -131,7 +90,6 @@ impl Cia {
 
 impl Memory for Cia {
   fn read(&mut self, address: u16) -> u8 {
-    // println!("Read from CIA at address {:04x}", address);
     match address % 0x10 {
       0x00 => self.a.read(),
       0x01 => self.b.read(),
@@ -150,7 +108,7 @@ impl Memory for Cia {
           | self.time_clock.time.hours
       }
       0x0C => self.shift_register.data,
-      0x0D => self.interrupts.read(),
+      0x0D => self.interrupts.read_flags(0), // TODO: pass actual interrupt flags
       0x0E => {
         (self.timer_a.read_cia() & 0b0011_1111)
           | ((self.shift_register.direction as u8) << 6)
@@ -162,10 +120,6 @@ impl Memory for Cia {
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    // println!(
-    //   "Write to CIA at address {:04x}, value {:02x}",
-    //   address, value
-    // );
     match address % 0x10 {
       0x00 => self.a.write(value),
       0x01 => self.b.write(value),
@@ -212,7 +166,7 @@ impl Memory for Cia {
         }
       },
       0x0C => self.shift_register.data = value,
-      0x0D => self.interrupts.write(value),
+      0x0D => self.interrupts.write_enable(value),
       0x0E => {
         self.timer_a.write_cia(value & 0b0011_1111);
         self.shift_register.direction = value & 0b0100_0000 != 0;

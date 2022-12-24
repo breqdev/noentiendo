@@ -33,19 +33,23 @@ impl PortRegisters {
     }
   }
 
+  /// Read from the port, respecting the DDR.
   pub fn read(&mut self) -> u8 {
     (self.port.read() & !self.ddr) | (self.writes & self.ddr)
   }
 
+  /// Write to the port, respecting the DDR.
   pub fn write(&mut self, value: u8) {
     self.writes = value;
     self.port.write(value & self.ddr);
   }
 
+  /// Poll the underlying port for interrupts.
   pub fn poll(&mut self, info: &SystemInfo) -> bool {
     self.port.poll(info)
   }
 
+  /// Reset the port to its initial state.
   pub fn reset(&mut self) {
     self.ddr = 0;
 
@@ -120,6 +124,7 @@ impl Timer {
     }
   }
 
+  /// Poll the timer (decrement the counter, fire the interrupt if necessary).
   pub fn poll(&mut self, _info: &SystemInfo) -> bool {
     if self.counter == 0 {
       if self.continuous {
@@ -142,6 +147,7 @@ impl Timer {
     }
   }
 
+  /// Handle a read from the timer's data register on the MOS 6526 CIA.
   fn read_cia(&self) -> u8 {
     let clock_source = match self.clock_source {
       TimerClockSource::Phi2 => 0b00,
@@ -160,6 +166,7 @@ impl Timer {
     (clock_source << 4) | (!self.continuous as u8) << 3 | (output << 1) | (self.running as u8)
   }
 
+  /// Handle a write to the timer's data register on the MOS 6526 CIA.
   fn write_cia(&mut self, value: u8) {
     self.running = (value & 0b0000_0001) != 0;
     self.continuous = !((value & 0b0000_1000) != 0);
@@ -181,6 +188,7 @@ impl Timer {
     };
   }
 
+  /// Reset the timer's internal state.
   fn reset(&mut self) {
     self.latch = 0;
     self.counter = 0;
@@ -214,9 +222,62 @@ impl ShiftRegister {
     }
   }
 
+  /// Reset the shift register's internal state.
   pub fn reset(&mut self) {
     self.data = 0;
     self.control = 0;
     self.direction = false;
+  }
+}
+
+/// Registers for interrupt flags and interrupt enable bits.
+/// Each bit from 0 to 6 corresponds to an interrupt source.
+pub struct InterruptRegister {
+  /// The current state of which interrupts are enabled.
+  /// If a bit is set, the corresponding interrupt is enabled.
+  pub interrupt_enable: u8,
+}
+
+impl InterruptRegister {
+  /// Read the apparent value of the interrupt register, based on the provided interrupt enable bits.
+  pub fn read_flags(&self, mut value: u8) -> u8 {
+    if (value & self.interrupt_enable) != 0 {
+      value |= 0x80;
+    }
+
+    value
+  }
+
+  /// Read the value of the interrupt enable register.
+  pub fn read_enable(&self) -> u8 {
+    self.interrupt_enable
+  }
+
+  /// Write to the interrupt enable register.
+  pub fn write_enable(&mut self, value: u8) {
+    if (value & 0x80) != 0 {
+      // set bits
+      self.interrupt_enable |= value & 0x7F;
+    } else {
+      // clear bits
+      self.interrupt_enable &= !(value & 0x7F);
+    }
+  }
+
+  /// Is the specified interrupt enabled?
+  pub fn is_enabled(&self, interrupt: u8) -> bool {
+    (self.interrupt_enable & interrupt) != 0
+  }
+}
+
+impl InterruptRegister {
+  fn new() -> Self {
+    Self {
+      interrupt_enable: 0,
+    }
+  }
+
+  fn reset(&mut self) {
+    self.interrupt_enable = 0;
   }
 }

@@ -1,5 +1,5 @@
 use crate::memory::{
-  mos652x::{PortRegisters, ShiftRegister, Timer, TimerOutput},
+  mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer, TimerOutput},
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
@@ -32,8 +32,8 @@ pub struct Via {
   t1: Timer,
   t2: Timer,
   sr: ShiftRegister,
+  interrupts: InterruptRegister,
   pcr: u8, // peripheral control register
-  ier: u8, // interrupt enable register
 }
 
 pub mod ier_bits {
@@ -55,8 +55,8 @@ impl Via {
       t1: Timer::new(),
       t2: Timer::new(),
       sr: ShiftRegister::new(),
+      interrupts: InterruptRegister::new(),
       pcr: 0,
-      ier: 0,
     }
   }
 }
@@ -111,12 +111,9 @@ impl Memory for Via {
           value |= ier_bits::T2_ENABLE;
         }
 
-        if (value & self.ier) != 0 {
-          value |= ier_bits::MASTER;
-        }
-        value
+        self.interrupts.read_flags(value)
       }
-      0x0e => self.ier,
+      0x0e => self.interrupts.read_enable(),
       0x0f => self.a.read(),
       _ => unreachable!(),
     }
@@ -171,15 +168,7 @@ impl Memory for Via {
           self.t2.interrupt = false;
         }
       }
-      0x0e => {
-        if (value & ier_bits::MASTER) != 0 {
-          // set bits
-          self.ier |= value & 0b01111111;
-        } else {
-          // clear bits
-          self.ier &= !(value & 0b01111111);
-        }
-      }
+      0x0e => self.interrupts.write_enable(value),
       0x0f => self.a.write(value),
       _ => unreachable!(),
     }
@@ -191,11 +180,11 @@ impl Memory for Via {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    if self.t1.poll(info) && (self.ier & ier_bits::T1_ENABLE) != 0 {
+    if self.t1.poll(info) && self.interrupts.is_enabled(ier_bits::T1_ENABLE) {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.t2.poll(info) && (self.ier & ier_bits::T2_ENABLE) != 0 {
+    if self.t2.poll(info) && self.interrupts.is_enabled(ier_bits::T2_ENABLE) {
       return ActiveInterrupt::IRQ;
     }
 
