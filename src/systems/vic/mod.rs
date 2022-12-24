@@ -1,5 +1,5 @@
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-use crate::memory::interface::VIA;
+use crate::memory::mos652x::Via;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
@@ -203,12 +203,12 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
     let main_ram = BlockMemory::ram(0x0E00);
 
     let vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
-    let via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let via1 = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let b = VicVia2PortB::new();
     let a = VicVia2PortA::new(b.get_keyboard_col(), config.mapping, platform);
 
-    let via2 = VIA::new(Box::new(a), Box::new(b));
+    let via2 = Via::new(Box::new(a), Box::new(b));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);

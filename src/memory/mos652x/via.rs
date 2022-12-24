@@ -1,86 +1,10 @@
-use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
+use crate::memory::{
+  mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer, TimerOutput},
+  ActiveInterrupt, Memory, Port, SystemInfo,
+};
 
 // MOS 6522
 // http://archive.6502.org/datasheets/mos_6522_preliminary_nov_1977.pdf
-
-struct PortRegisters {
-  port: Box<dyn Port>,
-  writes: u8, // if the DDR is write, allow reading the current written value
-  ddr: u8, // data direction register, each bit controls whether the line is an input (0) or output (1)
-  latch_enabled: bool,
-}
-
-impl PortRegisters {
-  pub fn new(port: Box<dyn Port>) -> Self {
-    Self {
-      port,
-      writes: 0,
-      ddr: 0,
-      latch_enabled: false,
-    }
-  }
-
-  pub fn read(&mut self) -> u8 {
-    (self.port.read() & !self.ddr) | (self.writes & self.ddr)
-  }
-
-  pub fn write(&mut self, value: u8) {
-    self.writes = value;
-    self.port.write(value & self.ddr);
-  }
-
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
-    self.port.poll(info)
-  }
-
-  pub fn reset(&mut self) {
-    self.ddr = 0;
-
-    self.port.reset();
-  }
-}
-
-struct Timer {
-  latch: u16,
-  counter: u16,
-  interrupt: bool,
-  continuous: bool, // if false, the timer will fire once; if true, it will load the latch into the counter and keep going
-  pulse_counting: bool, // if true, the timer will output a set number of pulses on PB6
-  output_enable: bool, // if true, the timer will output a pulse on PB7
-}
-
-impl Timer {
-  pub fn new() -> Self {
-    Self {
-      latch: 0,
-      counter: 0,
-      interrupt: false,
-      continuous: false,
-      pulse_counting: false,
-      output_enable: false,
-    }
-  }
-
-  pub fn poll(&mut self, _info: &SystemInfo) -> bool {
-    if self.counter == 0 {
-      if self.continuous {
-        self.counter = self.latch
-      } else {
-        return false;
-      }
-    }
-
-    self.counter = self.counter.wrapping_sub(1);
-
-    if self.counter == 0 {
-      self.interrupt = true;
-
-      true
-    } else {
-      false
-    }
-  }
-}
 
 pub mod sr_control_bits {
   pub const SHIFT_DISABLED: u8 = 0b000;
@@ -101,29 +25,15 @@ pub mod sr_control_bits {
   pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
 }
 
-struct ShiftRegister {
-  data: u8,
-  control: u8,
-}
-
-impl ShiftRegister {
-  pub fn new() -> Self {
-    Self {
-      data: 0,
-      control: 0,
-    }
-  }
-}
-
 /// The MOS 6522 Versatile Interface Adapter (VIA).
-pub struct VIA {
+pub struct Via {
   a: PortRegisters,
   b: PortRegisters,
   t1: Timer,
   t2: Timer,
   sr: ShiftRegister,
+  interrupts: InterruptRegister,
   pcr: u8, // peripheral control register
-  ier: u8, // interrupt enable register
 }
 
 pub mod ier_bits {
@@ -137,7 +47,7 @@ pub mod ier_bits {
   pub const CA2_ENABLE: u8 = 0b00000001;
 }
 
-impl VIA {
+impl Via {
   pub fn new(a: Box<dyn Port>, b: Box<dyn Port>) -> Self {
     Self {
       a: PortRegisters::new(a),
@@ -145,13 +55,13 @@ impl VIA {
       t1: Timer::new(),
       t2: Timer::new(),
       sr: ShiftRegister::new(),
+      interrupts: InterruptRegister::new(),
       pcr: 0,
-      ier: 0,
     }
   }
 }
 
-impl Memory for VIA {
+impl Memory for Via {
   fn read(&mut self, address: u16) -> u8 {
     match address % 0x10 {
       0x00 => self.b.read(),
@@ -172,9 +82,21 @@ impl Memory for VIA {
       0x09 => ((self.t2.counter >> 8) & 0xff) as u8,
       0x0a => self.sr.data,
       0x0b => {
-        (self.t1.output_enable as u8) << 7
+        let t1_output_enable = match self.t1.output {
+          TimerOutput::None => false,
+          TimerOutput::Pulse => true,
+          _ => unreachable!(),
+        };
+
+        let t2_pulse_counting = match self.t2.output {
+          TimerOutput::None => false,
+          TimerOutput::PulseCount => true,
+          _ => unreachable!(),
+        };
+
+        (t1_output_enable as u8) << 7
           | (self.t1.continuous as u8) << 6
-          | (self.t2.pulse_counting as u8) << 5
+          | (t2_pulse_counting as u8) << 5
           | self.sr.control << 2
           | (self.b.latch_enabled as u8) << 1
           | (self.a.latch_enabled as u8)
@@ -189,12 +111,9 @@ impl Memory for VIA {
           value |= ier_bits::T2_ENABLE;
         }
 
-        if (value & self.ier) != 0 {
-          value |= ier_bits::MASTER;
-        }
-        value
+        self.interrupts.read_flags(value)
       }
-      0x0e => self.ier,
+      0x0e => self.interrupts.read_enable(),
       0x0f => self.a.read(),
       _ => unreachable!(),
     }
@@ -210,6 +129,7 @@ impl Memory for VIA {
       0x05 => {
         self.t1.latch = (self.t1.latch & 0x00ff) | ((value as u16) << 8);
         self.t1.counter = self.t1.latch;
+        self.t1.running = true;
         self.t1.interrupt = false;
       }
       0x06 => self.t1.latch = (self.t1.latch & 0xff00) | (value as u16),
@@ -219,17 +139,28 @@ impl Memory for VIA {
       }
       0x08 => self.t2.latch = (self.t2.latch & 0xff00) | (value as u16),
       0x09 => {
-        self.t2.counter = (self.t2.latch & 0x00ff) | ((value as u16) << 8);
+        self.t2.latch = (self.t2.latch & 0x00ff) | ((value as u16) << 8);
+        self.t2.counter = self.t2.latch;
+        self.t2.running = true;
         self.t2.interrupt = false;
       }
       0x0a => self.sr.data = value,
       0x0b => {
-        self.t1.output_enable = (value & 0b10000000) != 0;
         self.t1.continuous = (value & 0b01000000) != 0;
-        self.t2.pulse_counting = (value & 0b00100000) != 0;
         self.sr.control = (value & 0b00011100) >> 2;
         self.b.latch_enabled = (value & 0b00000010) != 0;
         self.a.latch_enabled = (value & 0b00000001) != 0;
+
+        self.t1.output = if (value & 0b10000000) != 0 {
+          TimerOutput::Pulse
+        } else {
+          TimerOutput::None
+        };
+        self.t2.output = if (value & 0b00100000) != 0 {
+          TimerOutput::PulseCount
+        } else {
+          TimerOutput::None
+        };
       }
       0x0c => self.pcr = value,
       0x0d => {
@@ -240,15 +171,7 @@ impl Memory for VIA {
           self.t2.interrupt = false;
         }
       }
-      0x0e => {
-        if (value & ier_bits::MASTER) != 0 {
-          // set bits
-          self.ier |= value & 0b01111111;
-        } else {
-          // clear bits
-          self.ier &= !(value & 0b01111111);
-        }
-      }
+      0x0e => self.interrupts.write_enable(value),
       0x0f => self.a.write(value),
       _ => unreachable!(),
     }
@@ -260,11 +183,11 @@ impl Memory for VIA {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    if self.t1.poll(info) && (self.ier & ier_bits::T1_ENABLE) != 0 {
+    if self.t1.poll(info) && self.interrupts.is_enabled(ier_bits::T1_ENABLE) {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.t2.poll(info) && (self.ier & ier_bits::T2_ENABLE) != 0 {
+    if self.t2.poll(info) && self.interrupts.is_enabled(ier_bits::T2_ENABLE) {
       return ActiveInterrupt::IRQ;
     }
 
@@ -284,7 +207,7 @@ mod tests {
 
   #[test]
   fn test_read_write() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // writes without DDR shouldn't be reflected in reads
     via.write(0x00, 0b10101010);
@@ -310,7 +233,7 @@ mod tests {
 
   #[test]
   fn test_timer_1() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
@@ -333,7 +256,7 @@ mod tests {
 
   #[test]
   fn test_timer_2() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 2 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T2_ENABLE);
@@ -356,7 +279,7 @@ mod tests {
 
   #[test]
   fn test_t1_continuous() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
@@ -383,7 +306,7 @@ mod tests {
 
   #[test]
   fn test_ier_register() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // put something in the register
     via.write(
@@ -411,7 +334,7 @@ mod tests {
 
   #[test]
   fn test_ier_timers() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
@@ -434,7 +357,7 @@ mod tests {
 
   #[test]
   fn test_ifr() {
-    let mut via = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+    let mut via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     // enable timer 1 interrupts
     via.write(0x0e, ier_bits::MASTER | ier_bits::T1_ENABLE);
