@@ -9,7 +9,7 @@ pub use via::Via;
 use crate::memory::{Port, SystemInfo};
 
 /// A port and its associated registers on the MOS 6522 VIA or MOS 6526 CIA.
-struct PortRegisters {
+pub struct PortRegisters {
   /// The Port implementation that this instance delegates to.
   port: Box<dyn Port>,
 
@@ -54,7 +54,7 @@ impl PortRegisters {
 }
 
 /// The manner in which the timer will output signals to the port, if at all.
-enum TimerOutput {
+pub enum TimerOutput {
   /// The timer will not output to the port.
   None,
 
@@ -69,7 +69,7 @@ enum TimerOutput {
 }
 
 /// The source of the timer's clock, which controls the rate at which its clock decrements.
-enum TimerClockSource {
+pub enum TimerClockSource {
   /// Use the internal system clock.
   Phi2,
 
@@ -84,7 +84,7 @@ enum TimerClockSource {
 }
 
 /// A timer circuit on the MOS 6522 VIA or MOS 6526 CIA.
-struct Timer {
+pub struct Timer {
   /// The latched value that the counter is reloaded from.
   latch: u16,
 
@@ -189,5 +189,34 @@ impl Timer {
     self.running = true;
     self.output = TimerOutput::None;
     self.clock_source = TimerClockSource::Phi2;
+  }
+}
+
+/// The shift register used by the MOS 6522 VIA and MOS 6526 CIA.
+pub struct ShiftRegister {
+  /// The data currently in the shift register.
+  data: u8,
+
+  /// The control register used on the MOS 6522 VIA.
+  control: u8,
+
+  /// The current direction set on the MOS 6526 CIA.
+  /// If 0, the shift register is in input mode; if 1, the shift register is in output mode.
+  direction: bool,
+}
+
+impl ShiftRegister {
+  pub fn new() -> Self {
+    Self {
+      data: 0,
+      control: 0,
+      direction: false,
+    }
+  }
+
+  pub fn reset(&mut self) {
+    self.data = 0;
+    self.control = 0;
+    self.direction = false;
   }
 }

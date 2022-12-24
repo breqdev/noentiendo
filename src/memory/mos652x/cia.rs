@@ -1,5 +1,5 @@
 use crate::memory::{
-  mos652x::{PortRegisters, Timer},
+  mos652x::{PortRegisters, ShiftRegister, Timer},
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
@@ -51,25 +51,6 @@ impl TimeClock {
     self.alarm = TimeRegisters::new();
     self.rtc_rate = false;
     self.write_action = false;
-  }
-}
-
-struct ShiftRegister {
-  data: u8,
-  direction: bool, // if 0, the shift register is in input mode; if 1, the shift register is in output mode
-}
-
-impl ShiftRegister {
-  pub fn new() -> Self {
-    Self {
-      data: 0,
-      direction: false,
-    }
-  }
-
-  pub fn reset(&mut self) {
-    self.data = 0;
-    self.direction = false;
   }
 }
 

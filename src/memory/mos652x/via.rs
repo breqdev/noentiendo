@@ -1,5 +1,5 @@
 use crate::memory::{
-  mos652x::{PortRegisters, Timer, TimerOutput},
+  mos652x::{PortRegisters, ShiftRegister, Timer, TimerOutput},
   ActiveInterrupt, Memory, Port, SystemInfo,
 };
 
@@ -23,20 +23,6 @@ pub mod sr_control_bits {
   pub const C2_CONTROL: u8 = 0b00011000; // ???
   pub const DDR_SELECT: u8 = 0b00000100; // enable accessing DDR
   pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
-}
-
-struct ShiftRegister {
-  data: u8,
-  control: u8,
-}
-
-impl ShiftRegister {
-  pub fn new() -> Self {
-    Self {
-      data: 0,
-      control: 0,
-    }
-  }
 }
 
 /// The MOS 6522 Versatile Interface Adapter (VIA).
