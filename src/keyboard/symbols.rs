@@ -479,6 +479,11 @@ mod tests {
     positions.press(KeyPosition::A);
     positions.press(KeyPosition::B);
     positions.release(KeyPosition::A);
+
+    assert!(positions.is_pressed(KeyPosition::Q));
+    assert!(!positions.is_pressed(KeyPosition::A));
+    assert!(positions.is_pressed(KeyPosition::B));
+
     positions.press(KeyPosition::M);
     positions.release(KeyPosition::Q);
     positions.press(KeyPosition::C);
