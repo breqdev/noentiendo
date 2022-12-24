@@ -161,6 +161,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       .map(0xA000, Box::new(basic_rom))
       .map(0xC000, Box::new(high_ram))
       .map(0xD000, Box::new(NullMemory::new()))
+      .map(0xD400, Box::new(NullMemory::new())) // TODO: SID chip
       .map(0xD800, Box::new(color_ram))
       .map(0xDC00, Box::new(cia_1))
       .map(0xDD00, Box::new(cia_2))
