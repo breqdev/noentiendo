@@ -1,5 +1,7 @@
 use crate::platform::KeyState;
-use crate::platform::{AsyncPlatform, Color, Platform, PlatformProvider, WindowConfig};
+use crate::platform::{
+  AsyncPlatform, Color, JoystickState, Platform, PlatformProvider, WindowConfig,
+};
 use crate::system::System;
 use async_trait::async_trait;
 use js_sys::Math;
@@ -268,6 +270,10 @@ impl PlatformProvider for CanvasPlatformProvider {
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     JavaScriptAdapter::map(&self.key_state.lock().unwrap())
+  }
+
+  fn get_joystick_state(&self) -> JoystickState {
+    JoystickState::empty()
   }
 
   fn print(&self, text: &str) {

@@ -1,6 +1,8 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 mod keyboard;
-use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
+use crate::platform::{
+  Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
+};
 use crate::system::System;
 use instant::Instant;
 use keyboard::WinitAdapter;
@@ -252,6 +254,10 @@ impl PlatformProvider for WinitPlatformProvider {
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     WinitAdapter::map(&self.key_state.lock().unwrap())
+  }
+
+  fn get_joystick_state(&self) -> JoystickState {
+    JoystickState::empty()
   }
 
   fn print(&self, text: &str) {

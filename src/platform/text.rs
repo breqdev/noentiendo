@@ -7,6 +7,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use super::JoystickState;
+
 /// Represents a platform which exclusively operates over text mode,
 /// without any visible graphical output. This reads from and writes to the
 /// terminal.
@@ -78,6 +80,10 @@ impl PlatformProvider for TextPlatformProvider {
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     KeyState::new()
+  }
+
+  fn get_joystick_state(&self) -> JoystickState {
+    JoystickState::empty()
   }
 
   fn print(&self, text: &str) {
