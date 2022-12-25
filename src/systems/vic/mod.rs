@@ -116,17 +116,20 @@ impl VicVia1PortA {
 
 impl Port for VicVia1PortA {
   fn read(&mut self) -> u8 {
-    let pin_0 = true;
-    let pin_1 = true;
-    let pin_2 = true;
-    let lightpen_fire = true;
+    let joystick = self.platform.get_joystick_state();
+
+    let pin_0 = !joystick.up;
+    let pin_1 = !joystick.down;
+    let pin_2 = !joystick.left;
+    self.joy_pin_3.set(!joystick.right);
+    let lightpen_fire = !joystick.fire;
 
     (pin_0 as u8) << 2 | (pin_1 as u8) << 3 | (pin_2 as u8) << 4 | (lightpen_fire as u8) << 5
   }
 
-  fn write(&mut self, value: u8) {}
+  fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, info: &SystemInfo) -> bool {
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
     false
   }
 
