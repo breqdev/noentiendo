@@ -15,7 +15,6 @@ license = "AGPL-3.0-or-later"
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 async-trait = "0.1"
 pixels = "0.11"
-gilrs = "0.10.1"
 
 # Dependencies used for the WebAssembly target
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -42,6 +41,7 @@ winit = "0.27"
 winit_input_helper = "0.13"
 rand = "0.8"
 clap = { version = "3.2", features = ["derive"]}
+gilrs = "0.10.1"
 
 [profile.release]
 debug = true

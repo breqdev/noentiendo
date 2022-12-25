@@ -298,7 +298,7 @@ impl PlatformProvider for WinitPlatformProvider {
   }
 
   fn get_joystick_state(&self) -> JoystickState {
-    self.joystick_state.lock().unwrap().clone()
+    *self.joystick_state.lock().unwrap()
   }
 
   fn print(&self, text: &str) {
