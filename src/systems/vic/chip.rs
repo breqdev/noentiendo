@@ -391,7 +391,7 @@ impl Memory for VicChipIO {
   fn read(&mut self, address: u16) -> u8 {
     let chip = self.chip.borrow();
 
-    match address % 0x10 {
+    match address & 0x0F {
       0x0 => chip.left_draw_offset | (chip.scan_mode as u8) << 7,
       0x1 => chip.top_draw_offset,
       0x2 => chip.column_count | (chip.color_ram_mapping as u8) << 7,
@@ -418,7 +418,7 @@ impl Memory for VicChipIO {
 
   fn write(&mut self, address: u16, value: u8) {
     let mut chip = self.chip.borrow_mut();
-    match address & 0x10 {
+    match address & 0x0F {
       0x0 => {
         chip.scan_mode = (value & 0x80) != 0;
         chip.left_draw_offset = value & 0x7F;
