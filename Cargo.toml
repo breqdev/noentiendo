@@ -33,6 +33,8 @@ features = [
   'Document',
   'NamedNodeMap',
   'Attr',
+  'Gamepad',
+  'GamepadButton',
 ]
 
 # Dependencies used when building for desktop
