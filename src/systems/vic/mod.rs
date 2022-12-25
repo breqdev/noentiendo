@@ -93,16 +93,59 @@ impl Vic20SystemRoms {
   }
 }
 
+/// Port A on the first VIA chip.
+/// This is used to read the state from the joystick.
+pub struct VicVia1PortA {
+  platform: Arc<dyn PlatformProvider>,
+  joy_pin_3: Rc<Cell<bool>>,
+}
+
+impl VicVia1PortA {
+  pub fn new(platform: Arc<dyn PlatformProvider>) -> Self {
+    Self {
+      platform,
+      joy_pin_3: Rc::new(Cell::new(true)),
+    }
+  }
+
+  /// Return a reference to the joystick's pin 3 state.
+  pub fn get_joy_pin_3(&self) -> Rc<Cell<bool>> {
+    self.joy_pin_3.clone()
+  }
+}
+
+impl Port for VicVia1PortA {
+  fn read(&mut self) -> u8 {
+    let pin_0 = true;
+    let pin_1 = true;
+    let pin_2 = true;
+    let lightpen_fire = true;
+
+    (pin_0 as u8) << 2 | (pin_1 as u8) << 3 | (pin_2 as u8) << 4 | (lightpen_fire as u8) << 5
+  }
+
+  fn write(&mut self, value: u8) {}
+
+  fn poll(&mut self, info: &SystemInfo) -> bool {
+    false
+  }
+
+  fn reset(&mut self) {}
+}
+
 /// Port B on the second VIA chip.
-/// This is used to set the active columns on the keyboard matrix.
+/// This is used to set the active columns on the keyboard matrix,
+/// and to read the third pin of the joystick.
 pub struct VicVia2PortB {
   keyboard_col: Rc<Cell<u8>>,
+  joy_pin_3: Rc<Cell<bool>>,
 }
 
 impl VicVia2PortB {
-  pub fn new() -> Self {
+  pub fn new(joy_pin_3: Rc<Cell<bool>>) -> Self {
     Self {
       keyboard_col: Rc::new(Cell::new(0)),
+      joy_pin_3,
     }
   }
 
@@ -114,11 +157,11 @@ impl VicVia2PortB {
 
 impl Port for VicVia2PortB {
   fn read(&mut self) -> u8 {
-    self.keyboard_col.get()
+    self.keyboard_col.get() & 0x7F | (self.joy_pin_3.get() as u8) << 7
   }
 
   fn write(&mut self, value: u8) {
-    self.keyboard_col.set(value);
+    self.keyboard_col.set(value & 0x7F);
   }
 
   fn poll(&mut self, _info: &SystemInfo) -> bool {
@@ -203,12 +246,13 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
     let main_ram = BlockMemory::ram(0x0E00);
 
     let vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
-    let via1 = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
-    let b = VicVia2PortB::new();
-    let a = VicVia2PortA::new(b.get_keyboard_col(), config.mapping, platform);
+    let v1a = VicVia1PortA::new(platform.clone());
+    let v2b = VicVia2PortB::new(v1a.get_joy_pin_3());
+    let v2a = VicVia2PortA::new(v2b.get_keyboard_col(), config.mapping, platform);
 
-    let via2 = Via::new(Box::new(a), Box::new(b));
+    let via1 = Via::new(Box::new(v1a), Box::new(NullPort::new()));
+    let via2 = Via::new(Box::new(v2a), Box::new(v2b));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
