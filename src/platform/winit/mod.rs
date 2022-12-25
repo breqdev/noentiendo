@@ -4,6 +4,7 @@ use crate::platform::{
   Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
 };
 use crate::system::System;
+use gilrs::{Button, EventType, Gilrs};
 use instant::Instant;
 use keyboard::WinitAdapter;
 use pixels::{Pixels, SurfaceTexture};
@@ -25,6 +26,7 @@ pub struct WinitPlatform {
   provider: Arc<WinitPlatformProvider>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
+  joystick_state: Arc<Mutex<JoystickState>>,
 }
 
 impl WinitPlatform {
@@ -33,6 +35,7 @@ impl WinitPlatform {
     let pixels = Arc::new(Mutex::new(None));
     let dirty = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
+    let joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
 
     Self {
       provider: Arc::new(WinitPlatformProvider::new(
@@ -40,11 +43,13 @@ impl WinitPlatform {
         pixels.clone(),
         dirty.clone(),
         key_state.clone(),
+        joystick_state.clone(),
       )),
       config,
       pixels,
       dirty,
       key_state,
+      joystick_state,
     }
   }
 
@@ -95,6 +100,9 @@ impl SyncPlatform for WinitPlatform {
     let mut last_report = start;
     let mut outstanding_ticks = 0.0;
 
+    let mut gilrs = Gilrs::new().unwrap();
+    let joystick_state = self.joystick_state.clone();
+
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::Poll;
 
@@ -135,6 +143,36 @@ impl SyncPlatform for WinitPlatform {
               system.get_info().cycle_count as f64 / (now - start).as_secs_f64()
             );
             last_report = now;
+          }
+
+          {
+            let mut joystick_state = joystick_state.lock().unwrap();
+            loop {
+              let next_event = gilrs.next_event();
+
+              match next_event {
+                Some(event) => match event.event {
+                  EventType::ButtonPressed(button, _) => match button {
+                    Button::DPadLeft => joystick_state.left = true,
+                    Button::DPadRight => joystick_state.right = true,
+                    Button::DPadUp => joystick_state.up = true,
+                    Button::DPadDown => joystick_state.down = true,
+                    Button::South => joystick_state.fire = true,
+                    _ => {}
+                  },
+                  EventType::ButtonReleased(button, _) => match button {
+                    Button::DPadLeft => joystick_state.left = false,
+                    Button::DPadRight => joystick_state.right = false,
+                    Button::DPadUp => joystick_state.up = false,
+                    Button::DPadDown => joystick_state.down = false,
+                    Button::South => joystick_state.fire = false,
+                    _ => {}
+                  },
+                  _ => {}
+                },
+                None => break,
+              }
+            }
           }
 
           {
@@ -200,6 +238,7 @@ pub struct WinitPlatformProvider {
   pixels: Arc<Mutex<Option<Pixels>>>,
   dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
+  joystick_state: Arc<Mutex<JoystickState>>,
 }
 
 impl WinitPlatformProvider {
@@ -208,12 +247,14 @@ impl WinitPlatformProvider {
     pixels: Arc<Mutex<Option<Pixels>>>,
     dirty: Arc<Mutex<bool>>,
     key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
+    joystick_state: Arc<Mutex<JoystickState>>,
   ) -> Self {
     Self {
       config,
       pixels,
       dirty,
       key_state,
+      joystick_state,
     }
   }
   fn get_config(&self) -> WindowConfig {
@@ -257,7 +298,7 @@ impl PlatformProvider for WinitPlatformProvider {
   }
 
   fn get_joystick_state(&self) -> JoystickState {
-    JoystickState::empty()
+    self.joystick_state.lock().unwrap().clone()
   }
 
   fn print(&self, text: &str) {
