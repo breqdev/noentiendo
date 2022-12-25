@@ -110,6 +110,33 @@
 <span id="110">110</span>
 <span id="111">111</span>
 <span id="112">112</span>
+<span id="113">113</span>
+<span id="114">114</span>
+<span id="115">115</span>
+<span id="116">116</span>
+<span id="117">117</span>
+<span id="118">118</span>
+<span id="119">119</span>
+<span id="120">120</span>
+<span id="121">121</span>
+<span id="122">122</span>
+<span id="123">123</span>
+<span id="124">124</span>
+<span id="125">125</span>
+<span id="126">126</span>
+<span id="127">127</span>
+<span id="128">128</span>
+<span id="129">129</span>
+<span id="130">130</span>
+<span id="131">131</span>
+<span id="132">132</span>
+<span id="133">133</span>
+<span id="134">134</span>
+<span id="135">135</span>
+<span id="136">136</span>
+<span id="137">137</span>
+<span id="138">138</span>
+<span id="139">139</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
 <span class="kw">use </span>async_trait::async_trait;
@@ -176,6 +203,29 @@
   }
 }
 
+<span class="doccomment">/// Represents the current state of the connected joystick.
+</span><span class="attribute">#[derive(Copy, Clone, Debug, PartialEq)]
+</span><span class="kw">pub struct </span>JoystickState {
+  <span class="kw">pub </span>up: bool,
+  <span class="kw">pub </span>down: bool,
+  <span class="kw">pub </span>left: bool,
+  <span class="kw">pub </span>right: bool,
+  <span class="kw">pub </span>fire: bool,
+}
+
+<span class="kw">impl </span>JoystickState {
+  <span class="doccomment">/// Create a new JoystickState with all buttons released.
+  </span><span class="kw">pub fn </span>empty() -&gt; <span class="self">Self </span>{
+    <span class="self">Self </span>{
+      up: <span class="bool-val">false</span>,
+      down: <span class="bool-val">false</span>,
+      left: <span class="bool-val">false</span>,
+      right: <span class="bool-val">false</span>,
+      fire: <span class="bool-val">false</span>,
+    }
+  }
+}
+
 <span class="doccomment">/// Represents the configuration of a GUI window that the system can request
 /// from the platform.
 </span><span class="attribute">#[derive(Copy, Clone, Debug, PartialEq)]
@@ -206,6 +256,10 @@
 
   <span class="doccomment">/// Get the current state of the keyboard.
   </span><span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt;;
+
+  <span class="doccomment">/// Get the current state of the connected joystick.
+  /// If no joystick is connected, this should return a default state.
+  </span><span class="kw">fn </span>get_joystick_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; JoystickState;
 
   <span class="doccomment">/// Display the given string to the user, &quot;out-of-band&quot; from any other
   /// graphics. This is used for text-mode systems. Implementations may choose

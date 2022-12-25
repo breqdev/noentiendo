@@ -98,6 +98,12 @@
 <span id="98">98</span>
 <span id="99">99</span>
 <span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
@@ -106,6 +112,8 @@
 <span class="kw">use </span>std::sync::Arc;
 <span class="kw">use </span>std::thread;
 <span class="kw">use </span>std::time::{Duration, Instant};
+
+<span class="kw">use </span><span class="kw">super</span>::JoystickState;
 
 <span class="doccomment">/// Represents a platform which exclusively operates over text mode,
 /// without any visible graphical output. This reads from and writes to the
@@ -178,6 +186,10 @@
 
   <span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt; {
     KeyState::new()
+  }
+
+  <span class="kw">fn </span>get_joystick_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; JoystickState {
+    JoystickState::empty()
   }
 
   <span class="kw">fn </span>print(<span class="kw-2">&amp;</span><span class="self">self</span>, text: <span class="kw-2">&amp;</span>str) {

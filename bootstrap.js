@@ -70,6 +70,9 @@
 /******/ 					"__wbg_prompt_cd54bd8801e664bd": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_prompt_cd54bd8801e664bd"](p0i32,p1i32,p2i32);
 /******/ 					},
+/******/ 					"__wbindgen_is_falsy": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_is_falsy"](p0i32);
+/******/ 					},
 /******/ 					"__wbindgen_cb_drop": function(p0i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_cb_drop"](p0i32);
 /******/ 					},
@@ -472,11 +475,20 @@
 /******/ 					"__wbg_document_3ead31dbcad65886": function(p0i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_document_3ead31dbcad65886"](p0i32);
 /******/ 					},
+/******/ 					"__wbg_navigator_d1dcf282b97e2495": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_navigator_d1dcf282b97e2495"](p0i32);
+/******/ 					},
 /******/ 					"__wbg_setInterval_b6f2e23785929613": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_setInterval_b6f2e23785929613"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbg_now_8172cd917e5eda6b": function(p0i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_now_8172cd917e5eda6b"](p0i32);
+/******/ 					"__wbg_bindVertexArrayOES_84540c072ea96b75": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_bindVertexArrayOES_84540c072ea96b75"](p0i32,p1i32);
+/******/ 					},
+/******/ 					"__wbg_createVertexArrayOES_00a5c523e5b17eff": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_createVertexArrayOES_00a5c523e5b17eff"](p0i32);
+/******/ 					},
+/******/ 					"__wbg_deleteVertexArrayOES_98b83132b3d85825": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_deleteVertexArrayOES_98b83132b3d85825"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbg_drawBuffersWEBGL_482a093ae5a4ad55": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_drawBuffersWEBGL_482a093ae5a4ad55"](p0i32,p1i32);
@@ -493,11 +505,20 @@
 /******/ 					"__wbg_getContext_a6ea7a8e317f182a": function(p0i32,p1i32,p2i32,p3i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_getContext_a6ea7a8e317f182a"](p0i32,p1i32,p2i32,p3i32);
 /******/ 					},
+/******/ 					"__wbg_now_8172cd917e5eda6b": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_now_8172cd917e5eda6b"](p0i32);
+/******/ 					},
 /******/ 					"__wbg_code_06787cd3c7a60600": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_code_06787cd3c7a60600"](p0i32,p1i32);
 /******/ 					},
-/******/ 					"__wbg_preventDefault_3209279b490de583": function(p0i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_preventDefault_3209279b490de583"](p0i32);
+/******/ 					"__wbg_size_878ba1bf0c2ec606": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_size_878ba1bf0c2ec606"](p0i32);
+/******/ 					},
+/******/ 					"__wbg_type_ca7819eaadc2049f": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_type_ca7819eaadc2049f"](p0i32);
+/******/ 					},
+/******/ 					"__wbg_name_2473476082bed625": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_name_2473476082bed625"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbg_getElementById_3a708b83e4f034d7": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_getElementById_3a708b83e4f034d7"](p0i32,p1i32,p2i32);
@@ -748,23 +769,29 @@
 /******/ 					"__wbg_viewport_a93f3881c4202d5e": function(p0i32,p1i32,p2i32,p3i32,p4i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_viewport_a93f3881c4202d5e"](p0i32,p1i32,p2i32,p3i32,p4i32);
 /******/ 					},
+/******/ 					"__wbg_preventDefault_3209279b490de583": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_preventDefault_3209279b490de583"](p0i32);
+/******/ 					},
+/******/ 					"__wbg_getGamepads_8001a499f2b689fe": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_getGamepads_8001a499f2b689fe"](p0i32);
+/******/ 					},
 /******/ 					"__wbg_value_5ad7478d7216c125": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_value_5ad7478d7216c125"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbg_setProperty_e489dfd8c0a6bffc": function(p0i32,p1i32,p2i32,p3i32,p4i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_setProperty_e489dfd8c0a6bffc"](p0i32,p1i32,p2i32,p3i32,p4i32);
 /******/ 					},
-/******/ 					"__wbg_getNamedItem_bcfc3b5818f403a4": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_getNamedItem_bcfc3b5818f403a4"](p0i32,p1i32,p2i32);
+/******/ 					"__wbg_instanceof_Gamepad_530c9ede38ea1fa0": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_instanceof_Gamepad_530c9ede38ea1fa0"](p0i32);
 /******/ 					},
-/******/ 					"__wbg_size_878ba1bf0c2ec606": function(p0i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_size_878ba1bf0c2ec606"](p0i32);
+/******/ 					"__wbg_buttons_1162e62c0dc4246e": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_buttons_1162e62c0dc4246e"](p0i32);
 /******/ 					},
-/******/ 					"__wbg_type_ca7819eaadc2049f": function(p0i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_type_ca7819eaadc2049f"](p0i32);
+/******/ 					"__wbg_instanceof_GamepadButton_7bf6efc7de5e0120": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_instanceof_GamepadButton_7bf6efc7de5e0120"](p0i32);
 /******/ 					},
-/******/ 					"__wbg_name_2473476082bed625": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_name_2473476082bed625"](p0i32,p1i32);
+/******/ 					"__wbg_pressed_7add67434a3dd765": function(p0i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_pressed_7add67434a3dd765"](p0i32);
 /******/ 					},
 /******/ 					"__wbg_drawArraysInstancedANGLE_89a45d6f51cd0483": function(p0i32,p1i32,p2i32,p3i32,p4i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_drawArraysInstancedANGLE_89a45d6f51cd0483"](p0i32,p1i32,p2i32,p3i32,p4i32);
@@ -778,14 +805,8 @@
 /******/ 					"__wbg_addEventListener_cbe4c6f619b032f3": function(p0i32,p1i32,p2i32,p3i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_addEventListener_cbe4c6f619b032f3"](p0i32,p1i32,p2i32,p3i32);
 /******/ 					},
-/******/ 					"__wbg_bindVertexArrayOES_84540c072ea96b75": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_bindVertexArrayOES_84540c072ea96b75"](p0i32,p1i32);
-/******/ 					},
-/******/ 					"__wbg_createVertexArrayOES_00a5c523e5b17eff": function(p0i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_createVertexArrayOES_00a5c523e5b17eff"](p0i32);
-/******/ 					},
-/******/ 					"__wbg_deleteVertexArrayOES_98b83132b3d85825": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_deleteVertexArrayOES_98b83132b3d85825"](p0i32,p1i32);
+/******/ 					"__wbg_getNamedItem_bcfc3b5818f403a4": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_getNamedItem_bcfc3b5818f403a4"](p0i32,p1i32,p2i32);
 /******/ 					},
 /******/ 					"__wbg_get_57245cc7d7c7619d": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbg_get_57245cc7d7c7619d"](p0i32,p1i32);
@@ -898,14 +919,14 @@
 /******/ 					"__wbindgen_memory": function() {
 /******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_memory"]();
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper461": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper461"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper470": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper470"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper462": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper462"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper471": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper471"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper576": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper576"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper586": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/libnoentiendo_bg.js"].exports["__wbindgen_closure_wrapper586"](p0i32,p1i32,p2i32);
 /******/ 					}
 /******/ 				}
 /******/ 			};
@@ -1008,7 +1029,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/libnoentiendo_bg.wasm":"4611bcc86a3dac1ee069"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/libnoentiendo_bg.wasm":"dfdb3817a9f6068d7204"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {

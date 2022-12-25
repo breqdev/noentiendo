@@ -272,10 +272,60 @@
 <span id="272">272</span>
 <span id="273">273</span>
 <span id="274">274</span>
+<span id="275">275</span>
+<span id="276">276</span>
+<span id="277">277</span>
+<span id="278">278</span>
+<span id="279">279</span>
+<span id="280">280</span>
+<span id="281">281</span>
+<span id="282">282</span>
+<span id="283">283</span>
+<span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
+<span id="289">289</span>
+<span id="290">290</span>
+<span id="291">291</span>
+<span id="292">292</span>
+<span id="293">293</span>
+<span id="294">294</span>
+<span id="295">295</span>
+<span id="296">296</span>
+<span id="297">297</span>
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState};
 <span class="kw">mod </span>keyboard;
-<span class="kw">use </span><span class="kw">crate</span>::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
+<span class="kw">use </span><span class="kw">crate</span>::platform::{
+  Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
+};
 <span class="kw">use </span><span class="kw">crate</span>::system::System;
+<span class="kw">use </span>gilrs::{Button, EventType, Gilrs};
 <span class="kw">use </span>instant::Instant;
 <span class="kw">use </span>keyboard::WinitAdapter;
 <span class="kw">use </span>pixels::{Pixels, SurfaceTexture};
@@ -297,6 +347,7 @@
   provider: Arc&lt;WinitPlatformProvider&gt;,
   dirty: Arc&lt;Mutex&lt;bool&gt;&gt;,
   key_state: Arc&lt;Mutex&lt;KeyState&lt;VirtualKeyCode&gt;&gt;&gt;,
+  joystick_state: Arc&lt;Mutex&lt;JoystickState&gt;&gt;,
 }
 
 <span class="kw">impl </span>WinitPlatform {
@@ -305,6 +356,7 @@
     <span class="kw">let </span>pixels = Arc::new(Mutex::new(<span class="prelude-val">None</span>));
     <span class="kw">let </span>dirty = Arc::new(Mutex::new(<span class="bool-val">false</span>));
     <span class="kw">let </span>key_state = Arc::new(Mutex::new(KeyState::new()));
+    <span class="kw">let </span>joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
 
     <span class="self">Self </span>{
       provider: Arc::new(WinitPlatformProvider::new(
@@ -312,11 +364,13 @@
         pixels.clone(),
         dirty.clone(),
         key_state.clone(),
+        joystick_state.clone(),
       )),
       config,
       pixels,
       dirty,
       key_state,
+      joystick_state,
     }
   }
 
@@ -367,6 +421,9 @@
     <span class="kw">let </span><span class="kw-2">mut </span>last_report = start;
     <span class="kw">let </span><span class="kw-2">mut </span>outstanding_ticks = <span class="number">0.0</span>;
 
+    <span class="kw">let </span><span class="kw-2">mut </span>gilrs = Gilrs::new().unwrap();
+    <span class="kw">let </span>joystick_state = <span class="self">self</span>.joystick_state.clone();
+
     event_loop.run(<span class="kw">move </span>|event, <span class="kw">_</span>, control_flow| {
       <span class="kw-2">*</span>control_flow = ControlFlow::Poll;
 
@@ -407,6 +464,36 @@
               system.get_info().cycle_count <span class="kw">as </span>f64 / (now - start).as_secs_f64()
             );
             last_report = now;
+          }
+
+          {
+            <span class="kw">let </span><span class="kw-2">mut </span>joystick_state = joystick_state.lock().unwrap();
+            <span class="kw">loop </span>{
+              <span class="kw">let </span>next_event = gilrs.next_event();
+
+              <span class="kw">match </span>next_event {
+                <span class="prelude-val">Some</span>(event) =&gt; <span class="kw">match </span>event.event {
+                  EventType::ButtonPressed(button, <span class="kw">_</span>) =&gt; <span class="kw">match </span>button {
+                    Button::DPadLeft =&gt; joystick_state.left = <span class="bool-val">true</span>,
+                    Button::DPadRight =&gt; joystick_state.right = <span class="bool-val">true</span>,
+                    Button::DPadUp =&gt; joystick_state.up = <span class="bool-val">true</span>,
+                    Button::DPadDown =&gt; joystick_state.down = <span class="bool-val">true</span>,
+                    Button::South =&gt; joystick_state.fire = <span class="bool-val">true</span>,
+                    <span class="kw">_ </span>=&gt; {}
+                  },
+                  EventType::ButtonReleased(button, <span class="kw">_</span>) =&gt; <span class="kw">match </span>button {
+                    Button::DPadLeft =&gt; joystick_state.left = <span class="bool-val">false</span>,
+                    Button::DPadRight =&gt; joystick_state.right = <span class="bool-val">false</span>,
+                    Button::DPadUp =&gt; joystick_state.up = <span class="bool-val">false</span>,
+                    Button::DPadDown =&gt; joystick_state.down = <span class="bool-val">false</span>,
+                    Button::South =&gt; joystick_state.fire = <span class="bool-val">false</span>,
+                    <span class="kw">_ </span>=&gt; {}
+                  },
+                  <span class="kw">_ </span>=&gt; {}
+                },
+                <span class="prelude-val">None </span>=&gt; <span class="kw">break</span>,
+              }
+            }
           }
 
           {
@@ -472,6 +559,7 @@
   pixels: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Pixels&gt;&gt;&gt;,
   dirty: Arc&lt;Mutex&lt;bool&gt;&gt;,
   key_state: Arc&lt;Mutex&lt;KeyState&lt;VirtualKeyCode&gt;&gt;&gt;,
+  joystick_state: Arc&lt;Mutex&lt;JoystickState&gt;&gt;,
 }
 
 <span class="kw">impl </span>WinitPlatformProvider {
@@ -480,12 +568,14 @@
     pixels: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Pixels&gt;&gt;&gt;,
     dirty: Arc&lt;Mutex&lt;bool&gt;&gt;,
     key_state: Arc&lt;Mutex&lt;KeyState&lt;VirtualKeyCode&gt;&gt;&gt;,
+    joystick_state: Arc&lt;Mutex&lt;JoystickState&gt;&gt;,
   ) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{
       config,
       pixels,
       dirty,
       key_state,
+      joystick_state,
     }
   }
   <span class="kw">fn </span>get_config(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WindowConfig {
@@ -526,6 +616,10 @@
 
   <span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt; {
     WinitAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.key_state.lock().unwrap())
+  }
+
+  <span class="kw">fn </span>get_joystick_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; JoystickState {
+    <span class="kw-2">*</span><span class="self">self</span>.joystick_state.lock().unwrap()
   }
 
   <span class="kw">fn </span>print(<span class="kw-2">&amp;</span><span class="self">self</span>, text: <span class="kw-2">&amp;</span>str) {
