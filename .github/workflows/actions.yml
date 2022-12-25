@@ -20,6 +20,9 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Install system libraries
+        run: sudo apt-get install libudev-dev
+
       - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
@@ -50,6 +53,9 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+
+      - name: Install system libraries
+        run: sudo apt-get install libudev-dev
 
       - name: Set up Node
         uses: actions/setup-node@v1
@@ -99,6 +105,9 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+
+      - name: Install system libraries
+        run: sudo apt-get install libudev-dev
 
       - name: Run tests and collect coverage
         run: LLVM_PROFILE_FILE='cargo-test-%p-%m.profraw' RUSTFLAGS="-Cinstrument-coverage -Clink-dead-code" cargo test

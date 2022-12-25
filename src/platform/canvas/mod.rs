@@ -1,5 +1,7 @@
 use crate::platform::KeyState;
-use crate::platform::{AsyncPlatform, Color, Platform, PlatformProvider, WindowConfig};
+use crate::platform::{
+  AsyncPlatform, Color, JoystickState, Platform, PlatformProvider, WindowConfig,
+};
 use crate::system::System;
 use async_trait::async_trait;
 use js_sys::Math;
@@ -11,7 +13,7 @@ use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{HtmlCanvasElement, KeyboardEvent};
+use web_sys::{Gamepad, GamepadButton, HtmlCanvasElement, KeyboardEvent};
 mod keyboard;
 use crate::keyboard::{KeyAdapter, KeyPosition};
 use keyboard::JavaScriptAdapter;
@@ -34,6 +36,7 @@ pub struct CanvasPlatform {
   pixels: Arc<Mutex<Option<Pixels>>>,
   provider: Arc<CanvasPlatformProvider>,
   key_state: Arc<Mutex<KeyState<String>>>,
+  joystick_state: Arc<Mutex<JoystickState>>,
 }
 
 impl CanvasPlatform {
@@ -43,6 +46,7 @@ impl CanvasPlatform {
     let canvas = Arc::new(Mutex::new(None));
     let pixels = Arc::new(Mutex::new(None));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
+    let joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
 
     Self {
       provider: Arc::new(CanvasPlatformProvider::new(
@@ -50,12 +54,14 @@ impl CanvasPlatform {
         resize_requested.clone(),
         pixels.clone(),
         key_state.clone(),
+        joystick_state.clone(),
       )),
       config,
       resize_requested,
       canvas,
       pixels,
       key_state,
+      joystick_state,
     }
   }
 
@@ -153,12 +159,54 @@ impl AsyncPlatform for CanvasPlatform {
     let config = self.config.clone();
     let canvas = self.canvas.clone();
     let resize_requested = self.resize_requested.clone();
+    let joystick_state = self.joystick_state.clone();
 
     let interval = Closure::new(move || {
       let mut duration = Duration::ZERO;
 
       while duration < Duration::from_millis(20) {
         duration += Duration::from_secs_f64(system.tick());
+      }
+
+      let gamepads = web_sys::window().unwrap().navigator().get_gamepads();
+
+      if let Ok(gamepads) = gamepads {
+        let first = gamepads.iter().find(|gamepad| gamepad.is_truthy());
+
+        if let Some(gamepad) = first {
+          let gamepad = gamepad.dyn_into::<Gamepad>().unwrap();
+
+          let mut joystick_state = joystick_state.lock().unwrap();
+          joystick_state.up = gamepad
+            .buttons()
+            .get(12)
+            .dyn_into::<GamepadButton>()
+            .map_or(false, |button| button.pressed());
+
+          joystick_state.down = gamepad
+            .buttons()
+            .get(13)
+            .dyn_into::<GamepadButton>()
+            .map_or(false, |button| button.pressed());
+
+          joystick_state.left = gamepad
+            .buttons()
+            .get(14)
+            .dyn_into::<GamepadButton>()
+            .map_or(false, |button| button.pressed());
+
+          joystick_state.right = gamepad
+            .buttons()
+            .get(15)
+            .dyn_into::<GamepadButton>()
+            .map_or(false, |button| button.pressed());
+
+          joystick_state.fire = gamepad
+            .buttons()
+            .get(0)
+            .dyn_into::<GamepadButton>()
+            .map_or(false, |button| button.pressed());
+        }
       }
 
       if *resize_requested.lock().unwrap() {
@@ -215,6 +263,7 @@ pub struct CanvasPlatformProvider {
   resize_requested: Arc<Mutex<bool>>,
   pixels: Arc<Mutex<Option<Pixels>>>,
   key_state: Arc<Mutex<KeyState<String>>>,
+  joystick_state: Arc<Mutex<JoystickState>>,
 }
 
 impl CanvasPlatformProvider {
@@ -223,12 +272,14 @@ impl CanvasPlatformProvider {
     resize_requested: Arc<Mutex<bool>>,
     pixels: Arc<Mutex<Option<Pixels>>>,
     key_state: Arc<Mutex<KeyState<String>>>,
+    joystick_state: Arc<Mutex<JoystickState>>,
   ) -> Self {
     Self {
       config,
       resize_requested,
       pixels,
       key_state,
+      joystick_state,
     }
   }
   fn get_config(&self) -> WindowConfig {
@@ -268,6 +319,10 @@ impl PlatformProvider for CanvasPlatformProvider {
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     JavaScriptAdapter::map(&self.key_state.lock().unwrap())
+  }
+
+  fn get_joystick_state(&self) -> JoystickState {
+    *self.joystick_state.lock().unwrap()
   }
 
   fn print(&self, text: &str) {
