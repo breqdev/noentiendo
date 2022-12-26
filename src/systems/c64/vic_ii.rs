@@ -8,6 +8,8 @@ const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
 const CHAR_WIDTH: u32 = 8;
 const CHAR_HEIGHT: u32 = 8;
+const SPRITE_WIDTH: u32 = 24;
+const SPRITE_HEIGHT: u32 = 21;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 struct Sprite {
@@ -185,6 +187,43 @@ impl VicIIChip {
   /// Get the foreground color to be shown at the given character position.
   fn get_foreground(&mut self, address: u16, memory: &mut Box<dyn Memory>) -> Color {
     VicIIChip::get_color(self.read_color(address, memory))
+  }
+
+  /// Draw the given sprite.
+  fn draw_sprite(&mut self, index: usize, memory: &mut Box<dyn Memory>) {
+    let sprite = &self.sprites[index];
+
+    println!("Drawing sprite {} {:?}", index, sprite);
+
+    if !sprite.enabled {
+      return;
+    }
+
+    let data_pointer = 0x07F8 + index as u16;
+    let data_address = memory.read(data_pointer) as u16 * 64;
+
+    println!("Pointer {} {}", data_pointer, data_address);
+
+    for byte_index in 0..64 {
+      let data_byte = memory.read(data_address + byte_index);
+
+      for bit_index in 0..8 {
+        let color = if data_byte & (1 << (7 - bit_index)) != 0 {
+          sprite.color
+        } else {
+          self.background_color[0]
+        };
+
+        let position = (byte_index * 8 + bit_index) as u32;
+        let y = position / SPRITE_WIDTH;
+        let x = position % SPRITE_WIDTH;
+
+        let x = x + sprite.x as u32;
+        let y = y + sprite.y as u32;
+
+        self.platform.set_pixel(x, y, VicIIChip::get_color(color));
+      }
+    }
   }
 
   /// Redraw the character at the specified address.
@@ -411,6 +450,10 @@ impl DMA for VicIIChipDMA {
 
     for i in 0..((WIDTH * HEIGHT) as u16) {
       chip.redraw(i, memory);
+    }
+
+    for i in 0..8 {
+      chip.draw_sprite(i, memory);
     }
   }
 }
