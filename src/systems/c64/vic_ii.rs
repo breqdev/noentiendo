@@ -14,6 +14,7 @@ const BORDER_WIDTH: u32 = 24;
 const BORDER_HEIGHT: u32 = 29;
 const FULL_WIDTH: u32 = WIDTH * CHAR_WIDTH + BORDER_WIDTH * 2;
 const FULL_HEIGHT: u32 = HEIGHT * CHAR_HEIGHT + BORDER_HEIGHT * 2;
+const SPRITE_MEMORY_SIZE: u16 = (SPRITE_WIDTH * SPRITE_HEIGHT / 8) as u16;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 struct Sprite {
@@ -85,11 +86,7 @@ pub struct VicIIChip {
 
 impl VicIIChip {
   pub fn new(platform: Arc<dyn PlatformProvider>, character_rom: Box<dyn Memory>) -> Self {
-    platform.request_window(WindowConfig::new(
-      WIDTH * CHAR_WIDTH + BORDER_WIDTH * 2,
-      HEIGHT * CHAR_HEIGHT + BORDER_HEIGHT * 2,
-      2.0,
-    ));
+    platform.request_window(WindowConfig::new(FULL_WIDTH, FULL_HEIGHT, 2.0));
 
     Self {
       platform,
@@ -205,7 +202,7 @@ impl VicIIChip {
     let data_pointer = 0x07F8 + index as u16;
     let data_address = memory.read(data_pointer) as u16 * 64;
 
-    for byte_index in 0..63 {
+    for byte_index in 0..SPRITE_MEMORY_SIZE {
       let data_byte = memory.read(data_address + byte_index);
 
       for bit_index in 0..8 {
