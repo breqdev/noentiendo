@@ -349,8 +349,8 @@ impl VicChip {
       // Multicolor characters
       for line in 0..char_height {
         let line_data = character[line as usize];
-        for pixel in 0..(char_width / 2) {
-          let color_code = (line_data >> (char_width - 2 - (pixel * 2))) & 0b11;
+        for pixel in 0..char_width {
+          let color_code = (line_data >> (char_width - pixel)) & 0b11;
 
           let color = match color_code {
             0b00 => self.get_background(),
@@ -361,12 +361,12 @@ impl VicChip {
           };
 
           self.platform.set_pixel(
-            column * char_width + (pixel * 2),
+            (column * 2) * char_width + (pixel * 2),
             row * char_height + line,
             color,
           );
           self.platform.set_pixel(
-            column * char_width + (pixel * 2) + 1,
+            (column * 2) * char_width + (pixel * 2) + 1,
             row * char_height + line,
             color,
           );
