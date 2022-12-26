@@ -530,8 +530,6 @@
 <span id="530">530</span>
 <span id="531">531</span>
 <span id="532">532</span>
-<span id="533">533</span>
-<span id="534">534</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span>std::cell::RefCell;
@@ -884,7 +882,7 @@
       </span><span class="kw">for </span>line <span class="kw">in </span><span class="number">0</span>..char_height {
         <span class="kw">let </span>line_data = character[line <span class="kw">as </span>usize];
         <span class="kw">for </span>pixel <span class="kw">in </span><span class="number">0</span>..char_width {
-          <span class="kw">let </span>color_code = (line_data &gt;&gt; (char_width - pixel)) &amp; <span class="number">0b11</span>;
+          <span class="kw">let </span>color_code = line_data &gt;&gt; (<span class="number">2 </span>* (char_width - pixel - <span class="number">1</span>)) &amp; <span class="number">0b11</span>;
 
           <span class="kw">let </span>color = <span class="kw">match </span>color_code {
             <span class="number">0b00 </span>=&gt; <span class="self">self</span>.get_background(),
@@ -894,13 +892,11 @@
             <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
           };
 
+          <span class="self">self
+            </span>.platform
+            .set_pixel(column * <span class="number">8 </span>+ (pixel * <span class="number">2</span>), row * char_height + line, color);
           <span class="self">self</span>.platform.set_pixel(
-            (column * <span class="number">2</span>) * char_width + (pixel * <span class="number">2</span>),
-            row * char_height + line,
-            color,
-          );
-          <span class="self">self</span>.platform.set_pixel(
-            (column * <span class="number">2</span>) * char_width + (pixel * <span class="number">2</span>) + <span class="number">1</span>,
+            column * <span class="number">8 </span>+ (pixel * <span class="number">2</span>) + <span class="number">1</span>,
             row * char_height + line,
             color,
           );
