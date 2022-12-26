@@ -883,8 +883,8 @@
       <span class="comment">// Multicolor characters
       </span><span class="kw">for </span>line <span class="kw">in </span><span class="number">0</span>..char_height {
         <span class="kw">let </span>line_data = character[line <span class="kw">as </span>usize];
-        <span class="kw">for </span>pixel <span class="kw">in </span><span class="number">0</span>..(char_width / <span class="number">2</span>) {
-          <span class="kw">let </span>color_code = (line_data &gt;&gt; (char_width - <span class="number">2 </span>- (pixel * <span class="number">2</span>))) &amp; <span class="number">0b11</span>;
+        <span class="kw">for </span>pixel <span class="kw">in </span><span class="number">0</span>..char_width {
+          <span class="kw">let </span>color_code = (line_data &gt;&gt; (char_width - pixel)) &amp; <span class="number">0b11</span>;
 
           <span class="kw">let </span>color = <span class="kw">match </span>color_code {
             <span class="number">0b00 </span>=&gt; <span class="self">self</span>.get_background(),
@@ -895,12 +895,12 @@
           };
 
           <span class="self">self</span>.platform.set_pixel(
-            column * char_width + (pixel * <span class="number">2</span>),
+            (column * <span class="number">2</span>) * char_width + (pixel * <span class="number">2</span>),
             row * char_height + line,
             color,
           );
           <span class="self">self</span>.platform.set_pixel(
-            column * char_width + (pixel * <span class="number">2</span>) + <span class="number">1</span>,
+            (column * <span class="number">2</span>) * char_width + (pixel * <span class="number">2</span>) + <span class="number">1</span>,
             row * char_height + line,
             color,
           );
