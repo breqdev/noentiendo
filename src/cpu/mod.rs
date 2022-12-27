@@ -9,7 +9,7 @@ use registers::{flags, Registers};
 /// The MOS 6502 CPU and its associated memory.
 pub struct Mos6502 {
   pub registers: Registers,
-  memory: Box<dyn Memory>,
+  pub memory: Box<dyn Memory>,
   dma: Vec<Box<dyn DMA>>,
   cycle_count: u64,
 }

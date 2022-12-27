@@ -15,8 +15,9 @@ use std::sync::Arc;
 mod chip;
 mod keyboard;
 use self::keyboard::KEYBOARD_MAPPING;
-use chip::{VicChip, VicChipDMA, VicChipIO};
+use chip::{VicChip, VicChipIO};
 
+use instant::Duration;
 #[cfg(target_arch = "wasm32")]
 use js_sys::Reflect;
 
@@ -290,27 +291,31 @@ impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20Sys
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 
-    let mut system = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(Box::new(memory));
 
-    system.attach_dma(Box::new(VicChipDMA::new(vic_chip)));
-
-    Box::new(Vic20System {})
+    Box::new(Vic20System { cpu, vic: vic_chip })
   }
 }
 
 /// The VIC-20 system by Commodore.
-pub struct Vic20System;
+pub struct Vic20System {
+  cpu: Mos6502,
+  vic: Rc<RefCell<VicChip>>,
+}
 
 impl System for Vic20System {
   fn tick(&mut self) -> instant::Duration {
-    todo!()
+    Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
   }
 
   fn reset(&mut self) {
-    todo!()
+    self.cpu.reset();
   }
 
-  fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
-    todo!()
+  fn render(&mut self, framebuffer: &mut [u8], _config: WindowConfig) {
+    self
+      .vic
+      .borrow_mut()
+      .redraw_screen(&mut self.cpu.memory, framebuffer);
   }
 }

@@ -315,13 +315,15 @@ impl VicChip {
   }
 
   /// Redraw the character at the specified address.
-  fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>) {
+  fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>, framebuffer: &mut [u8]) {
     if address >= (self.row_count as u16 * self.column_count as u16) {
       return; // ignore writes to the extra bytes
     }
 
     let column = (address % self.column_count as u16) as u32;
     let row = (address / self.column_count as u16) as u32;
+    let base_column = column * 8;
+    let base_row = row * 8;
 
     let value = self.read_vram(address, memory);
     let color = self.read_color(address, memory);
@@ -340,9 +342,11 @@ impl VicChip {
             self.get_background()
           };
 
-          self
-            .platform
-            .set_pixel(column * char_width + pixel, row * char_height + line, color);
+          let x = base_column + pixel;
+          let y = base_row + line;
+          let index = (y * (self.column_count as u32 * 8) + x) as usize * 4;
+          let pixel = &mut framebuffer[index..(index + 4)];
+          pixel.copy_from_slice(&color.to_rgba());
         }
       }
     } else {
@@ -360,15 +364,26 @@ impl VicChip {
             _ => unreachable!(),
           };
 
-          self
-            .platform
-            .set_pixel(column * 8 + (pixel * 2), row * char_height + line, color);
-          self.platform.set_pixel(
-            column * 8 + (pixel * 2) + 1,
-            row * char_height + line,
-            color,
-          );
+          let x = column * 8 + (pixel * 2);
+          let y = row * char_height + line;
+          let index = ((y * self.column_count as u32 + x) * 4) as usize;
+          let pixel = &mut framebuffer[index..(index + 4)];
+          pixel.copy_from_slice(&color.to_rgba());
+
+          let index = ((y * self.column_count as u32 + x + 1) * 4) as usize;
+          let pixel = &mut framebuffer[index..(index + 4)];
+          pixel.copy_from_slice(&color.to_rgba());
         }
+      }
+    }
+  }
+
+  /// Redraw the entire screen.
+  pub fn redraw_screen(&mut self, memory: &mut Box<dyn Memory>, framebuffer: &mut [u8]) {
+    for row in 0..self.row_count {
+      for column in 0..self.column_count {
+        let address = (row as u16) * (self.column_count as u16) + (column as u16);
+        self.redraw(address, memory, framebuffer);
       }
     }
   }
@@ -484,33 +499,6 @@ impl Memory for VicChipIO {
 
   fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
-  }
-}
-
-/// Handles drawing characters by reading directly from the main memory.
-pub struct VicChipDMA {
-  chip: Rc<RefCell<VicChip>>,
-}
-
-impl VicChipDMA {
-  pub fn new(chip: Rc<RefCell<VicChip>>) -> Self {
-    Self { chip }
-  }
-}
-
-impl DMA for VicChipDMA {
-  fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo) {
-    let mut chip = self.chip.borrow_mut();
-
-    if (info.cycle_count - chip.last_draw_clock) < 50_000 {
-      return;
-    }
-
-    chip.last_draw_clock = info.cycle_count;
-
-    for i in 0..(chip.column_count as u16 * chip.row_count as u16) {
-      chip.redraw(i, memory);
-    }
   }
 }
 
