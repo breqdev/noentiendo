@@ -1,11 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::new_without_default)]
 
-mod execute;
-mod fetch;
-mod registers;
-/// A [`system::System`] consists of a 6502 CPU and some attached _memory_. All computer peripherals are exposed to the CPU over the memory interface (i.e., _memory-mapped I/O_).
-pub mod system;
+pub mod cpu;
 
 /// A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts. The [`memory`] module provides implementations for various types of memory and other memory-mapped devices. Mappings are handled using [`memory::BranchMemory`].
 ///

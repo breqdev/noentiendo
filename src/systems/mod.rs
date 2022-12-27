@@ -1,5 +1,5 @@
+use crate::cpu::System;
 use crate::platform::PlatformProvider;
-use crate::system::System;
 use std::sync::Arc;
 
 pub mod brooke;

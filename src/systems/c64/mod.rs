@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+  cpu::System,
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -14,7 +15,6 @@ use crate::{
     SystemInfo,
   },
   platform::PlatformProvider,
-  system::System,
   systems::SystemFactory,
 };
 

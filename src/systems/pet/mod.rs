@@ -1,8 +1,8 @@
+use crate::cpu::System;
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
-use crate::system::System;
 use crate::systems::SystemFactory;
 use instant::Instant;
 use std::cell::Cell;

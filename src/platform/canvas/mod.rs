@@ -1,8 +1,8 @@
+use crate::cpu::System;
 use crate::platform::KeyState;
 use crate::platform::{
   AsyncPlatform, Color, JoystickState, Platform, PlatformProvider, WindowConfig,
 };
-use crate::system::System;
 use async_trait::async_trait;
 use js_sys::Math;
 mod handles;

@@ -1,7 +1,10 @@
-use crate::execute::Execute;
-use crate::fetch::Fetch;
+mod execute;
+mod fetch;
+mod registers;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
-use crate::registers::{flags, Registers};
+use execute::Execute;
+use fetch::Fetch;
+use registers::{flags, Registers};
 
 /// The MOS 6502 CPU and its associated memory.
 pub struct System {

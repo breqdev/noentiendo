@@ -1,3 +1,4 @@
+use crate::cpu::System;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -6,7 +7,6 @@ use crate::memory::mos652x::Via;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
-use crate::system::System;
 use crate::systems::SystemFactory;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;

@@ -1,6 +1,6 @@
+use crate::cpu::System;
 use crate::keyboard::{KeyPosition, KeyState};
 use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
-use crate::system::System;
 use rand;
 use std::io::Write;
 use std::sync::Arc;

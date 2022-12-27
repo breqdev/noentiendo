@@ -1,4 +1,4 @@
-use crate::system::{MemoryIO, System};
+use crate::cpu::{MemoryIO, System};
 
 /// Fetch values or addresses from memory, optionally dependent on the current
 /// opcode.

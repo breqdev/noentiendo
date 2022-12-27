@@ -1,5 +1,5 @@
+use crate::cpu::System;
 use crate::keyboard::{KeyPosition, KeyState};
-use crate::system::System;
 use async_trait::async_trait;
 use std::sync::Arc;
 

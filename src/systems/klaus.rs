@@ -1,7 +1,7 @@
+use crate::cpu::System;
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
-use crate::system::System;
 use crate::systems::SystemFactory;
 use std::sync::Arc;
 

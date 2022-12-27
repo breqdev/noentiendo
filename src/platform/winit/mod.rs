@@ -1,9 +1,9 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 mod keyboard;
+use crate::cpu::System;
 use crate::platform::{
   Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
 };
-use crate::system::System;
 use gilrs::{Button, EventType, Gilrs};
 use instant::Instant;
 use keyboard::WinitAdapter;
