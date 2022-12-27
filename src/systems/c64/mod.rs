@@ -22,11 +22,12 @@ mod keyboard;
 mod roms;
 mod vic_ii;
 
+use instant::Duration;
 pub use roms::C64SystemRoms;
 
 use self::{
   keyboard::KEYBOARD_MAPPING,
-  vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO},
+  vic_ii::{VicIIChip, VicIIChipIO},
 };
 
 use super::SystemBuilder;
@@ -297,27 +298,31 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
       .map(0xD000, Box::new(region6))
       .map(0xE000, Box::new(region7));
 
-    let mut system = Mos6502::new(Box::new(memory));
+    let mut cpu = Mos6502::new(Box::new(memory));
 
-    system.attach_dma(Box::new(VicIIChipDMA::new(vic_ii)));
-
-    Box::new(C64System {})
+    Box::new(C64System { cpu, vic: vic_ii })
   }
 }
 
 /// The Commodore 64 system.
-pub struct C64System;
+pub struct C64System {
+  cpu: Mos6502,
+  vic: Rc<RefCell<VicIIChip>>,
+}
 
 impl System for C64System {
-  fn tick(&mut self) -> instant::Duration {
-    todo!()
+  fn tick(&mut self) -> Duration {
+    Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
   }
 
   fn reset(&mut self) {
-    todo!()
+    self.cpu.reset();
   }
 
   fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
-    todo!()
+    self
+      .vic
+      .borrow_mut()
+      .draw_screen(&mut self.cpu.memory, framebuffer, config)
   }
 }
