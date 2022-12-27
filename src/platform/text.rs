@@ -1,11 +1,10 @@
 use crate::keyboard::{KeyPosition, KeyState};
 use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
+use crate::time::FixedTimeStep;
 use rand;
 use std::io::Write;
 use std::sync::Arc;
-use std::thread;
-use std::time::{Duration, Instant};
 
 use super::JoystickState;
 
@@ -14,7 +13,7 @@ use super::JoystickState;
 /// terminal.
 /// This platform runs synchronously.
 pub struct TextPlatform {
-  report: bool,
+  report: bool, // TODO: log program counter + cycle count
 }
 
 impl TextPlatform {
@@ -35,19 +34,10 @@ impl SyncPlatform for TextPlatform {
 
     // system.registers.pc.load(0x0400); // Klaus tests
 
-    let mut last_tick = Instant::now();
+    let mut timer = FixedTimeStep::new(60.0);
 
     loop {
-      let duration = Duration::ZERO;
-      for _ in 0..1000 {
-        system.tick();
-      }
-      let now = Instant::now();
-      let elapsed = now - last_tick;
-      if elapsed < duration {
-        thread::sleep(duration - elapsed);
-      }
-      last_tick = now;
+      timer.do_update(&mut || system.tick());
     }
   }
 }

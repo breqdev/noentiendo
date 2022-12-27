@@ -4,7 +4,7 @@ use libnoentiendo::{
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
   roms::DiskLoadable,
   systems::{
-    brooke::BrookeSystemBuilder, c64::C64SystemBuilder, c64::C64SystemConfig, c64::C64SystemRoms,
+    basic::BasicSystemBuilder, c64::C64SystemBuilder, c64::C64SystemConfig, c64::C64SystemRoms,
     easy::Easy6502SystemBuilder, klaus::KlausSystemBuilder, pet::PetSystemBuilder,
     pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder, vic::Vic20SystemConfig,
     vic::Vic20SystemRoms, SystemBuilder,
@@ -53,7 +53,7 @@ fn main() {
   };
 
   let system = match args.system.as_str() {
-    "brooke" => BrookeSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    "basic" => BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
     "easy" => Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
     "klaus" => KlausSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
     "pet" => PetSystemBuilder::build(

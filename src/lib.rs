@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::new_without_default)]
 
+/// The [`cpu::Mos6502`] represents a 6502 processor and associated memory.
 pub mod cpu;
 
 /// A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts. The [`memory`] module provides implementations for various types of memory and other memory-mapped devices. Mappings are handled using [`memory::BranchMemory`].
@@ -30,6 +31,8 @@ pub mod roms;
 
 /// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `create` implementation on [`systems::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
 pub mod systems;
+
+mod time;
 
 #[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;

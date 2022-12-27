@@ -1,12 +1,12 @@
+use instant::Duration;
+
 use crate::cpu::Mos6502;
 use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::systems::System;
+use crate::systems::{System, SystemBuilder};
 use std::sync::Arc;
-
-use super::SystemBuilder;
 
 /// VRAM based around the Easy6502 display system from
 /// <https://skilldrick.github.io/easy6502/>.
@@ -140,26 +140,26 @@ impl SystemBuilder<Easy6502System, RomFile, ()> for Easy6502SystemBuilder {
       .map(0x0600, Box::new(high_ram))
       .map(0x8000, Box::new(rom));
 
-    Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(Box::new(memory));
 
-    Box::new(Easy6502System {})
+    Box::new(Easy6502System { cpu })
   }
 }
 
 /// A port of the "Easy6502" system from
 /// <https://skilldrick.github.io/easy6502/>
-pub struct Easy6502System;
+pub struct Easy6502System {
+  cpu: Mos6502,
+}
 
 impl System for Easy6502System {
-  fn tick(&mut self) -> instant::Duration {
-    todo!()
+  fn tick(&mut self) -> Duration {
+    Duration::from_secs_f64(1.0 / 20_000.0) * self.cpu.tick().into()
   }
 
   fn reset(&mut self) {
-    todo!()
+    self.cpu.reset();
   }
 
-  fn render(&mut self, framebuffer: &mut [u8]) {
-    todo!()
-  }
+  fn render(&mut self, _framebuffer: &mut [u8]) {}
 }

@@ -2,7 +2,7 @@ use crate::platform::PlatformProvider;
 use instant::Duration;
 use std::sync::Arc;
 
-pub mod brooke;
+pub mod basic;
 pub mod c64;
 pub mod easy;
 pub mod klaus;

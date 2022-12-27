@@ -1,13 +1,13 @@
+use instant::Duration;
+
 use crate::cpu::Mos6502;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
-use crate::systems::System;
+use crate::systems::{System, SystemBuilder};
 use std::io::Write;
 use std::sync::Arc;
-
-use super::SystemBuilder;
 
 /// A Memory implementation that can be used to read from or write to
 /// STDIN/STDOUT.
@@ -65,10 +65,10 @@ impl Memory for MappedStdIO {
   }
 }
 
-/// A factory for creating a BrookeSystem.
-pub struct BrookeSystemBuilder;
+/// A factory for creating a BasicSystem.
+pub struct BasicSystemBuilder;
 
-impl SystemBuilder<BrookeSystem, RomFile, ()> for BrookeSystemBuilder {
+impl SystemBuilder<BasicSystem, RomFile, ()> for BasicSystemBuilder {
   fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new(platform);
@@ -79,25 +79,25 @@ impl SystemBuilder<BrookeSystem, RomFile, ()> for BrookeSystemBuilder {
       .map(0x4000, Box::new(io))
       .map(0x8000, Box::new(rom));
 
-    Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(Box::new(memory));
 
-    Box::new(BrookeSystem {})
+    Box::new(BasicSystem { cpu })
   }
 }
 
 /// A system which only operates in text mode, for basic testing.
-pub struct BrookeSystem;
+pub struct BasicSystem {
+  cpu: Mos6502,
+}
 
-impl System for BrookeSystem {
-  fn tick(&mut self) -> instant::Duration {
-    todo!()
+impl System for BasicSystem {
+  fn tick(&mut self) -> Duration {
+    Duration::from_secs_f64(1.0 / 20_000.0) * self.cpu.tick().into()
   }
 
   fn reset(&mut self) {
-    todo!()
+    self.cpu.reset();
   }
 
-  fn render(&mut self, framebuffer: &mut [u8]) {
-    todo!()
-  }
+  fn render(&mut self, _framebuffer: &mut [u8]) {}
 }
