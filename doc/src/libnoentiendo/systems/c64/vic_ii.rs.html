@@ -414,6 +414,62 @@
 <span id="414">414</span>
 <span id="415">415</span>
 <span id="416">416</span>
+<span id="417">417</span>
+<span id="418">418</span>
+<span id="419">419</span>
+<span id="420">420</span>
+<span id="421">421</span>
+<span id="422">422</span>
+<span id="423">423</span>
+<span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span>std::cell::RefCell;
@@ -424,6 +480,13 @@
 <span class="kw">const </span>HEIGHT: u32 = <span class="number">25</span>;
 <span class="kw">const </span>CHAR_WIDTH: u32 = <span class="number">8</span>;
 <span class="kw">const </span>CHAR_HEIGHT: u32 = <span class="number">8</span>;
+<span class="kw">const </span>SPRITE_WIDTH: u32 = <span class="number">24</span>;
+<span class="kw">const </span>SPRITE_HEIGHT: u32 = <span class="number">21</span>;
+<span class="kw">const </span>BORDER_WIDTH: u32 = <span class="number">24</span>;
+<span class="kw">const </span>BORDER_HEIGHT: u32 = <span class="number">29</span>;
+<span class="kw">const </span>FULL_WIDTH: u32 = WIDTH * CHAR_WIDTH + BORDER_WIDTH * <span class="number">2</span>;
+<span class="kw">const </span>FULL_HEIGHT: u32 = HEIGHT * CHAR_HEIGHT + BORDER_HEIGHT * <span class="number">2</span>;
+<span class="kw">const </span>SPRITE_MEMORY_SIZE: u16 = (SPRITE_WIDTH * SPRITE_HEIGHT / <span class="number">8</span>) <span class="kw">as </span>u16;
 
 <span class="attribute">#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 </span><span class="kw">struct </span>Sprite {
@@ -495,11 +558,7 @@
 
 <span class="kw">impl </span>VicIIChip {
   <span class="kw">pub fn </span>new(platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;, character_rom: Box&lt;<span class="kw">dyn </span>Memory&gt;) -&gt; <span class="self">Self </span>{
-    platform.request_window(WindowConfig::new(
-      WIDTH * CHAR_WIDTH,
-      HEIGHT * CHAR_HEIGHT,
-      <span class="number">2.0</span>,
-    ));
+    platform.request_window(WindowConfig::new(FULL_WIDTH, FULL_HEIGHT, <span class="number">2.0</span>));
 
     <span class="self">Self </span>{
       platform,
@@ -603,6 +662,40 @@
     VicIIChip::get_color(<span class="self">self</span>.read_color(address, memory))
   }
 
+  <span class="doccomment">/// Draw the given sprite.
+  /// Sources: &lt;https://retro64.altervista.org/blog/programming-sprites-the-commodore-64-simple-tutorial-using-basic-v2/&gt; and &lt;https://dustlayer.com/vic-ii/2013/4/28/vic-ii-for-beginners-part-5-bringing-sprites-in-shape&gt;
+  </span><span class="kw">fn </span>draw_sprite(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: usize, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) {
+    <span class="kw">let </span>sprite = <span class="kw-2">&amp;</span><span class="self">self</span>.sprites[index];
+
+    <span class="kw">if </span>!sprite.enabled {
+      <span class="kw">return</span>;
+    }
+
+    <span class="kw">let </span>data_pointer = <span class="number">0x07F8 </span>+ index <span class="kw">as </span>u16;
+    <span class="kw">let </span>data_address = memory.read(data_pointer) <span class="kw">as </span>u16 * <span class="number">64</span>;
+
+    <span class="kw">for </span>byte_index <span class="kw">in </span><span class="number">0</span>..SPRITE_MEMORY_SIZE {
+      <span class="kw">let </span>data_byte = memory.read(data_address + byte_index);
+
+      <span class="kw">for </span>bit_index <span class="kw">in </span><span class="number">0</span>..<span class="number">8 </span>{
+        <span class="kw">let </span>color = <span class="kw">if </span>data_byte &amp; (<span class="number">1 </span>&lt;&lt; (<span class="number">7 </span>- bit_index)) != <span class="number">0 </span>{
+          sprite.color
+        } <span class="kw">else </span>{
+          <span class="self">self</span>.background_color[<span class="number">0</span>]
+        };
+
+        <span class="kw">let </span>position = (byte_index * <span class="number">8 </span>+ bit_index) <span class="kw">as </span>u32;
+        <span class="kw">let </span>y = position / SPRITE_WIDTH;
+        <span class="kw">let </span>x = position % SPRITE_WIDTH;
+
+        <span class="kw">let </span>x = x + sprite.x <span class="kw">as </span>u32;
+        <span class="kw">let </span>y = y + sprite.y <span class="kw">as </span>u32;
+
+        <span class="self">self</span>.platform.set_pixel(x, y, VicIIChip::get_color(color));
+      }
+    }
+  }
+
   <span class="doccomment">/// Redraw the character at the specified address.
   </span><span class="kw">fn </span>redraw(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) {
     <span class="kw">if </span>address &gt;= (WIDTH * HEIGHT) <span class="kw">as </span>u16 {
@@ -624,10 +717,31 @@
           VicIIChip::get_color(<span class="self">self</span>.background_color[<span class="number">0</span>])
         };
 
+        <span class="self">self</span>.platform.set_pixel(
+          BORDER_WIDTH + column * CHAR_WIDTH + pixel,
+          BORDER_HEIGHT + row * CHAR_HEIGHT + line,
+          color,
+        );
+      }
+    }
+  }
+
+  <span class="kw">fn </span>draw_screen(<span class="kw-2">&amp;mut </span><span class="self">self</span>, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) {
+    <span class="comment">// draw the border
+    </span><span class="kw">for </span>x <span class="kw">in </span><span class="number">0</span>..FULL_WIDTH {
+      <span class="kw">for </span>y <span class="kw">in </span><span class="number">0</span>..FULL_HEIGHT {
         <span class="self">self
           </span>.platform
-          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+          .set_pixel(x, y, VicIIChip::get_color(<span class="self">self</span>.border_color));
       }
+    }
+
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..((WIDTH * HEIGHT) <span class="kw">as </span>u16) {
+      <span class="self">self</span>.redraw(i, memory);
+    }
+
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">8 </span>{
+      <span class="self">self</span>.draw_sprite(i, memory);
     }
   }
 }
@@ -825,9 +939,7 @@
 
     chip.last_draw_clock = info.cycle_count;
 
-    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..((WIDTH * HEIGHT) <span class="kw">as </span>u16) {
-      chip.redraw(i, memory);
-    }
+    chip.draw_screen(memory);
   }
 }
 </code></pre></div>
