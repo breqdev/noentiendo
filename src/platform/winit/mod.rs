@@ -219,10 +219,6 @@ impl PlatformProvider for WinitPlatformProvider {
     *self.config.lock().unwrap() = Some(config);
   }
 
-  fn set_pixel(&self, x: u32, y: u32, color: Color) {
-    // TODO: remove
-  }
-
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     WinitAdapter::map(&self.key_state.lock().unwrap())
   }

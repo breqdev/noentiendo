@@ -112,9 +112,6 @@ pub trait PlatformProvider {
   /// should resize it to the new size.
   fn request_window(&self, config: WindowConfig);
 
-  /// Set the given pixel on the screen to the given color.
-  fn set_pixel(&self, x: u32, y: u32, color: Color);
-
   /// Get the current state of the keyboard.
   fn get_key_state(&self) -> KeyState<KeyPosition>;
 

@@ -49,8 +49,6 @@ impl TextPlatformProvider {
 impl PlatformProvider for TextPlatformProvider {
   fn request_window(&self, _config: WindowConfig) {}
 
-  fn set_pixel(&self, _x: u32, _y: u32, _color: Color) {}
-
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     KeyState::new()
   }
