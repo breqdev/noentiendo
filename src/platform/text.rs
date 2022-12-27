@@ -30,10 +30,6 @@ impl Platform for TextPlatform {
 
 impl SyncPlatform for TextPlatform {
   fn run(&mut self, mut system: Box<dyn System>) {
-    system.reset();
-
-    // system.registers.pc.load(0x0400); // Klaus tests
-
     let mut timer = FixedTimeStep::new(60.0);
 
     loop {
