@@ -1,22 +1,24 @@
-use crate::cpu::Mos6502;
+use crate::cpu::{MemoryIO, Mos6502};
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-use crate::platform::{PlatformProvider, WindowConfig};
-use crate::systems::System;
+use crate::platform::{Color, PlatformProvider, WindowConfig};
+use crate::systems::{System, SystemBuilder};
 use instant::Instant;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
-mod vram;
-use vram::PetVram;
 mod roms;
 pub use roms::PetSystemRoms;
 mod keyboard;
 use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
 
-use super::SystemBuilder;
+const WIDTH: u32 = 40;
+const HEIGHT: u32 = 25;
+const CHAR_WIDTH: u32 = 8;
+const CHAR_HEIGHT: u32 = 8;
+const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
 /// Port A on the first PIA.
 /// This is used for generating the 60Hz interrupt (which is fired when the
@@ -150,8 +152,14 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
     config: PetSystemConfig,
     platform: Arc<dyn PlatformProvider>,
   ) -> Box<dyn System> {
+    platform.request_window(WindowConfig::new(
+      WIDTH * CHAR_WIDTH,
+      HEIGHT * CHAR_HEIGHT,
+      2.0,
+    ));
+
     let ram = BlockMemory::ram(0x8000);
-    let vram = PetVram::new(roms.character, platform.clone());
+    let vram = BlockMemory::ram(VRAM_SIZE);
 
     let expansion_rom_9 = NullMemory::new();
     let expansion_rom_a = NullMemory::new();
@@ -181,25 +189,61 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
       .map(0xE840, Box::new(via))
       .map(0xF000, Box::new(kernel_rom));
 
-    Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(Box::new(memory));
 
-    Box::new(PetSystem {})
+    Box::new(PetSystem {
+      cpu,
+      characters: roms.character.get_data(),
+    })
   }
 }
 
 /// The Commodore PET system.
-pub struct PetSystem;
+pub struct PetSystem {
+  cpu: Mos6502,
+  characters: Vec<u8>,
+}
 
 impl System for PetSystem {
   fn tick(&mut self) -> Duration {
-    todo!()
+    Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
   }
 
   fn reset(&mut self) {
-    todo!()
+    self.cpu.reset();
   }
 
   fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
-    todo!()
+    for y in 0..HEIGHT {
+      for x in 0..WIDTH {
+        let index = (y * WIDTH + x) as u16;
+        let value = self.cpu.read(0x8000 + index);
+
+        let character_index = (value as usize) * 8;
+
+        let mut character = self.characters[character_index..(character_index + 8)].to_vec();
+
+        if value & 0x80 != 0 {
+          character = character.iter().map(|&x| !x).collect();
+        }
+
+        for line in 0..CHAR_HEIGHT {
+          let line_data = character[line as usize];
+          for pixel in 0..CHAR_WIDTH {
+            let color = if line_data & (1 << (CHAR_WIDTH - 1 - pixel)) != 0 {
+              Color::new(0, 255, 0)
+            } else {
+              Color::new(0, 0, 0)
+            };
+
+            let x = x * CHAR_WIDTH + pixel;
+            let y = y * CHAR_HEIGHT + line;
+            let index = ((y * config.width + x) * 4) as usize;
+            let pixel = &mut framebuffer[index..(index + 4)];
+            pixel.copy_from_slice(&color.to_rgba());
+          }
+        }
+      }
+    }
   }
 }
