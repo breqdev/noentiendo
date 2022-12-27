@@ -4,14 +4,13 @@ use crate::platform::{
   Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
 };
 use crate::systems::System;
+use crate::time::VariableTimeStep;
 use gilrs::{Button, EventType, Gilrs};
-use instant::Instant;
 use keyboard::WinitAdapter;
 use pixels::{Pixels, SurfaceTexture};
 use rand;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -22,9 +21,7 @@ use winit_input_helper::WinitInputHelper;
 /// This platform runs synchronously.
 pub struct WinitPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
-  pixels: Arc<Mutex<Option<Pixels>>>,
   provider: Arc<WinitPlatformProvider>,
-  dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
 }
@@ -32,22 +29,16 @@ pub struct WinitPlatform {
 impl WinitPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
-    let pixels = Arc::new(Mutex::new(None));
-    let dirty = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
     let joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
 
     Self {
       provider: Arc::new(WinitPlatformProvider::new(
         config.clone(),
-        pixels.clone(),
-        dirty.clone(),
         key_state.clone(),
         joystick_state.clone(),
       )),
       config,
-      pixels,
-      dirty,
       key_state,
       joystick_state,
     }
@@ -84,21 +75,16 @@ impl SyncPlatform for WinitPlatform {
 
     let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
-    *self.pixels.lock().unwrap() =
-      Some(Pixels::new(current_config.width, current_config.height, surface_texture).unwrap());
+    let mut pixels =
+      Pixels::new(current_config.width, current_config.height, surface_texture).unwrap();
 
     let mut input = WinitInputHelper::new();
-    let pixels = self.pixels.clone();
-    let dirty = self.dirty.clone();
     let key_state = self.key_state.clone();
     let config = self.config.clone();
 
     system.reset();
 
-    let start = Instant::now();
-    let mut last_tick = start;
-    let mut last_report = start;
-    let mut outstanding_ticks = 0.0;
+    let mut timer = VariableTimeStep::new();
 
     let mut gilrs = Gilrs::new().unwrap();
     let joystick_state = self.joystick_state.clone();
@@ -112,21 +98,13 @@ impl SyncPlatform for WinitPlatform {
         }
 
         if let Some(size) = input.window_resized() {
-          pixels
-            .lock()
-            .unwrap()
-            .as_mut()
-            .unwrap()
-            .resize_surface(size.width, size.height)
-            .unwrap();
+          pixels.resize_surface(size.width, size.height).unwrap();
         }
       }
 
       match event {
         Event::MainEventsCleared => {
-          let now = Instant::now();
-
-          system.tick();
+          timer.do_update(&mut || system.tick());
 
           {
             let mut joystick_state = joystick_state.lock().unwrap();
@@ -163,7 +141,6 @@ impl SyncPlatform for WinitPlatform {
 
             if new_config != current_config {
               current_config = new_config;
-              *dirty.lock().unwrap() = true;
 
               window.set_inner_size(LogicalSize::new(
                 new_config.width as f64 * new_config.scale,
@@ -175,20 +152,17 @@ impl SyncPlatform for WinitPlatform {
               let surface_texture =
                 SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
-              *pixels.lock().unwrap() =
-                Some(Pixels::new(new_config.width, new_config.height, surface_texture).unwrap());
+              pixels = Pixels::new(new_config.width, new_config.height, surface_texture).unwrap();
             }
           }
 
-          if *dirty.lock().unwrap() {
-            window.request_redraw();
-          }
+          window.request_redraw();
 
-          *control_flow = ControlFlow::WaitUntil(now + Duration::from_millis(17));
+          // TODO: vsync?
         }
         Event::RedrawRequested(_) => {
-          *dirty.lock().unwrap() = false;
-          pixels.lock().unwrap().as_ref().unwrap().render().unwrap();
+          system.render(pixels.get_frame_mut(), config.lock().unwrap().unwrap());
+          pixels.render().unwrap();
         }
         Event::WindowEvent { event, .. } => match event {
           WindowEvent::KeyboardInput {
@@ -218,8 +192,6 @@ impl SyncPlatform for WinitPlatform {
 
 pub struct WinitPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
-  pixels: Arc<Mutex<Option<Pixels>>>,
-  dirty: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
 }
@@ -227,15 +199,11 @@ pub struct WinitPlatformProvider {
 impl WinitPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
-    pixels: Arc<Mutex<Option<Pixels>>>,
-    dirty: Arc<Mutex<bool>>,
     key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
     joystick_state: Arc<Mutex<JoystickState>>,
   ) -> Self {
     Self {
       config,
-      pixels,
-      dirty,
       key_state,
       joystick_state,
     }
@@ -252,28 +220,7 @@ impl PlatformProvider for WinitPlatformProvider {
   }
 
   fn set_pixel(&self, x: u32, y: u32, color: Color) {
-    let mut pixels = self.pixels.lock().unwrap();
-    let frame = pixels.as_mut().unwrap().get_frame_mut();
-    let config = self.get_config();
-
-    if (x >= config.width) || (y >= config.height) {
-      println!(
-        "Invalid pixel coordinates ({}, {}) for dimensions ({}, {})",
-        x, y, config.width, config.height
-      );
-      return;
-    }
-
-    let index = ((y * config.width + x) * 4) as usize;
-    if index + 4 > frame.len() {
-      // Race condition: the app has just requested a new window size, but the
-      // framebuffer hasn't been resized yet
-      *self.dirty.lock().unwrap() = true;
-      return;
-    }
-    let pixel = &mut frame[index..(index + 4)];
-    pixel.copy_from_slice(&color.to_rgba());
-    *self.dirty.lock().unwrap() = true;
+    // TODO: remove
   }
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {

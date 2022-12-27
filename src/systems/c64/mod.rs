@@ -14,7 +14,7 @@ use crate::{
     mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
     SystemInfo,
   },
-  platform::PlatformProvider,
+  platform::{PlatformProvider, WindowConfig},
   systems::System,
 };
 
@@ -317,7 +317,7 @@ impl System for C64System {
     todo!()
   }
 
-  fn render(&mut self, framebuffer: &mut [u8]) {
+  fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
     todo!()
   }
 }

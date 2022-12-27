@@ -5,7 +5,7 @@ use crate::keyboard::{
 };
 use crate::memory::mos652x::Via;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-use crate::platform::PlatformProvider;
+use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::System;
 use std::cell::{Cell, RefCell};
@@ -310,7 +310,7 @@ impl System for Vic20System {
     todo!()
   }
 
-  fn render(&mut self, framebuffer: &mut [u8]) {
+  fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
     todo!()
   }
 }

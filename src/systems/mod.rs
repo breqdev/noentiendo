@@ -1,4 +1,4 @@
-use crate::platform::PlatformProvider;
+use crate::platform::{PlatformProvider, WindowConfig};
 use instant::Duration;
 use std::sync::Arc;
 
@@ -28,5 +28,5 @@ pub trait System {
   fn reset(&mut self);
 
   /// Render the current state of the system to the given framebuffer.
-  fn render(&mut self, framebuffer: &mut [u8]);
+  fn render(&mut self, framebuffer: &mut [u8], window: WindowConfig);
 }

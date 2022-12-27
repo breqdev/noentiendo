@@ -3,7 +3,7 @@ use instant::Duration;
 use crate::cpu::Mos6502;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory};
-use crate::platform::PlatformProvider;
+use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::{System, SystemBuilder};
 use std::io::Write;
@@ -99,5 +99,5 @@ impl System for BasicSystem {
     self.cpu.reset();
   }
 
-  fn render(&mut self, _framebuffer: &mut [u8]) {}
+  fn render(&mut self, _framebuffer: &mut [u8], _config: WindowConfig) {}
 }

@@ -1,6 +1,6 @@
 use crate::cpu::Mos6502;
 use crate::memory::{BlockMemory, BranchMemory};
-use crate::platform::PlatformProvider;
+use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::System;
 use std::sync::Arc;
@@ -34,7 +34,7 @@ impl System for KlausSystem {
     todo!()
   }
 
-  fn render(&mut self, framebuffer: &mut [u8]) {
+  fn render(&mut self, framebuffer: &mut [u8], window: WindowConfig) {
     todo!()
   }
 }

@@ -2,7 +2,7 @@ use crate::cpu::Mos6502;
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-use crate::platform::PlatformProvider;
+use crate::platform::{PlatformProvider, WindowConfig};
 use crate::systems::System;
 use instant::Instant;
 use std::cell::Cell;
@@ -199,7 +199,7 @@ impl System for PetSystem {
     todo!()
   }
 
-  fn render(&mut self, framebuffer: &mut [u8]) {
+  fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
     todo!()
   }
 }

@@ -91,9 +91,9 @@ impl JoystickState {
 /// from the platform.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct WindowConfig {
-  width: u32,
-  height: u32,
-  scale: f64,
+  pub width: u32,
+  pub height: u32,
+  pub scale: f64,
 }
 
 impl WindowConfig {

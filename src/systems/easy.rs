@@ -1,12 +1,14 @@
 use instant::Duration;
 
-use crate::cpu::Mos6502;
+use crate::cpu::{MemoryIO, Mos6502};
 use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::{System, SystemBuilder};
 use std::sync::Arc;
+
+const WIDTH: u32 = 32;
 
 /// VRAM based around the Easy6502 display system from
 /// <https://skilldrick.github.io/easy6502/>.
@@ -161,5 +163,36 @@ impl System for Easy6502System {
     self.cpu.reset();
   }
 
-  fn render(&mut self, _framebuffer: &mut [u8]) {}
+  fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
+    for y in 0..WIDTH {
+      for x in 0..WIDTH {
+        let index = (y * WIDTH + x) as u16;
+        let color = self.cpu.read(0x0200 + index);
+
+        let color = match color & 0x0F {
+          0 => Color::new(0x00, 0x00, 0x00),
+          1 => Color::new(0xFF, 0xFF, 0xFF),
+          2 => Color::new(0x88, 0x00, 0x00),
+          3 => Color::new(0xAA, 0xFF, 0xEE),
+          4 => Color::new(0xCC, 0x44, 0xCC),
+          5 => Color::new(0x00, 0xCC, 0x55),
+          6 => Color::new(0x00, 0x00, 0xAA),
+          7 => Color::new(0xEE, 0xEE, 0x77),
+          8 => Color::new(0xDD, 0x88, 0x55),
+          9 => Color::new(0x66, 0x44, 0x00),
+          10 => Color::new(0xFF, 0x77, 0x77),
+          11 => Color::new(0x33, 0x33, 0x33),
+          12 => Color::new(0x77, 0x77, 0x77),
+          13 => Color::new(0xAA, 0xFF, 0x66),
+          14 => Color::new(0x00, 0x88, 0xFF),
+          15 => Color::new(0xBB, 0xBB, 0xBB),
+          _ => Color::new(0x00, 0x00, 0x00),
+        };
+
+        let index = ((y * config.width + x) * 4) as usize;
+        let pixel = &mut framebuffer[index..(index + 4)];
+        pixel.copy_from_slice(&color.to_rgba());
+      }
+    }
+  }
 }
