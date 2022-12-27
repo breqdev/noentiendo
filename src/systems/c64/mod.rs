@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  cpu::System,
+  cpu::Mos6502,
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -207,7 +207,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
     roms: C64SystemRoms,
     config: C64SystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> System {
+  ) -> Mos6502 {
     // Region 1: 0x0000 - 0x0FFF
     let region1 = BlockMemory::ram(0x1000);
 
@@ -295,7 +295,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       .map(0xD000, Box::new(region6))
       .map(0xE000, Box::new(region7));
 
-    let mut system = System::new(Box::new(memory), 1_000_000);
+    let mut system = Mos6502::new(Box::new(memory), 1_000_000);
 
     system.attach_dma(Box::new(VicIIChipDMA::new(vic_ii)));
 

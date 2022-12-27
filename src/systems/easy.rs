@@ -1,4 +1,4 @@
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
@@ -123,7 +123,7 @@ impl Memory for EasyIO {
 pub struct EasySystemFactory;
 
 impl SystemFactory<RomFile, ()> for EasySystemFactory {
-  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
+  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Mos6502 {
     let zero_page = BlockMemory::ram(0x0100);
     let io = EasyIO::new(platform.clone());
     let stack_ram = BlockMemory::ram(0x0100);
@@ -139,6 +139,6 @@ impl SystemFactory<RomFile, ()> for EasySystemFactory {
       .map(0x0600, Box::new(high_ram))
       .map(0x8000, Box::new(rom));
 
-    System::new(Box::new(memory), 20_000)
+    Mos6502::new(Box::new(memory), 20_000)
   }
 }

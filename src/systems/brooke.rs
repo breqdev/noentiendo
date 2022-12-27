@@ -1,4 +1,4 @@
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::PlatformProvider;
@@ -67,7 +67,7 @@ impl Memory for MappedStdIO {
 pub struct BrookeSystemFactory;
 
 impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
-  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
+  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Mos6502 {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new(platform);
     let rom = BlockMemory::from_file(0x8000, rom);
@@ -77,6 +77,6 @@ impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
       .map(0x4000, Box::new(io))
       .map(0x8000, Box::new(rom));
 
-    System::new(Box::new(memory), 0)
+    Mos6502::new(Box::new(memory), 0)
   }
 }

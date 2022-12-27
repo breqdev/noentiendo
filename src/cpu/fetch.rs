@@ -1,4 +1,4 @@
-use crate::cpu::{MemoryIO, System};
+use crate::cpu::{MemoryIO, Mos6502};
 
 /// Fetch values or addresses from memory, optionally dependent on the current
 /// opcode.
@@ -19,7 +19,7 @@ pub trait Fetch {
   fn fetch_operand_address(&mut self, opcode: u8) -> (u16, u8);
 }
 
-impl Fetch for System {
+impl Fetch for Mos6502 {
   fn fetch(&mut self) -> u8 {
     let result = self.read(self.registers.pc.address());
     self.registers.pc.increment();

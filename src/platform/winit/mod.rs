@@ -1,6 +1,6 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 mod keyboard;
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::platform::{
   Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
 };
@@ -66,7 +66,7 @@ impl Platform for WinitPlatform {
 }
 
 impl SyncPlatform for WinitPlatform {
-  fn run(&mut self, mut system: System) {
+  fn run(&mut self, mut system: Mos6502) {
     let event_loop = EventLoop::new();
 
     let mut current_config = self.get_config();

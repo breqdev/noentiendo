@@ -1,13 +1,13 @@
 use crate::cpu::fetch::Fetch;
 use crate::cpu::registers::{flags, Alu};
-use crate::cpu::{InterruptHandler, MemoryIO, Stack, System};
+use crate::cpu::{InterruptHandler, MemoryIO, Mos6502, Stack};
 
 pub trait Execute {
   /// Execute the given opcode, returning either the number of cycles used or an error.
   fn execute(&mut self, opcode: u8) -> Result<u8, ()>;
 }
 
-impl Execute for System {
+impl Execute for Mos6502 {
   fn execute(&mut self, opcode: u8) -> Result<u8, ()> {
     match opcode {
       // === LOAD ===

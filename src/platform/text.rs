@@ -1,4 +1,4 @@
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::keyboard::{KeyPosition, KeyState};
 use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use rand;
@@ -30,7 +30,7 @@ impl Platform for TextPlatform {
 }
 
 impl SyncPlatform for TextPlatform {
-  fn run(&mut self, mut system: System) {
+  fn run(&mut self, mut system: Mos6502) {
     system.reset();
 
     // system.registers.pc.load(0x0400); // Klaus tests

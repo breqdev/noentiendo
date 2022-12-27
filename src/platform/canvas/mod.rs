@@ -1,4 +1,4 @@
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::platform::KeyState;
 use crate::platform::{
   AsyncPlatform, Color, JoystickState, Platform, PlatformProvider, WindowConfig,
@@ -79,7 +79,7 @@ impl Platform for CanvasPlatform {
 
 #[async_trait(?Send)]
 impl AsyncPlatform for CanvasPlatform {
-  async fn run_async(&mut self, mut system: System) {
+  async fn run_async(&mut self, mut system: Mos6502) {
     let config = self.get_config();
 
     let width = (config.width as f64 * config.scale) as usize;

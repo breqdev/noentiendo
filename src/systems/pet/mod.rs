@@ -1,4 +1,4 @@
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
@@ -146,7 +146,7 @@ impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
     roms: PetSystemRoms,
     config: PetSystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> System {
+  ) -> Mos6502 {
     let ram = BlockMemory::ram(0x8000);
     let vram = PetVram::new(roms.character, platform.clone());
 
@@ -178,6 +178,6 @@ impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
       .map(0xE840, Box::new(via))
       .map(0xF000, Box::new(kernel_rom));
 
-    System::new(Box::new(memory), 1_000_000)
+    Mos6502::new(Box::new(memory), 1_000_000)
   }
 }

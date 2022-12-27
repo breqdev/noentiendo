@@ -1,4 +1,4 @@
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
@@ -9,11 +9,11 @@ use std::sync::Arc;
 pub struct KlausSystemFactory;
 
 impl SystemFactory<RomFile, ()> for KlausSystemFactory {
-  fn create(rom: RomFile, _config: (), _platform: Arc<dyn PlatformProvider>) -> System {
+  fn create(rom: RomFile, _config: (), _platform: Arc<dyn PlatformProvider>) -> Mos6502 {
     let rom = BlockMemory::from_file(0x10000, rom);
 
     let memory = BranchMemory::new().map(0x0000, Box::new(rom));
 
-    System::new(Box::new(memory), 0)
+    Mos6502::new(Box::new(memory), 0)
   }
 }

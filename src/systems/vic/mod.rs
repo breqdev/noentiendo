@@ -1,4 +1,4 @@
-use crate::cpu::System;
+use crate::cpu::Mos6502;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -244,7 +244,7 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
     roms: Vic20SystemRoms,
     config: Vic20SystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> System {
+  ) -> Mos6502 {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
@@ -288,7 +288,7 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 
-    let mut system = System::new(Box::new(memory), 1_000_000);
+    let mut system = Mos6502::new(Box::new(memory), 1_000_000);
 
     system.attach_dma(Box::new(VicChipDMA::new(vic_chip)));
 
