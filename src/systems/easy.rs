@@ -3,8 +3,10 @@ use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::systems::SystemFactory;
+use crate::systems::System;
 use std::sync::Arc;
+
+use super::SystemBuilder;
 
 /// VRAM based around the Easy6502 display system from
 /// <https://skilldrick.github.io/easy6502/>.
@@ -118,12 +120,11 @@ impl Memory for EasyIO {
   }
 }
 
-/// A port of the "Easy6502" system from
-/// <https://skilldrick.github.io/easy6502/>
-pub struct EasySystemFactory;
+/// A factory for the Easy6502 system.
+pub struct Easy6502SystemBuilder;
 
-impl SystemFactory<RomFile, ()> for EasySystemFactory {
-  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Mos6502 {
+impl SystemBuilder<Easy6502System, RomFile, ()> for Easy6502SystemBuilder {
+  fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     let zero_page = BlockMemory::ram(0x0100);
     let io = EasyIO::new(platform.clone());
     let stack_ram = BlockMemory::ram(0x0100);
@@ -139,6 +140,26 @@ impl SystemFactory<RomFile, ()> for EasySystemFactory {
       .map(0x0600, Box::new(high_ram))
       .map(0x8000, Box::new(rom));
 
-    Mos6502::new(Box::new(memory), 20_000)
+    Mos6502::new(Box::new(memory));
+
+    Box::new(Easy6502System {})
+  }
+}
+
+/// A port of the "Easy6502" system from
+/// <https://skilldrick.github.io/easy6502/>
+pub struct Easy6502System;
+
+impl System for Easy6502System {
+  fn tick(&mut self) -> instant::Duration {
+    todo!()
+  }
+
+  fn reset(&mut self) {
+    todo!()
+  }
+
+  fn render(&mut self, framebuffer: &mut [u8]) {
+    todo!()
   }
 }

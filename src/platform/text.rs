@@ -1,6 +1,6 @@
-use crate::cpu::Mos6502;
 use crate::keyboard::{KeyPosition, KeyState};
 use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
+use crate::systems::System;
 use rand;
 use std::io::Write;
 use std::sync::Arc;
@@ -30,24 +30,17 @@ impl Platform for TextPlatform {
 }
 
 impl SyncPlatform for TextPlatform {
-  fn run(&mut self, mut system: Mos6502) {
+  fn run(&mut self, mut system: Box<dyn System>) {
     system.reset();
 
     // system.registers.pc.load(0x0400); // Klaus tests
 
     let mut last_tick = Instant::now();
-    let mut last_report = last_tick;
 
     loop {
-      let mut duration = Duration::ZERO;
-      if system.get_info().cycles_per_second > 0 {
-        while duration < Duration::from_millis(16) {
-          duration += Duration::from_secs_f64(system.tick());
-        }
-      } else {
-        for _ in 0..1000 {
-          system.tick();
-        }
+      let duration = Duration::ZERO;
+      for _ in 0..1000 {
+        system.tick();
       }
       let now = Instant::now();
       let elapsed = now - last_tick;
@@ -55,12 +48,6 @@ impl SyncPlatform for TextPlatform {
         thread::sleep(duration - elapsed);
       }
       last_tick = now;
-
-      if self.report && (now - last_report > std::time::Duration::from_secs_f64(0.1)) {
-        let pc = system.registers.pc.address();
-        println!("Program Counter: {:02x}", pc);
-        last_report = now;
-      }
     }
   }
 }

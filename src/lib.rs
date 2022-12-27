@@ -28,7 +28,7 @@ pub mod platform;
 /// ROM file loading and unloading is different on different platforms: desktop platforms typically load ROMs from a file, while WebAssembly platforms need to load ROMs from a `Uint8Array`. ROM file definition and loading is handled in the [`roms`] module, with specific [`roms::DiskLoadable`] and `roms::JsValueLoadable` traits for these two cases. Loaded ROMs are represented with a [`roms::RomFile`] object, which can be passed to [`memory::BlockMemory::from_file`].
 pub mod roms;
 
-/// Systems are created by a [`systems::SystemFactory`]. A system is created with some roms, configuration, and platform. For instance, the `create` implementation on [`systems::PetSystemFactory`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
+/// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `create` implementation on [`systems::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
 pub mod systems;
 
 #[cfg(target_arch = "wasm32")]
@@ -46,8 +46,9 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   use keyboard::KeyMappingStrategy;
   use platform::{AsyncPlatform, CanvasPlatform, Platform};
   use systems::{
-    pet::PetSystemConfig, vic::Vic20SystemConfig, PetSystemFactory, PetSystemRoms, SystemFactory,
-    Vic20SystemFactory, Vic20SystemRoms,
+    pet::PetSystem, pet::PetSystemBuilder, pet::PetSystemConfig, pet::PetSystemRoms,
+    vic::Vic20System, vic::Vic20SystemBuilder, vic::Vic20SystemConfig, vic::Vic20SystemRoms,
+    System, SystemBuilder,
   };
   use wasm_bindgen_futures::spawn_local;
 
@@ -60,14 +61,14 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   let vic_roms = Vic20SystemRoms::from_jsvalue(&vic_object);
 
   let system = match system.as_string().unwrap().as_str() {
-    "pet" => PetSystemFactory::create(
+    "pet" => PetSystemBuilder::build(
       pet_roms,
       PetSystemConfig {
         mapping: KeyMappingStrategy::Symbolic,
       },
       platform.provider(),
     ),
-    "vic" => Vic20SystemFactory::create(
+    "vic" => Vic20SystemBuilder::build(
       vic_roms,
       Vic20SystemConfig {
         mapping: KeyMappingStrategy::Symbolic,

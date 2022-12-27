@@ -3,9 +3,11 @@ use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
-use crate::systems::SystemFactory;
+use crate::systems::System;
 use std::io::Write;
 use std::sync::Arc;
+
+use super::SystemBuilder;
 
 /// A Memory implementation that can be used to read from or write to
 /// STDIN/STDOUT.
@@ -63,11 +65,11 @@ impl Memory for MappedStdIO {
   }
 }
 
-/// A system which only operates in text mode, for basic testing.
-pub struct BrookeSystemFactory;
+/// A factory for creating a BrookeSystem.
+pub struct BrookeSystemBuilder;
 
-impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
-  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Mos6502 {
+impl SystemBuilder<BrookeSystem, RomFile, ()> for BrookeSystemBuilder {
+  fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new(platform);
     let rom = BlockMemory::from_file(0x8000, rom);
@@ -77,6 +79,25 @@ impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
       .map(0x4000, Box::new(io))
       .map(0x8000, Box::new(rom));
 
-    Mos6502::new(Box::new(memory), 0)
+    Mos6502::new(Box::new(memory));
+
+    Box::new(BrookeSystem {})
+  }
+}
+
+/// A system which only operates in text mode, for basic testing.
+pub struct BrookeSystem;
+
+impl System for BrookeSystem {
+  fn tick(&mut self) -> instant::Duration {
+    todo!()
+  }
+
+  fn reset(&mut self) {
+    todo!()
+  }
+
+  fn render(&mut self, framebuffer: &mut [u8]) {
+    todo!()
   }
 }

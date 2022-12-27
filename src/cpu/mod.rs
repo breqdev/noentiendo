@@ -10,9 +10,8 @@ use registers::{flags, Registers};
 pub struct Mos6502 {
   pub registers: Registers,
   memory: Box<dyn Memory>,
-  cycles_per_second: u64,
-  cycle_count: u64,
   dma: Vec<Box<dyn DMA>>,
+  cycle_count: u64,
 }
 
 /// Read and write from the system's memory.
@@ -121,13 +120,12 @@ impl InterruptHandler for Mos6502 {
 }
 
 impl Mos6502 {
-  pub fn new(memory: Box<dyn Memory>, cycles_per_second: u64) -> Mos6502 {
+  pub fn new(memory: Box<dyn Memory>) -> Mos6502 {
     Mos6502 {
       registers: Registers::new(),
       memory,
-      cycles_per_second,
-      cycle_count: 0,
       dma: Vec::new(),
+      cycle_count: 0,
     }
   }
 
@@ -146,13 +144,12 @@ impl Mos6502 {
   /// Return a SystemInfo struct containing the current system status.
   pub fn get_info(&self) -> SystemInfo {
     SystemInfo {
-      cycles_per_second: self.cycles_per_second,
       cycle_count: self.cycle_count,
     }
   }
 
   /// Execute a single instruction.
-  pub fn tick(&mut self) -> f64 {
+  pub fn tick(&mut self) -> u8 {
     let opcode = self.fetch();
     let elapsed;
 
@@ -170,11 +167,7 @@ impl Mos6502 {
           }
         }
 
-        if self.cycles_per_second == 0 {
-          elapsed = 0.0
-        } else {
-          elapsed = cycles as f64 / self.cycles_per_second as f64
-        }
+        elapsed = cycles;
       }
       Err(_) => {
         panic!(

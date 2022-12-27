@@ -29,7 +29,6 @@ pub enum ActiveInterrupt {
 /// determine if an interrupt should be triggered.
 #[derive(Debug, Default)]
 pub struct SystemInfo {
-  pub cycles_per_second: u64,
   pub cycle_count: u64,
 }
 

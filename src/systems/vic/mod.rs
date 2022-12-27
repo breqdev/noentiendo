@@ -7,7 +7,7 @@ use crate::memory::mos652x::Via;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
 use crate::roms::RomFile;
-use crate::systems::SystemFactory;
+use crate::systems::System;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -28,6 +28,8 @@ use wasm_bindgen::JsCast;
 
 #[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
+
+use super::SystemBuilder;
 
 /// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
@@ -236,15 +238,15 @@ pub struct Vic20SystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// The VIC-20 system by Commodore.
-pub struct Vic20SystemFactory;
+/// A factory for creating a VIC-20 system.
+pub struct Vic20SystemBuilder;
 
-impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
-  fn create(
+impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemBuilder {
+  fn build(
     roms: Vic20SystemRoms,
     config: Vic20SystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> Mos6502 {
+  ) -> Box<dyn System> {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
@@ -288,10 +290,27 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 
-    let mut system = Mos6502::new(Box::new(memory), 1_000_000);
+    let mut system = Mos6502::new(Box::new(memory));
 
     system.attach_dma(Box::new(VicChipDMA::new(vic_chip)));
 
-    system
+    Box::new(Vic20System {})
+  }
+}
+
+/// The VIC-20 system by Commodore.
+pub struct Vic20System;
+
+impl System for Vic20System {
+  fn tick(&mut self) -> instant::Duration {
+    todo!()
+  }
+
+  fn reset(&mut self) {
+    todo!()
+  }
+
+  fn render(&mut self, framebuffer: &mut [u8]) {
+    todo!()
   }
 }

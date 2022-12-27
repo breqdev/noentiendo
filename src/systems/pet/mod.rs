@@ -3,7 +3,7 @@ use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
 use crate::platform::PlatformProvider;
-use crate::systems::SystemFactory;
+use crate::systems::System;
 use instant::Instant;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -15,6 +15,8 @@ mod roms;
 pub use roms::PetSystemRoms;
 mod keyboard;
 use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
+
+use super::SystemBuilder;
 
 /// Port A on the first PIA.
 /// This is used for generating the 60Hz interrupt (which is fired when the
@@ -54,7 +56,8 @@ impl Port for PetPia1PortA {
   }
 
   fn poll(&mut self, info: &SystemInfo) -> bool {
-    let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
+    // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
+    let min_elapsed = 0; // TODO: fix
 
     match self.last_draw_instant {
       Some(last_draw) => {
@@ -138,15 +141,15 @@ pub struct PetSystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// The Commodore PET system.
-pub struct PetSystemFactory;
+/// A factory for the Commodore PET.
+pub struct PetSystemBuilder;
 
-impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
-  fn create(
+impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuilder {
+  fn build(
     roms: PetSystemRoms,
     config: PetSystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> Mos6502 {
+  ) -> Box<dyn System> {
     let ram = BlockMemory::ram(0x8000);
     let vram = PetVram::new(roms.character, platform.clone());
 
@@ -178,6 +181,25 @@ impl SystemFactory<PetSystemRoms, PetSystemConfig> for PetSystemFactory {
       .map(0xE840, Box::new(via))
       .map(0xF000, Box::new(kernel_rom));
 
-    Mos6502::new(Box::new(memory), 1_000_000)
+    Mos6502::new(Box::new(memory));
+
+    Box::new(PetSystem {})
+  }
+}
+
+/// The Commodore PET system.
+pub struct PetSystem;
+
+impl System for PetSystem {
+  fn tick(&mut self) -> Duration {
+    todo!()
+  }
+
+  fn reset(&mut self) {
+    todo!()
+  }
+
+  fn render(&mut self, framebuffer: &mut [u8]) {
+    todo!()
   }
 }

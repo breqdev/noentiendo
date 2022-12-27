@@ -15,7 +15,7 @@ use crate::{
     SystemInfo,
   },
   platform::PlatformProvider,
-  systems::SystemFactory,
+  systems::System,
 };
 
 mod keyboard;
@@ -28,6 +28,8 @@ use self::{
   keyboard::KEYBOARD_MAPPING,
   vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO},
 };
+
+use super::SystemBuilder;
 
 /// Port A on the first CIA chip on the C64 deals with setting the keyboard row being scanned.
 struct C64Cia1PortA {
@@ -199,15 +201,15 @@ pub struct C64SystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// The Commodore 64 system.
-pub struct C64SystemFactory;
+/// A factory for creating a Commodore 64 system.
+pub struct C64SystemBuilder;
 
-impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
-  fn create(
+impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuilder {
+  fn build(
     roms: C64SystemRoms,
     config: C64SystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> Mos6502 {
+  ) -> Box<dyn System> {
     // Region 1: 0x0000 - 0x0FFF
     let region1 = BlockMemory::ram(0x1000);
 
@@ -295,10 +297,27 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       .map(0xD000, Box::new(region6))
       .map(0xE000, Box::new(region7));
 
-    let mut system = Mos6502::new(Box::new(memory), 1_000_000);
+    let mut system = Mos6502::new(Box::new(memory));
 
     system.attach_dma(Box::new(VicIIChipDMA::new(vic_ii)));
 
-    system
+    Box::new(C64System {})
+  }
+}
+
+/// The Commodore 64 system.
+pub struct C64System;
+
+impl System for C64System {
+  fn tick(&mut self) -> instant::Duration {
+    todo!()
+  }
+
+  fn reset(&mut self) {
+    todo!()
+  }
+
+  fn render(&mut self, framebuffer: &mut [u8]) {
+    todo!()
   }
 }

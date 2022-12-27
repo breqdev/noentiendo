@@ -1,5 +1,5 @@
-use crate::cpu::Mos6502;
 use crate::keyboard::{KeyPosition, KeyState};
+use crate::systems::System;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -28,13 +28,13 @@ pub trait Platform {
 
 /// A platform which can be run synchronously.
 pub trait SyncPlatform: Platform {
-  fn run(&mut self, system: Mos6502);
+  fn run(&mut self, system: Box<dyn System>);
 }
 
 /// A platform which can be run asynchronously.
 #[async_trait(?Send)]
 pub trait AsyncPlatform: Platform {
-  async fn run_async(&mut self, system: Mos6502);
+  async fn run_async(&mut self, system: Box<dyn System>);
 }
 
 /// Represents an RGB color with 8 bits per channel.

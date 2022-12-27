@@ -3,6 +3,7 @@ use crate::platform::KeyState;
 use crate::platform::{
   AsyncPlatform, Color, JoystickState, Platform, PlatformProvider, WindowConfig,
 };
+use crate::systems::System;
 use async_trait::async_trait;
 use js_sys::Math;
 mod handles;
@@ -79,7 +80,7 @@ impl Platform for CanvasPlatform {
 
 #[async_trait(?Send)]
 impl AsyncPlatform for CanvasPlatform {
-  async fn run_async(&mut self, mut system: Mos6502) {
+  async fn run_async(&mut self, mut system: Box<dyn System>) {
     let config = self.get_config();
 
     let width = (config.width as f64 * config.scale) as usize;
@@ -165,7 +166,7 @@ impl AsyncPlatform for CanvasPlatform {
       let mut duration = Duration::ZERO;
 
       while duration < Duration::from_millis(20) {
-        duration += Duration::from_secs_f64(system.tick());
+        duration += system.tick();
       }
 
       let gamepads = web_sys::window().unwrap().navigator().get_gamepads();

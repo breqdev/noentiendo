@@ -1,9 +1,9 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 mod keyboard;
-use crate::cpu::Mos6502;
 use crate::platform::{
   Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
 };
+use crate::systems::System;
 use gilrs::{Button, EventType, Gilrs};
 use instant::Instant;
 use keyboard::WinitAdapter;
@@ -66,7 +66,7 @@ impl Platform for WinitPlatform {
 }
 
 impl SyncPlatform for WinitPlatform {
-  fn run(&mut self, mut system: Mos6502) {
+  fn run(&mut self, mut system: Box<dyn System>) {
     let event_loop = EventLoop::new();
 
     let mut current_config = self.get_config();
@@ -126,24 +126,7 @@ impl SyncPlatform for WinitPlatform {
         Event::MainEventsCleared => {
           let now = Instant::now();
 
-          outstanding_ticks += (now - last_tick).as_secs_f64();
-          let mut frame_ticks = 0.0;
-
-          while outstanding_ticks > 0.0 && frame_ticks < Duration::from_millis(30).as_secs_f64() {
-            let ticks = system.tick();
-            outstanding_ticks -= ticks;
-            frame_ticks += ticks;
-          }
-
-          last_tick = now;
-
-          if now - last_report > Duration::from_secs(1) {
-            println!(
-              "cycles per second: {}",
-              system.get_info().cycle_count as f64 / (now - start).as_secs_f64()
-            );
-            last_report = now;
-          }
+          system.tick();
 
           {
             let mut joystick_state = joystick_state.lock().unwrap();
