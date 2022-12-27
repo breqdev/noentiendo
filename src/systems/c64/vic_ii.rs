@@ -8,6 +8,13 @@ const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
 const CHAR_WIDTH: u32 = 8;
 const CHAR_HEIGHT: u32 = 8;
+const SPRITE_WIDTH: u32 = 24;
+const SPRITE_HEIGHT: u32 = 21;
+const BORDER_WIDTH: u32 = 24;
+const BORDER_HEIGHT: u32 = 29;
+const FULL_WIDTH: u32 = WIDTH * CHAR_WIDTH + BORDER_WIDTH * 2;
+const FULL_HEIGHT: u32 = HEIGHT * CHAR_HEIGHT + BORDER_HEIGHT * 2;
+const SPRITE_MEMORY_SIZE: u16 = (SPRITE_WIDTH * SPRITE_HEIGHT / 8) as u16;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 struct Sprite {
@@ -79,11 +86,7 @@ pub struct VicIIChip {
 
 impl VicIIChip {
   pub fn new(platform: Arc<dyn PlatformProvider>, character_rom: Box<dyn Memory>) -> Self {
-    platform.request_window(WindowConfig::new(
-      WIDTH * CHAR_WIDTH,
-      HEIGHT * CHAR_HEIGHT,
-      2.0,
-    ));
+    platform.request_window(WindowConfig::new(FULL_WIDTH, FULL_HEIGHT, 2.0));
 
     Self {
       platform,
@@ -187,6 +190,40 @@ impl VicIIChip {
     VicIIChip::get_color(self.read_color(address, memory))
   }
 
+  /// Draw the given sprite.
+  /// Sources: <https://retro64.altervista.org/blog/programming-sprites-the-commodore-64-simple-tutorial-using-basic-v2/> and <https://dustlayer.com/vic-ii/2013/4/28/vic-ii-for-beginners-part-5-bringing-sprites-in-shape>
+  fn draw_sprite(&mut self, index: usize, memory: &mut Box<dyn Memory>) {
+    let sprite = &self.sprites[index];
+
+    if !sprite.enabled {
+      return;
+    }
+
+    let data_pointer = 0x07F8 + index as u16;
+    let data_address = memory.read(data_pointer) as u16 * 64;
+
+    for byte_index in 0..SPRITE_MEMORY_SIZE {
+      let data_byte = memory.read(data_address + byte_index);
+
+      for bit_index in 0..8 {
+        let color = if data_byte & (1 << (7 - bit_index)) != 0 {
+          sprite.color
+        } else {
+          self.background_color[0]
+        };
+
+        let position = (byte_index * 8 + bit_index) as u32;
+        let y = position / SPRITE_WIDTH;
+        let x = position % SPRITE_WIDTH;
+
+        let x = x + sprite.x as u32;
+        let y = y + sprite.y as u32;
+
+        self.platform.set_pixel(x, y, VicIIChip::get_color(color));
+      }
+    }
+  }
+
   /// Redraw the character at the specified address.
   fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>) {
     if address >= (WIDTH * HEIGHT) as u16 {
@@ -208,10 +245,31 @@ impl VicIIChip {
           VicIIChip::get_color(self.background_color[0])
         };
 
+        self.platform.set_pixel(
+          BORDER_WIDTH + column * CHAR_WIDTH + pixel,
+          BORDER_HEIGHT + row * CHAR_HEIGHT + line,
+          color,
+        );
+      }
+    }
+  }
+
+  fn draw_screen(&mut self, memory: &mut Box<dyn Memory>) {
+    // draw the border
+    for x in 0..FULL_WIDTH {
+      for y in 0..FULL_HEIGHT {
         self
           .platform
-          .set_pixel(column * CHAR_WIDTH + pixel, row * CHAR_HEIGHT + line, color);
+          .set_pixel(x, y, VicIIChip::get_color(self.border_color));
       }
+    }
+
+    for i in 0..((WIDTH * HEIGHT) as u16) {
+      self.redraw(i, memory);
+    }
+
+    for i in 0..8 {
+      self.draw_sprite(i, memory);
     }
   }
 }
@@ -409,8 +467,6 @@ impl DMA for VicIIChipDMA {
 
     chip.last_draw_clock = info.cycle_count;
 
-    for i in 0..((WIDTH * HEIGHT) as u16) {
-      chip.redraw(i, memory);
-    }
+    chip.draw_screen(memory);
   }
 }
