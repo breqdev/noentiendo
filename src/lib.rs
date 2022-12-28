@@ -29,7 +29,7 @@ pub mod platform;
 /// ROM file loading and unloading is different on different platforms: desktop platforms typically load ROMs from a file, while WebAssembly platforms need to load ROMs from a `Uint8Array`. ROM file definition and loading is handled in the [`roms`] module, with specific [`roms::DiskLoadable`] and `roms::JsValueLoadable` traits for these two cases. Loaded ROMs are represented with a [`roms::RomFile`] object, which can be passed to [`memory::BlockMemory::from_file`].
 pub mod roms;
 
-/// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `create` implementation on [`systems::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
+/// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `build` implementation on [`systems::pet::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
 pub mod systems;
 
 mod time;
@@ -49,9 +49,8 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   use keyboard::KeyMappingStrategy;
   use platform::{AsyncPlatform, CanvasPlatform, Platform};
   use systems::{
-    pet::PetSystem, pet::PetSystemBuilder, pet::PetSystemConfig, pet::PetSystemRoms,
-    vic::Vic20System, vic::Vic20SystemBuilder, vic::Vic20SystemConfig, vic::Vic20SystemRoms,
-    System, SystemBuilder,
+    pet::PetSystemBuilder, pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder,
+    vic::Vic20SystemConfig, vic::Vic20SystemRoms, SystemBuilder,
   };
   use wasm_bindgen_futures::spawn_local;
 
