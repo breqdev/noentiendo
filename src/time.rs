@@ -2,6 +2,8 @@ use std::thread;
 
 use instant::{Duration, Instant};
 
+const TIMEOUT_CHECK_INTERVAL: u32 = 8;
+
 pub fn tick_until_target(
   tick: &mut dyn FnMut() -> Duration,
   target: Duration,
@@ -9,9 +11,18 @@ pub fn tick_until_target(
 ) -> Duration {
   let realtime_now = Instant::now();
   let mut elapsed = Duration::ZERO;
+
+  let mut ticks = 0;
   while elapsed < target {
     elapsed += tick();
-    if realtime_now.elapsed() > timeout {
+    ticks += 1;
+
+    if ticks % TIMEOUT_CHECK_INTERVAL == 0 && realtime_now.elapsed() > timeout {
+      println!(
+        "WARNING: Emulating {}ms of simulation time took longer than {}ms",
+        elapsed.as_millis(),
+        timeout.as_millis()
+      );
       break;
     }
   }
