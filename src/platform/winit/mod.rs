@@ -4,6 +4,7 @@ use crate::platform::{JoystickState, Platform, PlatformProvider, SyncPlatform, W
 use crate::systems::System;
 use crate::time::VariableTimeStep;
 use gilrs::{Button, EventType, Gilrs};
+use instant::Duration;
 use keyboard::WinitAdapter;
 use pixels::{Pixels, SurfaceTexture};
 use rand;
@@ -82,7 +83,7 @@ impl SyncPlatform for WinitPlatform {
 
     system.reset();
 
-    let mut timer = VariableTimeStep::new();
+    let mut timer = VariableTimeStep::new(Duration::from_secs_f64(1.0 / 60.0));
 
     let mut gilrs = Gilrs::new().unwrap();
     let joystick_state = self.joystick_state.clone();

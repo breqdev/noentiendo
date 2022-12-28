@@ -2,6 +2,7 @@ use crate::keyboard::{KeyPosition, KeyState};
 use crate::platform::{Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
 use crate::time::FixedTimeStep;
+use instant::Duration;
 use rand;
 use std::io::Write;
 use std::sync::Arc;
@@ -28,7 +29,7 @@ impl Platform for TextPlatform {
 
 impl SyncPlatform for TextPlatform {
   fn run(&mut self, mut system: Box<dyn System>) {
-    let mut timer = FixedTimeStep::new(60.0);
+    let mut timer = FixedTimeStep::new(60.0, Duration::from_secs_f64(1.0 / 60.0));
 
     loop {
       timer.do_update(&mut || system.tick());
