@@ -211,6 +211,12 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
     config: C64SystemConfig,
     platform: Arc<dyn PlatformProvider>,
   ) -> Box<dyn System> {
+    platform.request_window(WindowConfig::new(
+      vic_ii::FULL_WIDTH,
+      vic_ii::FULL_HEIGHT,
+      2.0,
+    ));
+
     // Region 1: 0x0000 - 0x0FFF
     let region1 = BlockMemory::ram(0x1000);
 
@@ -244,10 +250,7 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
     let selector6 = Rc::new(Cell::new(0));
 
     let character_rom = BlockMemory::from_file(0x1000, roms.character.clone());
-    let vic_ii = Rc::new(RefCell::new(VicIIChip::new(
-      platform.clone(),
-      Box::new(character_rom),
-    )));
+    let vic_ii = Rc::new(RefCell::new(VicIIChip::new(Box::new(character_rom))));
     let vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: bank switching!
 
     let port_a = C64Cia1PortA::new();
@@ -298,7 +301,7 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
       .map(0xD000, Box::new(region6))
       .map(0xE000, Box::new(region7));
 
-    let mut cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(Box::new(memory));
 
     Box::new(C64System { cpu, vic: vic_ii })
   }

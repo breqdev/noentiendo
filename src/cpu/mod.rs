@@ -151,9 +151,7 @@ impl Mos6502 {
   /// Execute a single instruction.
   pub fn tick(&mut self) -> u8 {
     let opcode = self.fetch();
-    let elapsed;
-
-    match self.execute(opcode) {
+    let elapsed = match self.execute(opcode) {
       Ok(cycles) => {
         self.cycle_count += cycles as u64;
 
@@ -167,7 +165,7 @@ impl Mos6502 {
           }
         }
 
-        elapsed = cycles;
+        cycles
       }
       Err(_) => {
         panic!(
@@ -176,7 +174,7 @@ impl Mos6502 {
           self.registers.pc.address()
         );
       }
-    }
+    };
 
     let info = self.get_info();
 

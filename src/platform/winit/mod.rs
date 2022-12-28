@@ -1,8 +1,6 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
 mod keyboard;
-use crate::platform::{
-  Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
-};
+use crate::platform::{JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
 use crate::time::VariableTimeStep;
 use gilrs::{Button, EventType, Gilrs};
@@ -207,10 +205,6 @@ impl WinitPlatformProvider {
       key_state,
       joystick_state,
     }
-  }
-  fn get_config(&self) -> WindowConfig {
-    let config = self.config.lock().unwrap();
-    config.expect("WindowConfig not set")
   }
 }
 

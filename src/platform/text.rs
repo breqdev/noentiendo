@@ -1,5 +1,5 @@
 use crate::keyboard::{KeyPosition, KeyState};
-use crate::platform::{Color, Platform, PlatformProvider, SyncPlatform, WindowConfig};
+use crate::platform::{Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
 use crate::time::FixedTimeStep;
 use rand;
@@ -12,13 +12,11 @@ use super::JoystickState;
 /// without any visible graphical output. This reads from and writes to the
 /// terminal.
 /// This platform runs synchronously.
-pub struct TextPlatform {
-  report: bool, // TODO: log program counter + cycle count
-}
+pub struct TextPlatform;
 
 impl TextPlatform {
-  pub fn new(report: bool) -> Self {
-    Self { report }
+  pub fn new() -> Self {
+    Self {}
   }
 }
 

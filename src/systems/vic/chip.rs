@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -110,9 +110,6 @@ pub struct VicChip {
   border_color: u8,
   reverse_field: bool,
   background_color: u8,
-
-  // Misc
-  last_draw_clock: u64,
 }
 
 impl VicChip {
@@ -147,7 +144,6 @@ impl VicChip {
       border_color: 3,
       reverse_field: true,
       background_color: 1,
-      last_draw_clock: 0,
     }
   }
 
