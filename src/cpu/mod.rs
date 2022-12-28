@@ -1,7 +1,7 @@
 mod execute;
 mod fetch;
 mod registers;
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use execute::Execute;
 use fetch::Fetch;
 use registers::{flags, Registers};
@@ -10,7 +10,6 @@ use registers::{flags, Registers};
 pub struct Mos6502 {
   pub registers: Registers,
   pub memory: Box<dyn Memory>,
-  dma: Vec<Box<dyn DMA>>,
   cycle_count: u64,
 }
 
@@ -124,14 +123,8 @@ impl Mos6502 {
     Mos6502 {
       registers: Registers::new(),
       memory,
-      dma: Vec::new(),
       cycle_count: 0,
     }
-  }
-
-  /// Attach a device which can perform DMA access.
-  pub fn attach_dma(&mut self, dma: Box<dyn DMA>) {
-    self.dma.push(dma);
   }
 
   pub fn reset(&mut self) {
@@ -151,7 +144,7 @@ impl Mos6502 {
   /// Execute a single instruction.
   pub fn tick(&mut self) -> u8 {
     let opcode = self.fetch();
-    let elapsed = match self.execute(opcode) {
+    match self.execute(opcode) {
       Ok(cycles) => {
         self.cycle_count += cycles as u64;
 
@@ -174,14 +167,6 @@ impl Mos6502 {
           self.registers.pc.address()
         );
       }
-    };
-
-    let info = self.get_info();
-
-    for dma in &mut self.dma {
-      dma.dma(&mut self.memory, &info);
     }
-
-    elapsed
   }
 }

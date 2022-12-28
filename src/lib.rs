@@ -6,7 +6,6 @@ pub mod cpu;
 
 /// A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts. The [`memory`] module provides implementations for various types of memory and other memory-mapped devices. Mappings are handled using [`memory::BranchMemory`].
 ///
-/// Off-cycle memory access schemes such as the one used in the VIC-20 are handled using the [`memory::DMA`] trait. Systems may have objects which implement this trait attached, and these objects will have a chance to access memory in between clock cycles.
 pub mod memory;
 
 /// Various representations of keyboard scancodes are required in different parts of the codebase. Each platform typically has its own definition of a scancode (e.g. JavaScript's `event.code` or Winit's `VirtualKeyCode`), and each emulated system has a different set of keys (e.g. the `Commodore` key on the VIC-20 or the standalone `"` key on the PET).
