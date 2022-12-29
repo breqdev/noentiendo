@@ -150,12 +150,10 @@ impl Mos6502 {
 
         let info = self.get_info();
 
-        for _ in 0..cycles {
-          match self.memory.poll(1, &info) {
-            ActiveInterrupt::None => (),
-            ActiveInterrupt::NMI => self.interrupt(false, false),
-            ActiveInterrupt::IRQ => self.interrupt(true, false),
-          }
+        match self.memory.poll(cycles as u32, &info) {
+          ActiveInterrupt::None => (),
+          ActiveInterrupt::NMI => self.interrupt(false, false),
+          ActiveInterrupt::IRQ => self.interrupt(true, false),
         }
 
         cycles
