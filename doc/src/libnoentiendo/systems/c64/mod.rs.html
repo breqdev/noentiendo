@@ -390,7 +390,7 @@
     <span class="self">self</span>.keyboard_row.set(value);
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
     <span class="bool-val">false
   </span>}
 
@@ -448,7 +448,7 @@
     <span class="macro">panic!</span>(<span class="string">&quot;Tried to write to keyboard row&quot;</span>);
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
     <span class="bool-val">false
   </span>}
 
@@ -517,7 +517,7 @@
     </span><span class="self">self</span>.selectors[<span class="number">5</span>].set(<span class="kw">if </span>!<span class="self">self</span>.hiram { <span class="number">1 </span>} <span class="kw">else </span>{ <span class="number">0 </span>});
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
     <span class="bool-val">false
   </span>}
 

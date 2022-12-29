@@ -550,7 +550,7 @@
       <span class="number">0x04 </span>=&gt; <span class="self">self</span>.t1.latch = (<span class="self">self</span>.t1.latch &amp; <span class="number">0xff00</span>) | (value <span class="kw">as </span>u16),
       <span class="number">0x05 </span>=&gt; {
         <span class="self">self</span>.t1.latch = (<span class="self">self</span>.t1.latch &amp; <span class="number">0x00ff</span>) | ((value <span class="kw">as </span>u16) &lt;&lt; <span class="number">8</span>);
-        <span class="self">self</span>.t1.counter = <span class="self">self</span>.t1.latch;
+        <span class="self">self</span>.t1.counter = <span class="self">self</span>.t1.latch <span class="kw">as </span>i32;
         <span class="self">self</span>.t1.running = <span class="bool-val">true</span>;
         <span class="self">self</span>.t1.interrupt = <span class="bool-val">false</span>;
       }
@@ -562,7 +562,7 @@
       <span class="number">0x08 </span>=&gt; <span class="self">self</span>.t2.latch = (<span class="self">self</span>.t2.latch &amp; <span class="number">0xff00</span>) | (value <span class="kw">as </span>u16),
       <span class="number">0x09 </span>=&gt; {
         <span class="self">self</span>.t2.latch = (<span class="self">self</span>.t2.latch &amp; <span class="number">0x00ff</span>) | ((value <span class="kw">as </span>u16) &lt;&lt; <span class="number">8</span>);
-        <span class="self">self</span>.t2.counter = <span class="self">self</span>.t2.latch;
+        <span class="self">self</span>.t2.counter = <span class="self">self</span>.t2.latch <span class="kw">as </span>i32;
         <span class="self">self</span>.t2.running = <span class="bool-val">true</span>;
         <span class="self">self</span>.t2.interrupt = <span class="bool-val">false</span>;
       }
@@ -604,16 +604,16 @@
     <span class="self">self</span>.b.reset();
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
-    <span class="kw">if </span><span class="self">self</span>.t1.poll(info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(interrupt_bits::T1_ENABLE) {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cycles: u32, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
+    <span class="kw">if </span><span class="self">self</span>.t1.poll(cycles, info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(interrupt_bits::T1_ENABLE) {
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
-    <span class="kw">if </span><span class="self">self</span>.t2.poll(info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(interrupt_bits::T2_ENABLE) {
+    <span class="kw">if </span><span class="self">self</span>.t2.poll(cycles, info) &amp;&amp; <span class="self">self</span>.interrupts.is_enabled(interrupt_bits::T2_ENABLE) {
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
-    <span class="kw">if </span><span class="self">self</span>.a.poll(info) || <span class="self">self</span>.b.poll(info) {
+    <span class="kw">if </span><span class="self">self</span>.a.poll(cycles, info) || <span class="self">self</span>.b.poll(cycles, info) {
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
@@ -665,14 +665,14 @@
     via.write(<span class="number">0x05</span>, <span class="number">0x00</span>);
 
     <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
 
     <span class="comment">// polling again shouldn&#39;t do anything
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x20 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
   }
 
@@ -687,16 +687,16 @@
     </span>via.write(<span class="number">0x08</span>, <span class="number">0x34</span>);
 
     <span class="comment">// polling now shouldn&#39;t do anything
-    </span><span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    </span><span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
 
     <span class="comment">// timer begins when the high byte is written
     </span>via.write(<span class="number">0x09</span>, <span class="number">0x12</span>);
 
     <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x1233 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 
   <span class="attribute">#[test]
@@ -714,16 +714,16 @@
     via.write(<span class="number">0x05</span>, <span class="number">0x00</span>);
 
     <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
 
     <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 
   <span class="attribute">#[test]
@@ -774,10 +774,10 @@
 
     <span class="comment">// timer 1 should interrupt first
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 
   <span class="attribute">#[test]
@@ -800,7 +800,7 @@
 
     <span class="comment">// timer 2 shouldn&#39;t trigger an interrupt
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x08 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
     <span class="comment">// ...but the flag register should be set
@@ -808,9 +808,9 @@
 
     <span class="comment">// timer 1 should then trigger an interrupt
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x07 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
 
     <span class="comment">// ...and set the corresponding flag, plus the master bit
     </span><span class="macro">assert_eq!</span>(
@@ -835,9 +835,9 @@
 
     <span class="comment">// if we let timer 1 run again, it should set the flag again
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, via.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 }
 </code></pre></div>

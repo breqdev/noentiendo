@@ -453,7 +453,7 @@
 
   <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _value: u8) {}
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
     <span class="bool-val">false
   </span>}
 
@@ -491,7 +491,7 @@
     <span class="self">self</span>.keyboard_col.set(value &amp; <span class="number">0x7F</span>);
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
     <span class="bool-val">false
   </span>}
 
@@ -548,7 +548,7 @@
 
   <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _value: u8) {}
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
     <span class="bool-val">false
   </span>}
 

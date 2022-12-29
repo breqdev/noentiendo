@@ -85,7 +85,7 @@
 
   <span class="doccomment">/// Poll the port for interrupts. A port may trigger an interrupt for any
   /// implementation-defined reason.
-  </span><span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool;
+  </span><span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cycles: u32, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool;
 
   <span class="doccomment">/// Reset the port to its initial state, analogous to a system reboot.
   </span><span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
@@ -125,7 +125,7 @@
     }
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
     <span class="bool-val">false
   </span>}
 

@@ -1009,7 +1009,7 @@
     <span class="self">self</span>.chip.borrow_mut().reset();
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

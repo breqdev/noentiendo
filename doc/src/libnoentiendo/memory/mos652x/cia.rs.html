@@ -411,6 +411,10 @@
 <span id="411">411</span>
 <span id="412">412</span>
 <span id="413">413</span>
+<span id="414">414</span>
+<span id="415">415</span>
+<span id="416">416</span>
+<span id="417">417</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{
   mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer},
   ActiveInterrupt, Memory, Port, SystemInfo,
@@ -553,12 +557,12 @@
       <span class="number">0x04 </span>=&gt; <span class="self">self</span>.timer_a.latch = (<span class="self">self</span>.timer_a.latch &amp; <span class="number">0xFF00</span>) | value <span class="kw">as </span>u16,
       <span class="number">0x05 </span>=&gt; {
         <span class="self">self</span>.timer_a.latch = (<span class="self">self</span>.timer_a.latch &amp; <span class="number">0x00FF</span>) | ((value <span class="kw">as </span>u16) &lt;&lt; <span class="number">8</span>);
-        <span class="self">self</span>.timer_a.counter = <span class="self">self</span>.timer_a.latch;
+        <span class="self">self</span>.timer_a.counter = <span class="self">self</span>.timer_a.latch <span class="kw">as </span>i32;
       }
       <span class="number">0x06 </span>=&gt; <span class="self">self</span>.timer_b.latch = (<span class="self">self</span>.timer_b.latch &amp; <span class="number">0xFF00</span>) | value <span class="kw">as </span>u16,
       <span class="number">0x07 </span>=&gt; {
         <span class="self">self</span>.timer_b.latch = (<span class="self">self</span>.timer_b.latch &amp; <span class="number">0x00FF</span>) | ((value <span class="kw">as </span>u16) &lt;&lt; <span class="number">8</span>);
-        <span class="self">self</span>.timer_b.counter = <span class="self">self</span>.timer_b.latch;
+        <span class="self">self</span>.timer_b.counter = <span class="self">self</span>.timer_b.latch <span class="kw">as </span>i32;
       }
       <span class="number">0x08 </span>=&gt; <span class="kw">match </span><span class="self">self</span>.time_clock.write_action {
         <span class="bool-val">false </span>=&gt; <span class="self">self</span>.time_clock.time.tenth_seconds = value,
@@ -621,18 +625,20 @@
     <span class="self">self</span>.interrupts.reset();
   }
 
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
-    <span class="kw">if </span><span class="self">self</span>.timer_a.poll(info) &amp;&amp; (<span class="self">self</span>.interrupts.interrupt_enable &amp; interrupt_bits::TIMER_A) != <span class="number">0
+  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cycles: u32, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
+    <span class="kw">if </span><span class="self">self</span>.timer_a.poll(cycles, info)
+      &amp;&amp; (<span class="self">self</span>.interrupts.interrupt_enable &amp; interrupt_bits::TIMER_A) != <span class="number">0
     </span>{
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
-    <span class="kw">if </span><span class="self">self</span>.timer_b.poll(info) &amp;&amp; (<span class="self">self</span>.interrupts.interrupt_enable &amp; interrupt_bits::TIMER_B) != <span class="number">0
+    <span class="kw">if </span><span class="self">self</span>.timer_b.poll(cycles, info)
+      &amp;&amp; (<span class="self">self</span>.interrupts.interrupt_enable &amp; interrupt_bits::TIMER_B) != <span class="number">0
     </span>{
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
-    <span class="kw">if </span><span class="self">self</span>.a.poll(info) || <span class="self">self</span>.b.poll(info) {
+    <span class="kw">if </span><span class="self">self</span>.a.poll(cycles, info) || <span class="self">self</span>.b.poll(cycles, info) {
       <span class="kw">return </span>ActiveInterrupt::IRQ;
     }
 
@@ -687,14 +693,14 @@
     </span>cia.write(<span class="number">0x0E</span>, <span class="number">0b0000_1001</span>);
 
     <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
 
     <span class="comment">// polling again shouldn&#39;t do anything
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x20 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
   }
 
@@ -713,10 +719,10 @@
     </span>cia.write(<span class="number">0x0F</span>, <span class="number">0b0000_1001</span>);
 
     <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x1233 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 
   <span class="attribute">#[test]
@@ -733,17 +739,19 @@
     <span class="comment">// start the timer, and enable continuous operation
     </span>cia.write(<span class="number">0x0E</span>, <span class="number">0b0000_0001</span>);
 
-    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
-    }
+    <span class="macro">assert_eq!</span>(
+      ActiveInterrupt::None,
+      cia.poll(<span class="number">0x0F</span>, <span class="kw-2">&amp;</span>SystemInfo::default())
+    );
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
 
-    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
-    }
+    <span class="macro">assert_eq!</span>(
+      ActiveInterrupt::None,
+      cia.poll(<span class="number">0x0F</span>, <span class="kw-2">&amp;</span>SystemInfo::default())
+    );
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 
   <span class="attribute">#[test]
@@ -767,10 +775,10 @@
 
     <span class="comment">// timer 1 should interrupt first
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 
   <span class="attribute">#[test]
@@ -793,7 +801,7 @@
 
     <span class="comment">// timer 2 shouldn&#39;t trigger an interrupt
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x08 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
 
     <span class="comment">// ...but the flag register should be set
@@ -804,9 +812,9 @@
 
     <span class="comment">// timer 1 should then trigger an interrupt
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x07 </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
 
     <span class="comment">// ...and set the corresponding flag, plus the master bit
     </span><span class="macro">assert_eq!</span>(
@@ -819,9 +827,9 @@
 
     <span class="comment">// if we let timer 1 run again, it should set the flag again
     </span><span class="kw">for _ in </span><span class="number">0</span>..<span class="number">0x0F </span>{
-      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+      <span class="macro">assert_eq!</span>(ActiveInterrupt::None, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
     }
-    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="kw-2">&amp;</span>SystemInfo::default()));
+    <span class="macro">assert_eq!</span>(ActiveInterrupt::IRQ, cia.poll(<span class="number">1</span>, <span class="kw-2">&amp;</span>SystemInfo::default()));
   }
 }
 </code></pre></div>

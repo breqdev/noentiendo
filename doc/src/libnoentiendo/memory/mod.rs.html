@@ -104,7 +104,7 @@
   <span class="doccomment">/// Poll this memory to see if an interrupt has been triggered.
   /// Implementations may trigger an NMI or IRQ for any
   /// implementation-dependent reason.
-  </span><span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt;
+  </span><span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cycles: u32, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt;
 }
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libnoentiendo" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

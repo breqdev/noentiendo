@@ -170,6 +170,13 @@
 <span id="170">170</span>
 <span id="171">171</span>
 <span id="172">172</span>
+<span id="173">173</span>
+<span id="174">174</span>
+<span id="175">175</span>
+<span id="176">176</span>
+<span id="177">177</span>
+<span id="178">178</span>
+<span id="179">179</span>
 </pre><pre class="rust"><code><span class="kw">mod </span>execute;
 <span class="kw">mod </span>fetch;
 <span class="kw">mod </span>registers;
@@ -178,11 +185,14 @@
 <span class="kw">use </span>fetch::Fetch;
 <span class="kw">use </span>registers::{flags, Registers};
 
+<span class="kw">const </span>CLOCKS_PER_POLL: u32 = <span class="number">100</span>;
+
 <span class="doccomment">/// The MOS 6502 CPU and its associated memory.
 </span><span class="kw">pub struct </span>Mos6502 {
   <span class="kw">pub </span>registers: Registers,
   <span class="kw">pub </span>memory: Box&lt;<span class="kw">dyn </span>Memory&gt;,
   cycle_count: u64,
+  cycles_since_poll: u32,
 }
 
 <span class="doccomment">/// Read and write from the system&#39;s memory.
@@ -296,6 +306,7 @@
       registers: Registers::new(),
       memory,
       cycle_count: <span class="number">0</span>,
+      cycles_since_poll: <span class="number">0</span>,
     }
   }
 
@@ -319,15 +330,18 @@
     <span class="kw">match </span><span class="self">self</span>.execute(opcode) {
       <span class="prelude-val">Ok</span>(cycles) =&gt; {
         <span class="self">self</span>.cycle_count += cycles <span class="kw">as </span>u64;
+        <span class="self">self</span>.cycles_since_poll += cycles <span class="kw">as </span>u32;
 
-        <span class="kw">let </span>info = <span class="self">self</span>.get_info();
+        <span class="kw">if </span><span class="self">self</span>.cycles_since_poll &gt;= CLOCKS_PER_POLL {
+          <span class="kw">let </span>info = <span class="self">self</span>.get_info();
 
-        <span class="kw">for _ in </span><span class="number">0</span>..cycles {
-          <span class="kw">match </span><span class="self">self</span>.memory.poll(<span class="kw-2">&amp;</span>info) {
+          <span class="kw">match </span><span class="self">self</span>.memory.poll(<span class="self">self</span>.cycles_since_poll, <span class="kw-2">&amp;</span>info) {
             ActiveInterrupt::None =&gt; (),
             ActiveInterrupt::NMI =&gt; <span class="self">self</span>.interrupt(<span class="bool-val">false</span>, <span class="bool-val">false</span>),
             ActiveInterrupt::IRQ =&gt; <span class="self">self</span>.interrupt(<span class="bool-val">true</span>, <span class="bool-val">false</span>),
           }
+
+          <span class="self">self</span>.cycles_since_poll = <span class="number">0</span>;
         }
 
         cycles

@@ -282,6 +282,10 @@
 <span id="282">282</span>
 <span id="283">283</span>
 <span id="284">284</span>
+<span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
+<span id="288">288</span>
 </pre><pre class="rust"><code><span class="kw">mod </span>cia;
 <span class="kw">mod </span>pia;
 <span class="kw">mod </span>via;
@@ -329,8 +333,8 @@
   }
 
   <span class="doccomment">/// Poll the underlying port for interrupts.
-  </span><span class="kw">pub fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
-    <span class="self">self</span>.port.poll(info)
+  </span><span class="kw">pub fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cycles: u32, info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+    <span class="self">self</span>.port.poll(cycles, info)
   }
 
   <span class="doccomment">/// Reset the port to its initial state.
@@ -377,7 +381,9 @@
   </span>latch: u16,
 
   <span class="doccomment">/// The current value of the timer&#39;s internal counter.
-  </span>counter: u16,
+  /// In reality, this is a 16-bit unsigned register. We store it as a 32-bit
+  /// signed integer since polling the timer does not happen at every cycle.
+  </span>counter: i32,
 
   <span class="doccomment">/// Whether the timer&#39;s interrupt flag is set.
   </span>interrupt: bool,
@@ -409,10 +415,10 @@
   }
 
   <span class="doccomment">/// Poll the timer (decrement the counter, fire the interrupt if necessary).
-  </span><span class="kw">pub fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
-    <span class="kw">if </span><span class="self">self</span>.counter == <span class="number">0 </span>{
+  </span><span class="kw">pub fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
+    <span class="kw">if </span><span class="self">self</span>.counter &lt;= <span class="number">0 </span>{
       <span class="kw">if </span><span class="self">self</span>.continuous {
-        <span class="self">self</span>.counter = <span class="self">self</span>.latch
+        <span class="self">self</span>.counter += <span class="self">self</span>.latch <span class="kw">as </span>i32;
       } <span class="kw">else </span>{
         <span class="self">self</span>.running = <span class="bool-val">false</span>;
         <span class="kw">return </span><span class="bool-val">false</span>;
@@ -420,14 +426,16 @@
     }
 
     <span class="kw">if </span><span class="self">self</span>.running {
-      <span class="self">self</span>.counter = <span class="self">self</span>.counter.wrapping_sub(<span class="number">1</span>);
-    }
+      <span class="self">self</span>.counter -= cycles <span class="kw">as </span>i32;
 
-    <span class="kw">if </span><span class="self">self</span>.counter == <span class="number">0 </span>{
-      <span class="self">self</span>.interrupt = <span class="bool-val">true</span>;
-
-      <span class="bool-val">true
-    </span>} <span class="kw">else </span>{
+      <span class="kw">if </span><span class="self">self</span>.counter &lt;= <span class="number">0 </span>{
+        <span class="comment">// The counter underflowed
+        </span><span class="self">self</span>.interrupt = <span class="bool-val">true</span>;
+        <span class="bool-val">true
+      </span>} <span class="kw">else </span>{
+        <span class="bool-val">false
+      </span>}
+    } <span class="kw">else </span>{
       <span class="bool-val">false
     </span>}
   }
