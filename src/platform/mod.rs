@@ -1,5 +1,5 @@
 use crate::keyboard::{KeyPosition, KeyState};
-use crate::system::System;
+use crate::systems::System;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -28,13 +28,13 @@ pub trait Platform {
 
 /// A platform which can be run synchronously.
 pub trait SyncPlatform: Platform {
-  fn run(&mut self, system: System);
+  fn run(&mut self, system: Box<dyn System>);
 }
 
 /// A platform which can be run asynchronously.
 #[async_trait(?Send)]
 pub trait AsyncPlatform: Platform {
-  async fn run_async(&mut self, system: System);
+  async fn run_async(&mut self, system: Box<dyn System>);
 }
 
 /// Represents an RGB color with 8 bits per channel.
@@ -91,9 +91,9 @@ impl JoystickState {
 /// from the platform.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct WindowConfig {
-  width: u32,
-  height: u32,
-  scale: f64,
+  pub width: u32,
+  pub height: u32,
+  pub scale: f64,
 }
 
 impl WindowConfig {
@@ -111,9 +111,6 @@ pub trait PlatformProvider {
   /// with the specified scale factor. If a window already exists, the platform
   /// should resize it to the new size.
   fn request_window(&self, config: WindowConfig);
-
-  /// Set the given pixel on the screen to the given color.
-  fn set_pixel(&self, x: u32, y: u32, color: Color);
 
   /// Get the current state of the keyboard.
   fn get_key_state(&self) -> KeyState<KeyPosition>;

@@ -1,13 +1,13 @@
 use crate::platform::KeyState;
-use crate::platform::{
-  AsyncPlatform, Color, JoystickState, Platform, PlatformProvider, WindowConfig,
-};
-use crate::system::System;
+use crate::platform::{AsyncPlatform, JoystickState, Platform, PlatformProvider, WindowConfig};
+use crate::systems::System;
 use async_trait::async_trait;
 use js_sys::Math;
 mod handles;
 use handles::CanvasWindow;
 use pixels::{Pixels, SurfaceTexture};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
@@ -32,8 +32,6 @@ extern "C" {
 pub struct CanvasPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
   resize_requested: Arc<Mutex<bool>>,
-  canvas: Arc<Mutex<Option<HtmlCanvasElement>>>,
-  pixels: Arc<Mutex<Option<Pixels>>>,
   provider: Arc<CanvasPlatformProvider>,
   key_state: Arc<Mutex<KeyState<String>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
@@ -43,8 +41,6 @@ impl CanvasPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
     let resize_requested = Arc::new(Mutex::new(false));
-    let canvas = Arc::new(Mutex::new(None));
-    let pixels = Arc::new(Mutex::new(None));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
     let joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
 
@@ -52,14 +48,11 @@ impl CanvasPlatform {
       provider: Arc::new(CanvasPlatformProvider::new(
         config.clone(),
         resize_requested.clone(),
-        pixels.clone(),
         key_state.clone(),
         joystick_state.clone(),
       )),
       config,
       resize_requested,
-      canvas,
-      pixels,
       key_state,
       joystick_state,
     }
@@ -79,7 +72,7 @@ impl Platform for CanvasPlatform {
 
 #[async_trait(?Send)]
 impl AsyncPlatform for CanvasPlatform {
-  async fn run_async(&mut self, mut system: System) {
+  async fn run_async(&mut self, mut system: Box<dyn System>) {
     let config = self.get_config();
 
     let width = (config.width as f64 * config.scale) as usize;
@@ -115,11 +108,11 @@ impl AsyncPlatform for CanvasPlatform {
       &window,
     );
 
-    *self.pixels.lock().unwrap() = Some(
+    let pixels = Rc::new(RefCell::new(
       Pixels::new_async(config.width, config.height, surface_texture)
         .await
         .unwrap(),
-    );
+    ));
 
     {
       let key_state = self.key_state.clone();
@@ -151,13 +144,9 @@ impl AsyncPlatform for CanvasPlatform {
       keyup.forget();
     }
 
-    *self.canvas.lock().unwrap() = Some(canvas);
-
     system.reset();
 
-    let pixels = self.pixels.clone();
     let config = self.config.clone();
-    let canvas = self.canvas.clone();
     let resize_requested = self.resize_requested.clone();
     let joystick_state = self.joystick_state.clone();
 
@@ -165,7 +154,14 @@ impl AsyncPlatform for CanvasPlatform {
       let mut duration = Duration::ZERO;
 
       while duration < Duration::from_millis(20) {
-        duration += Duration::from_secs_f64(system.tick());
+        duration += system.tick();
+      }
+
+      {
+        system.render(
+          pixels.borrow_mut().get_frame_mut(),
+          config.lock().unwrap().unwrap(),
+        );
       }
 
       let gamepads = web_sys::window().unwrap().navigator().get_gamepads();
@@ -222,15 +218,10 @@ impl AsyncPlatform for CanvasPlatform {
         spawn_local(async move {
           let surface_texture = SurfaceTexture::new(width, height, &window);
 
-          *pixels.lock().unwrap() = Some(
-            Pixels::new_async(config.width, config.height, surface_texture)
-              .await
-              .unwrap(),
-          );
+          *pixels.borrow_mut() = Pixels::new_async(config.width, config.height, surface_texture)
+            .await
+            .unwrap();
         });
-
-        let canvas_mutex = canvas.lock().unwrap();
-        let canvas = canvas_mutex.as_ref().unwrap();
 
         canvas
           .style()
@@ -246,7 +237,7 @@ impl AsyncPlatform for CanvasPlatform {
         canvas.set_height(height);
       }
 
-      pixels.lock().unwrap().as_mut().unwrap().render().unwrap();
+      pixels.borrow_mut().render().unwrap();
     });
 
     web_sys::window()
@@ -261,7 +252,6 @@ impl AsyncPlatform for CanvasPlatform {
 pub struct CanvasPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   resize_requested: Arc<Mutex<bool>>,
-  pixels: Arc<Mutex<Option<Pixels>>>,
   key_state: Arc<Mutex<KeyState<String>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
 }
@@ -270,21 +260,15 @@ impl CanvasPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
     resize_requested: Arc<Mutex<bool>>,
-    pixels: Arc<Mutex<Option<Pixels>>>,
     key_state: Arc<Mutex<KeyState<String>>>,
     joystick_state: Arc<Mutex<JoystickState>>,
   ) -> Self {
     Self {
       config,
       resize_requested,
-      pixels,
       key_state,
       joystick_state,
     }
-  }
-  fn get_config(&self) -> WindowConfig {
-    let config = self.config.lock().unwrap();
-    config.clone().expect("WindowConfig not set")
   }
 }
 
@@ -292,29 +276,6 @@ impl PlatformProvider for CanvasPlatformProvider {
   fn request_window(&self, config: WindowConfig) {
     *self.config.lock().unwrap() = Some(config);
     *self.resize_requested.lock().unwrap() = true;
-  }
-
-  fn set_pixel(&self, x: u32, y: u32, color: Color) {
-    let mut pixels = self.pixels.lock().unwrap();
-    let frame = pixels.as_mut().unwrap().get_frame_mut();
-    let config = self.get_config();
-
-    if (x >= config.width) || (y >= config.height) {
-      println!(
-        "Invalid pixel coordinates ({}, {}) for dimensions ({}, {})",
-        x, y, config.width, config.height
-      );
-      return;
-    }
-
-    let index = ((y * config.width + x) * 4) as usize;
-    if index + 4 > frame.len() {
-      // Race condition: the app has just requested a new window size, but the
-      // framebuffer hasn't been resized yet
-      return;
-    }
-    let pixel = &mut frame[index..(index + 4)];
-    pixel.copy_from_slice(&color.to_rgba());
   }
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {

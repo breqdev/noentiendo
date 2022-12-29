@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+  cpu::Mos6502,
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -13,21 +14,23 @@ use crate::{
     mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
     SystemInfo,
   },
-  platform::PlatformProvider,
-  system::System,
-  systems::SystemFactory,
+  platform::{PlatformProvider, WindowConfig},
+  systems::System,
 };
 
 mod keyboard;
 mod roms;
 mod vic_ii;
 
+use instant::Duration;
 pub use roms::C64SystemRoms;
 
 use self::{
   keyboard::KEYBOARD_MAPPING,
-  vic_ii::{VicIIChip, VicIIChipDMA, VicIIChipIO},
+  vic_ii::{VicIIChip, VicIIChipIO},
 };
+
+use super::SystemBuilder;
 
 /// Port A on the first CIA chip on the C64 deals with setting the keyboard row being scanned.
 struct C64Cia1PortA {
@@ -199,15 +202,21 @@ pub struct C64SystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// The Commodore 64 system.
-pub struct C64SystemFactory;
+/// A factory for creating a Commodore 64 system.
+pub struct C64SystemBuilder;
 
-impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
-  fn create(
+impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuilder {
+  fn build(
     roms: C64SystemRoms,
     config: C64SystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> System {
+  ) -> Box<dyn System> {
+    platform.request_window(WindowConfig::new(
+      vic_ii::FULL_WIDTH,
+      vic_ii::FULL_HEIGHT,
+      2.0,
+    ));
+
     // Region 1: 0x0000 - 0x0FFF
     let region1 = BlockMemory::ram(0x1000);
 
@@ -241,10 +250,7 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
     let selector6 = Rc::new(Cell::new(0));
 
     let character_rom = BlockMemory::from_file(0x1000, roms.character.clone());
-    let vic_ii = Rc::new(RefCell::new(VicIIChip::new(
-      platform.clone(),
-      Box::new(character_rom),
-    )));
+    let vic_ii = Rc::new(RefCell::new(VicIIChip::new(Box::new(character_rom))));
     let vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: bank switching!
 
     let port_a = C64Cia1PortA::new();
@@ -295,10 +301,31 @@ impl SystemFactory<C64SystemRoms, C64SystemConfig> for C64SystemFactory {
       .map(0xD000, Box::new(region6))
       .map(0xE000, Box::new(region7));
 
-    let mut system = System::new(Box::new(memory), 1_000_000);
+    let cpu = Mos6502::new(Box::new(memory));
 
-    system.attach_dma(Box::new(VicIIChipDMA::new(vic_ii)));
+    Box::new(C64System { cpu, vic: vic_ii })
+  }
+}
 
-    system
+/// The Commodore 64 system.
+pub struct C64System {
+  cpu: Mos6502,
+  vic: Rc<RefCell<VicIIChip>>,
+}
+
+impl System for C64System {
+  fn tick(&mut self) -> Duration {
+    Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
+  }
+
+  fn reset(&mut self) {
+    self.cpu.reset();
+  }
+
+  fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
+    self
+      .vic
+      .borrow_mut()
+      .draw_screen(&mut self.cpu.memory, framebuffer, config)
   }
 }

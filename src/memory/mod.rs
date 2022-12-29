@@ -29,7 +29,6 @@ pub enum ActiveInterrupt {
 /// determine if an interrupt should be triggered.
 #[derive(Debug, Default)]
 pub struct SystemInfo {
-  pub cycles_per_second: u64,
   pub cycle_count: u64,
 }
 
@@ -52,14 +51,4 @@ pub trait Memory {
   /// Implementations may trigger an NMI or IRQ for any
   /// implementation-dependent reason.
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt;
-}
-
-/// Represents a system component which may access the memory in between
-/// cycles. This is used to implement the VIC chip's alternate-clock memory
-/// access.
-pub trait DMA {
-  /// Handle DMA for the current instruction tick.
-  /// Implementations may perform whatever operations on the memory that they
-  /// would like.
-  fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo);
 }

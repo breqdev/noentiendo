@@ -1,15 +1,11 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::new_without_default)]
 
-mod execute;
-mod fetch;
-mod registers;
-/// A [`system::System`] consists of a 6502 CPU and some attached _memory_. All computer peripherals are exposed to the CPU over the memory interface (i.e., _memory-mapped I/O_).
-pub mod system;
+/// The [`cpu::Mos6502`] represents a 6502 processor and associated memory.
+pub mod cpu;
 
 /// A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts. The [`memory`] module provides implementations for various types of memory and other memory-mapped devices. Mappings are handled using [`memory::BranchMemory`].
 ///
-/// Off-cycle memory access schemes such as the one used in the VIC-20 are handled using the [`memory::DMA`] trait. Systems may have objects which implement this trait attached, and these objects will have a chance to access memory in between clock cycles.
 pub mod memory;
 
 /// Various representations of keyboard scancodes are required in different parts of the codebase. Each platform typically has its own definition of a scancode (e.g. JavaScript's `event.code` or Winit's `VirtualKeyCode`), and each emulated system has a different set of keys (e.g. the `Commodore` key on the VIC-20 or the standalone `"` key on the PET).
@@ -32,8 +28,10 @@ pub mod platform;
 /// ROM file loading and unloading is different on different platforms: desktop platforms typically load ROMs from a file, while WebAssembly platforms need to load ROMs from a `Uint8Array`. ROM file definition and loading is handled in the [`roms`] module, with specific [`roms::DiskLoadable`] and `roms::JsValueLoadable` traits for these two cases. Loaded ROMs are represented with a [`roms::RomFile`] object, which can be passed to [`memory::BlockMemory::from_file`].
 pub mod roms;
 
-/// Systems are created by a [`systems::SystemFactory`]. A system is created with some roms, configuration, and platform. For instance, the `create` implementation on [`systems::PetSystemFactory`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
+/// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `build` implementation on [`systems::pet::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
 pub mod systems;
+
+mod time;
 
 #[cfg(target_arch = "wasm32")]
 extern crate console_error_panic_hook;
@@ -50,8 +48,8 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   use keyboard::KeyMappingStrategy;
   use platform::{AsyncPlatform, CanvasPlatform, Platform};
   use systems::{
-    pet::PetSystemConfig, vic::Vic20SystemConfig, PetSystemFactory, PetSystemRoms, SystemFactory,
-    Vic20SystemFactory, Vic20SystemRoms,
+    pet::PetSystemBuilder, pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder,
+    vic::Vic20SystemConfig, vic::Vic20SystemRoms, SystemBuilder,
   };
   use wasm_bindgen_futures::spawn_local;
 
@@ -64,14 +62,14 @@ pub fn main(roms: &JsValue, system: &JsValue) {
   let vic_roms = Vic20SystemRoms::from_jsvalue(&vic_object);
 
   let system = match system.as_string().unwrap().as_str() {
-    "pet" => PetSystemFactory::create(
+    "pet" => PetSystemBuilder::build(
       pet_roms,
       PetSystemConfig {
         mapping: KeyMappingStrategy::Symbolic,
       },
       platform.provider(),
     ),
-    "vic" => Vic20SystemFactory::create(
+    "vic" => Vic20SystemBuilder::build(
       vic_roms,
       Vic20SystemConfig {
         mapping: KeyMappingStrategy::Symbolic,

@@ -1,15 +1,16 @@
-use crate::execute::Execute;
-use crate::fetch::Fetch;
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
-use crate::registers::{flags, Registers};
+mod execute;
+mod fetch;
+mod registers;
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use execute::Execute;
+use fetch::Fetch;
+use registers::{flags, Registers};
 
 /// The MOS 6502 CPU and its associated memory.
-pub struct System {
+pub struct Mos6502 {
   pub registers: Registers,
-  memory: Box<dyn Memory>,
-  cycles_per_second: u64,
+  pub memory: Box<dyn Memory>,
   cycle_count: u64,
-  dma: Vec<Box<dyn DMA>>,
 }
 
 /// Read and write from the system's memory.
@@ -27,7 +28,7 @@ pub trait MemoryIO {
   fn write_word(&mut self, address: u16, value: u16);
 }
 
-impl MemoryIO for System {
+impl MemoryIO for Mos6502 {
   fn read(&mut self, address: u16) -> u8 {
     self.memory.read(address)
   }
@@ -63,7 +64,7 @@ pub trait Stack {
   fn pop_word(&mut self) -> u16;
 }
 
-impl Stack for System {
+impl Stack for Mos6502 {
   fn push(&mut self, value: u8) {
     self.write(self.registers.sp.address(), value);
     self.registers.sp.push();
@@ -92,7 +93,7 @@ pub trait InterruptHandler {
   fn interrupt(&mut self, maskable: bool, set_brk: bool);
 }
 
-impl InterruptHandler for System {
+impl InterruptHandler for Mos6502 {
   fn interrupt(&mut self, maskable: bool, break_instr: bool) {
     if maskable && !break_instr && self.registers.sr.read(flags::INTERRUPT) {
       return;
@@ -117,20 +118,13 @@ impl InterruptHandler for System {
   }
 }
 
-impl System {
-  pub fn new(memory: Box<dyn Memory>, cycles_per_second: u64) -> System {
-    System {
+impl Mos6502 {
+  pub fn new(memory: Box<dyn Memory>) -> Mos6502 {
+    Mos6502 {
       registers: Registers::new(),
       memory,
-      cycles_per_second,
       cycle_count: 0,
-      dma: Vec::new(),
     }
-  }
-
-  /// Attach a device which can perform DMA access.
-  pub fn attach_dma(&mut self, dma: Box<dyn DMA>) {
-    self.dma.push(dma);
   }
 
   pub fn reset(&mut self) {
@@ -143,16 +137,13 @@ impl System {
   /// Return a SystemInfo struct containing the current system status.
   pub fn get_info(&self) -> SystemInfo {
     SystemInfo {
-      cycles_per_second: self.cycles_per_second,
       cycle_count: self.cycle_count,
     }
   }
 
   /// Execute a single instruction.
-  pub fn tick(&mut self) -> f64 {
+  pub fn tick(&mut self) -> u8 {
     let opcode = self.fetch();
-    let elapsed;
-
     match self.execute(opcode) {
       Ok(cycles) => {
         self.cycle_count += cycles as u64;
@@ -167,11 +158,7 @@ impl System {
           }
         }
 
-        if self.cycles_per_second == 0 {
-          elapsed = 0.0
-        } else {
-          elapsed = cycles as f64 / self.cycles_per_second as f64
-        }
+        cycles
       }
       Err(_) => {
         panic!(
@@ -181,13 +168,5 @@ impl System {
         );
       }
     }
-
-    let info = self.get_info();
-
-    for dma in &mut self.dma {
-      dma.dma(&mut self.memory, &info);
-    }
-
-    elapsed
   }
 }

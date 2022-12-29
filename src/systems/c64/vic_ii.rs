@@ -1,8 +1,7 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
-use crate::platform::{Color, PlatformProvider, WindowConfig};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::platform::{Color, WindowConfig};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::sync::Arc;
 
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
@@ -12,8 +11,8 @@ const SPRITE_WIDTH: u32 = 24;
 const SPRITE_HEIGHT: u32 = 21;
 const BORDER_WIDTH: u32 = 24;
 const BORDER_HEIGHT: u32 = 29;
-const FULL_WIDTH: u32 = WIDTH * CHAR_WIDTH + BORDER_WIDTH * 2;
-const FULL_HEIGHT: u32 = HEIGHT * CHAR_HEIGHT + BORDER_HEIGHT * 2;
+pub const FULL_WIDTH: u32 = WIDTH * CHAR_WIDTH + BORDER_WIDTH * 2;
+pub const FULL_HEIGHT: u32 = HEIGHT * CHAR_HEIGHT + BORDER_HEIGHT * 2;
 const SPRITE_MEMORY_SIZE: u16 = (SPRITE_WIDTH * SPRITE_HEIGHT / 8) as u16;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -52,7 +51,6 @@ mod interrupt_bits {
 }
 
 pub struct VicIIChip {
-  platform: Arc<dyn PlatformProvider>,
   character_rom: Box<dyn Memory>,
 
   sprites: [Sprite; 8],
@@ -79,17 +77,11 @@ pub struct VicIIChip {
   column_select: bool,
   x_scroll: u8,
   y_scroll: u8,
-
-  // drawing
-  last_draw_clock: u64,
 }
 
 impl VicIIChip {
-  pub fn new(platform: Arc<dyn PlatformProvider>, character_rom: Box<dyn Memory>) -> Self {
-    platform.request_window(WindowConfig::new(FULL_WIDTH, FULL_HEIGHT, 2.0));
-
+  pub fn new(character_rom: Box<dyn Memory>) -> Self {
     Self {
-      platform,
       character_rom,
       sprites: [Sprite::new(); 8],
       background_color: [0; 4],
@@ -98,7 +90,6 @@ impl VicIIChip {
       light_pen: (0, 0),
       raster_counter: 0,
       interrupts_enabled: 0,
-      last_draw_clock: 0,
       extended_color_mode: false,
       bit_map_mode: false,
       multi_color_mode: false,
@@ -120,7 +111,6 @@ impl VicIIChip {
     self.light_pen = (0, 0);
     self.raster_counter = 0;
     self.interrupts_enabled = 0;
-    self.last_draw_clock = 0;
     self.extended_color_mode = false;
     self.bit_map_mode = false;
     self.multi_color_mode = false;
@@ -192,7 +182,13 @@ impl VicIIChip {
 
   /// Draw the given sprite.
   /// Sources: <https://retro64.altervista.org/blog/programming-sprites-the-commodore-64-simple-tutorial-using-basic-v2/> and <https://dustlayer.com/vic-ii/2013/4/28/vic-ii-for-beginners-part-5-bringing-sprites-in-shape>
-  fn draw_sprite(&mut self, index: usize, memory: &mut Box<dyn Memory>) {
+  fn draw_sprite(
+    &mut self,
+    index: usize,
+    memory: &mut Box<dyn Memory>,
+    framebuffer: &mut [u8],
+    _config: WindowConfig,
+  ) {
     let sprite = &self.sprites[index];
 
     if !sprite.enabled {
@@ -219,13 +215,22 @@ impl VicIIChip {
         let x = x + sprite.x as u32;
         let y = y + sprite.y as u32;
 
-        self.platform.set_pixel(x, y, VicIIChip::get_color(color));
+        let index = (y * WIDTH + x) as usize * 4;
+        let pixel = &mut framebuffer[index..index + 4];
+        let color = VicIIChip::get_color(color);
+        pixel.copy_from_slice(&color.to_rgba());
       }
     }
   }
 
   /// Redraw the character at the specified address.
-  fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>) {
+  fn redraw(
+    &mut self,
+    address: u16,
+    memory: &mut Box<dyn Memory>,
+    framebuffer: &mut [u8],
+    _config: WindowConfig,
+  ) {
     if address >= (WIDTH * HEIGHT) as u16 {
       return; // ignore writes to the extra bytes
     }
@@ -245,31 +250,37 @@ impl VicIIChip {
           VicIIChip::get_color(self.background_color[0])
         };
 
-        self.platform.set_pixel(
-          BORDER_WIDTH + column * CHAR_WIDTH + pixel,
-          BORDER_HEIGHT + row * CHAR_HEIGHT + line,
-          color,
-        );
+        let x = BORDER_WIDTH + column * CHAR_WIDTH + pixel;
+        let y = BORDER_HEIGHT + row * CHAR_HEIGHT + line;
+        let index = (y * FULL_WIDTH + x) as usize * 4;
+        let pixel = &mut framebuffer[index..index + 4];
+        pixel.copy_from_slice(&color.to_rgba());
       }
     }
   }
 
-  fn draw_screen(&mut self, memory: &mut Box<dyn Memory>) {
+  pub fn draw_screen(
+    &mut self,
+    memory: &mut Box<dyn Memory>,
+    framebuffer: &mut [u8],
+    config: WindowConfig,
+  ) {
     // draw the border
     for x in 0..FULL_WIDTH {
       for y in 0..FULL_HEIGHT {
-        self
-          .platform
-          .set_pixel(x, y, VicIIChip::get_color(self.border_color));
+        let index = (y * FULL_WIDTH + x) as usize * 4;
+        let pixel = &mut framebuffer[index..(index + 4)];
+        let color = VicIIChip::get_color(self.border_color);
+        pixel.copy_from_slice(&color.to_rgba());
       }
     }
 
     for i in 0..((WIDTH * HEIGHT) as u16) {
-      self.redraw(i, memory);
+      self.redraw(i, memory, framebuffer, config);
     }
 
     for i in 0..8 {
-      self.draw_sprite(i, memory);
+      self.draw_sprite(i, memory, framebuffer, config);
     }
   }
 }
@@ -443,30 +454,5 @@ impl Memory for VicIIChipIO {
     self.chip.borrow_mut().raster_counter = ((info.cycle_count / 83) % 312) as u16;
 
     ActiveInterrupt::None
-  }
-}
-
-/// Handles drawing characters by reading directly from the main memory.
-pub struct VicIIChipDMA {
-  chip: Rc<RefCell<VicIIChip>>,
-}
-
-impl VicIIChipDMA {
-  pub fn new(chip: Rc<RefCell<VicIIChip>>) -> Self {
-    Self { chip }
-  }
-}
-
-impl DMA for VicIIChipDMA {
-  fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo) {
-    let mut chip = self.chip.borrow_mut();
-
-    if (info.cycle_count - chip.last_draw_clock) < 50_000 {
-      return;
-    }
-
-    chip.last_draw_clock = info.cycle_count;
-
-    chip.draw_screen(memory);
   }
 }
