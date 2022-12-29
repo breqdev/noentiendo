@@ -138,7 +138,7 @@ impl Timer {
     }
 
     if self.running {
-      self.counter = self.counter - cycles as i32;
+      self.counter -= cycles as i32;
 
       if self.counter <= 0 {
         // The counter underflowed
