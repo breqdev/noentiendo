@@ -6,11 +6,14 @@ use execute::Execute;
 use fetch::Fetch;
 use registers::{flags, Registers};
 
+const CLOCKS_PER_POLL: u32 = 100;
+
 /// The MOS 6502 CPU and its associated memory.
 pub struct Mos6502 {
   pub registers: Registers,
   pub memory: Box<dyn Memory>,
   cycle_count: u64,
+  cycles_since_poll: u32,
 }
 
 /// Read and write from the system's memory.
@@ -124,6 +127,7 @@ impl Mos6502 {
       registers: Registers::new(),
       memory,
       cycle_count: 0,
+      cycles_since_poll: 0,
     }
   }
 
@@ -147,13 +151,18 @@ impl Mos6502 {
     match self.execute(opcode) {
       Ok(cycles) => {
         self.cycle_count += cycles as u64;
+        self.cycles_since_poll += cycles as u32;
 
-        let info = self.get_info();
+        if self.cycles_since_poll >= CLOCKS_PER_POLL {
+          let info = self.get_info();
 
-        match self.memory.poll(cycles as u32, &info) {
-          ActiveInterrupt::None => (),
-          ActiveInterrupt::NMI => self.interrupt(false, false),
-          ActiveInterrupt::IRQ => self.interrupt(true, false),
+          match self.memory.poll(self.cycles_since_poll, &info) {
+            ActiveInterrupt::None => (),
+            ActiveInterrupt::NMI => self.interrupt(false, false),
+            ActiveInterrupt::IRQ => self.interrupt(true, false),
+          }
+
+          self.cycles_since_poll = 0;
         }
 
         cycles
