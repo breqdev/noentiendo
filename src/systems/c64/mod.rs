@@ -59,7 +59,7 @@ impl Port for C64Cia1PortA {
     self.keyboard_row.set(value);
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -117,7 +117,7 @@ impl Port for C64Cia1PortB {
     panic!("Tried to write to keyboard row");
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -186,7 +186,7 @@ impl Port for C64BankSwitching {
     self.selectors[5].set(if !self.hiram { 1 } else { 0 });
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 

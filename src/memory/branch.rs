@@ -66,11 +66,11 @@ impl Memory for BranchMemory {
     }
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
     let mut highest = ActiveInterrupt::None;
 
     for (_, mapped) in &mut self.mapping {
-      let interrupt = mapped.poll(info);
+      let interrupt = mapped.poll(cycles, info);
 
       match interrupt {
         ActiveInterrupt::None => (),

@@ -55,8 +55,8 @@ impl PiaPortRegisters {
   }
 
   /// Poll the underlying port for interrupts.
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
-    self.port.poll(info)
+  pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
+    self.port.poll(cycles, info)
   }
 
   /// Reset the DDR, control register, and underlying port.
@@ -122,9 +122,9 @@ impl Memory for Pia {
     self.b.reset();
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    let a = self.a.poll(info);
-    let b = self.b.poll(info);
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
+    let a = self.a.poll(cycles, info);
+    let b = self.b.poll(cycles, info);
 
     if a || b {
       ActiveInterrupt::IRQ

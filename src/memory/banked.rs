@@ -48,11 +48,11 @@ impl Memory for BankedMemory {
     }
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
     let mut highest = ActiveInterrupt::None;
 
     for mapped in &mut self.banks {
-      let interrupt = mapped.poll(info);
+      let interrupt = mapped.poll(cycles, info);
 
       match interrupt {
         ActiveInterrupt::None => (),

@@ -45,8 +45,8 @@ impl PortRegisters {
   }
 
   /// Poll the underlying port for interrupts.
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
-    self.port.poll(info)
+  pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
+    self.port.poll(cycles, info)
   }
 
   /// Reset the port to its initial state.
@@ -125,7 +125,7 @@ impl Timer {
   }
 
   /// Poll the timer (decrement the counter, fire the interrupt if necessary).
-  pub fn poll(&mut self, _info: &SystemInfo) -> bool {
+  pub fn poll(&mut self, cycles: u32, _info: &SystemInfo) -> bool {
     if self.counter == 0 {
       if self.continuous {
         self.counter = self.latch
@@ -136,13 +136,16 @@ impl Timer {
     }
 
     if self.running {
-      self.counter = self.counter.wrapping_sub(1);
-    }
+      let new_counter = self.counter.wrapping_sub(cycles as u16);
 
-    if self.counter == 0 {
-      self.interrupt = true;
+      if new_counter > self.counter {
+        // The counter underflowed
+        self.interrupt = true;
+      }
 
-      true
+      self.counter = new_counter;
+
+      self.interrupt
     } else {
       false
     }

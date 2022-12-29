@@ -493,7 +493,7 @@ impl Memory for VicChipIO {
     self.chip.borrow_mut().reset();
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

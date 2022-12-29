@@ -132,7 +132,7 @@ impl Port for VicVia1PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -170,7 +170,7 @@ impl Port for VicVia2PortB {
     self.keyboard_col.set(value & 0x7F);
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -227,7 +227,7 @@ impl Port for VicVia2PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
