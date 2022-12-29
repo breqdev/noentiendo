@@ -140,12 +140,12 @@ impl Memory for Cia {
       0x04 => self.timer_a.latch = (self.timer_a.latch & 0xFF00) | value as u16,
       0x05 => {
         self.timer_a.latch = (self.timer_a.latch & 0x00FF) | ((value as u16) << 8);
-        self.timer_a.counter = self.timer_a.latch;
+        self.timer_a.counter = self.timer_a.latch as i32;
       }
       0x06 => self.timer_b.latch = (self.timer_b.latch & 0xFF00) | value as u16,
       0x07 => {
         self.timer_b.latch = (self.timer_b.latch & 0x00FF) | ((value as u16) << 8);
-        self.timer_b.counter = self.timer_b.latch;
+        self.timer_b.counter = self.timer_b.latch as i32;
       }
       0x08 => match self.time_clock.write_action {
         false => self.time_clock.time.tenth_seconds = value,

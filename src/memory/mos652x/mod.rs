@@ -93,7 +93,9 @@ pub struct Timer {
   latch: u16,
 
   /// The current value of the timer's internal counter.
-  counter: u16,
+  /// In reality, this is a 16-bit unsigned register. We store it as a 32-bit
+  /// signed integer since polling the timer does not happen at every cycle.
+  counter: i32,
 
   /// Whether the timer's interrupt flag is set.
   interrupt: bool,
@@ -126,9 +128,9 @@ impl Timer {
 
   /// Poll the timer (decrement the counter, fire the interrupt if necessary).
   pub fn poll(&mut self, cycles: u32, _info: &SystemInfo) -> bool {
-    if self.counter == 0 {
+    if self.counter <= 0 {
       if self.continuous {
-        self.counter = self.latch
+        self.counter += self.latch as i32;
       } else {
         self.running = false;
         return false;
@@ -136,16 +138,15 @@ impl Timer {
     }
 
     if self.running {
-      let new_counter = self.counter.wrapping_sub(cycles as u16);
+      self.counter = self.counter - cycles as i32;
 
-      if new_counter > self.counter {
+      if self.counter <= 0 {
         // The counter underflowed
         self.interrupt = true;
+        true
+      } else {
+        false
       }
-
-      self.counter = new_counter;
-
-      self.interrupt
     } else {
       false
     }
