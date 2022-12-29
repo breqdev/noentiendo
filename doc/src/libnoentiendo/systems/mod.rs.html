@@ -21,28 +21,46 @@
 <span id="21">21</span>
 <span id="22">22</span>
 <span id="23">23</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::platform::PlatformProvider;
-<span class="kw">use </span><span class="kw">crate</span>::system::System;
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::platform::{PlatformProvider, WindowConfig};
+<span class="kw">use </span>instant::Duration;
 <span class="kw">use </span>std::sync::Arc;
 
-<span class="kw">pub mod </span>brooke;
+<span class="kw">pub mod </span>basic;
 <span class="kw">pub mod </span>c64;
 <span class="kw">pub mod </span>easy;
 <span class="kw">pub mod </span>klaus;
 <span class="kw">pub mod </span>pet;
 <span class="kw">pub mod </span>vic;
 
-<span class="kw">pub use </span>brooke::BrookeSystemFactory;
-<span class="kw">pub use </span>c64::{C64SystemConfig, C64SystemFactory, C64SystemRoms};
-<span class="kw">pub use </span>easy::EasySystemFactory;
-<span class="kw">pub use </span>klaus::KlausSystemFactory;
-<span class="kw">pub use </span>pet::{PetSystemConfig, PetSystemFactory, PetSystemRoms};
-<span class="kw">pub use </span>vic::{Vic20SystemConfig, Vic20SystemFactory, Vic20SystemRoms};
+<span class="kw">pub trait </span>SystemBuilder&lt;SystemType, RomRegistry, SystemConfig&gt; {
+  <span class="doccomment">/// Create a new system from the given roms, configuration, and with I/O provided by the given
+  /// platform provider.
+  </span><span class="kw">fn </span>build(
+    roms: RomRegistry,
+    config: SystemConfig,
+    platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
+  ) -&gt; Box&lt;<span class="kw">dyn </span>System&gt;;
+}
 
-<span class="doccomment">/// A factory for creating a system from a set of ROM files and a platform.
-</span><span class="kw">pub trait </span>SystemFactory&lt;RomRegistry, SystemConfig&gt; {
-  <span class="kw">fn </span>create(roms: RomRegistry, config: SystemConfig, platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;)
-    -&gt; System;
+<span class="doccomment">/// A representation of an emulated system.
+</span><span class="kw">pub trait </span>System {
+  <span class="doccomment">/// Advance the system by one tick.
+  </span><span class="kw">fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Duration;
+
+  <span class="doccomment">/// Reset the system&#39;s state.
+  </span><span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
+
+  <span class="doccomment">/// Render the current state of the system to the given framebuffer.
+  </span><span class="kw">fn </span>render(<span class="kw-2">&amp;mut </span><span class="self">self</span>, framebuffer: <span class="kw-2">&amp;mut </span>[u8], window: WindowConfig);
 }
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libnoentiendo" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

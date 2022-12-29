@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["BasicSystem","A system which only operates in text mode, for basic testing."],["BasicSystemBuilder","A factory for creating a BasicSystem."]]};

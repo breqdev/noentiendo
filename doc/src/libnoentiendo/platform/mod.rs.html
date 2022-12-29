@@ -134,11 +134,8 @@
 <span id="134">134</span>
 <span id="135">135</span>
 <span id="136">136</span>
-<span id="137">137</span>
-<span id="138">138</span>
-<span id="139">139</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
-<span class="kw">use </span><span class="kw">crate</span>::system::System;
+<span class="kw">use </span><span class="kw">crate</span>::systems::System;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>std::sync::Arc;
 
@@ -167,13 +164,13 @@
 
 <span class="doccomment">/// A platform which can be run synchronously.
 </span><span class="kw">pub trait </span>SyncPlatform: Platform {
-  <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, system: System);
+  <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, system: Box&lt;<span class="kw">dyn </span>System&gt;);
 }
 
 <span class="doccomment">/// A platform which can be run asynchronously.
 </span><span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
 </span><span class="kw">pub trait </span>AsyncPlatform: Platform {
-  <span class="kw">async fn </span>run_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>, system: System);
+  <span class="kw">async fn </span>run_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>, system: Box&lt;<span class="kw">dyn </span>System&gt;);
 }
 
 <span class="doccomment">/// Represents an RGB color with 8 bits per channel.
@@ -230,9 +227,9 @@
 /// from the platform.
 </span><span class="attribute">#[derive(Copy, Clone, Debug, PartialEq)]
 </span><span class="kw">pub struct </span>WindowConfig {
-  width: u32,
-  height: u32,
-  scale: f64,
+  <span class="kw">pub </span>width: u32,
+  <span class="kw">pub </span>height: u32,
+  <span class="kw">pub </span>scale: f64,
 }
 
 <span class="kw">impl </span>WindowConfig {
@@ -250,9 +247,6 @@
   /// with the specified scale factor. If a window already exists, the platform
   /// should resize it to the new size.
   </span><span class="kw">fn </span>request_window(<span class="kw-2">&amp;</span><span class="self">self</span>, config: WindowConfig);
-
-  <span class="doccomment">/// Set the given pixel on the screen to the given color.
-  </span><span class="kw">fn </span>set_pixel(<span class="kw-2">&amp;</span><span class="self">self</span>, x: u32, y: u32, color: Color);
 
   <span class="doccomment">/// Get the current state of the keyboard.
   </span><span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt;;

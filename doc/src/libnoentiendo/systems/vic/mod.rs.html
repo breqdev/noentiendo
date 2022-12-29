@@ -295,16 +295,40 @@
 <span id="295">295</span>
 <span id="296">296</span>
 <span id="297">297</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{
+<span id="298">298</span>
+<span id="299">299</span>
+<span id="300">300</span>
+<span id="301">301</span>
+<span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
+<span id="317">317</span>
+<span id="318">318</span>
+<span id="319">319</span>
+<span id="320">320</span>
+<span id="321">321</span>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::Mos6502;
+<span class="kw">use </span><span class="kw">crate</span>::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
 };
 <span class="kw">use </span><span class="kw">crate</span>::memory::mos652x::Via;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-<span class="kw">use </span><span class="kw">crate</span>::platform::PlatformProvider;
+<span class="kw">use </span><span class="kw">crate</span>::platform::{PlatformProvider, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
-<span class="kw">use </span><span class="kw">crate</span>::system::System;
-<span class="kw">use </span><span class="kw">crate</span>::systems::SystemFactory;
+<span class="kw">use </span><span class="kw">crate</span>::systems::System;
 <span class="kw">use </span>std::cell::{Cell, RefCell};
 <span class="kw">use </span>std::rc::Rc;
 <span class="kw">use </span>std::sync::Arc;
@@ -312,8 +336,9 @@
 <span class="kw">mod </span>chip;
 <span class="kw">mod </span>keyboard;
 <span class="kw">use </span><span class="self">self</span>::keyboard::KEYBOARD_MAPPING;
-<span class="kw">use </span>chip::{VicChip, VicChipDMA, VicChipIO};
+<span class="kw">use </span>chip::{VicChip, VicChipIO};
 
+<span class="kw">use </span>instant::Duration;
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">use </span>js_sys::Reflect;
 
@@ -325,6 +350,8 @@
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">use </span>js_sys::Uint8Array;
+
+<span class="kw">use </span><span class="kw">super</span>::SystemBuilder;
 
 <span class="doccomment">/// The set of ROM files required to run a VIC-20 system.
 </span><span class="kw">pub struct </span>Vic20SystemRoms {
@@ -533,15 +560,15 @@
   <span class="kw">pub </span>mapping: KeyMappingStrategy,
 }
 
-<span class="doccomment">/// The VIC-20 system by Commodore.
-</span><span class="kw">pub struct </span>Vic20SystemFactory;
+<span class="doccomment">/// A factory for creating a VIC-20 system.
+</span><span class="kw">pub struct </span>Vic20SystemBuilder;
 
-<span class="kw">impl </span>SystemFactory&lt;Vic20SystemRoms, Vic20SystemConfig&gt; <span class="kw">for </span>Vic20SystemFactory {
-  <span class="kw">fn </span>create(
+<span class="kw">impl </span>SystemBuilder&lt;Vic20System, Vic20SystemRoms, Vic20SystemConfig&gt; <span class="kw">for </span>Vic20SystemBuilder {
+  <span class="kw">fn </span>build(
     roms: Vic20SystemRoms,
     config: Vic20SystemConfig,
     platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
-  ) -&gt; System {
+  ) -&gt; Box&lt;<span class="kw">dyn </span>System&gt; {
     <span class="kw">let </span>low_ram = BlockMemory::ram(<span class="number">0x0400</span>);
     <span class="kw">let </span>main_ram = BlockMemory::ram(<span class="number">0x0E00</span>);
 
@@ -585,11 +612,32 @@
       .map(<span class="number">0xC000</span>, Box::new(basic_rom))
       .map(<span class="number">0xE000</span>, Box::new(kernel_rom));
 
-    <span class="kw">let </span><span class="kw-2">mut </span>system = System::new(Box::new(memory), <span class="number">1_000_000</span>);
+    <span class="kw">let </span>cpu = Mos6502::new(Box::new(memory));
 
-    system.attach_dma(Box::new(VicChipDMA::new(vic_chip)));
+    Box::new(Vic20System { cpu, vic: vic_chip })
+  }
+}
 
-    system
+<span class="doccomment">/// The VIC-20 system by Commodore.
+</span><span class="kw">pub struct </span>Vic20System {
+  cpu: Mos6502,
+  vic: Rc&lt;RefCell&lt;VicChip&gt;&gt;,
+}
+
+<span class="kw">impl </span>System <span class="kw">for </span>Vic20System {
+  <span class="kw">fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; instant::Duration {
+    Duration::from_secs_f64(<span class="number">1.0 </span>/ <span class="number">1_000_000.0</span>) * <span class="self">self</span>.cpu.tick() <span class="kw">as </span>u32
+  }
+
+  <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="self">self</span>.cpu.reset();
+  }
+
+  <span class="kw">fn </span>render(<span class="kw-2">&amp;mut </span><span class="self">self</span>, framebuffer: <span class="kw-2">&amp;mut </span>[u8], _config: WindowConfig) {
+    <span class="self">self
+      </span>.vic
+      .borrow_mut()
+      .redraw_screen(<span class="kw-2">&amp;mut </span><span class="self">self</span>.cpu.memory, framebuffer);
   }
 }
 </code></pre></div>

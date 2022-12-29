@@ -240,99 +240,18 @@
 <span id="240">240</span>
 <span id="241">241</span>
 <span id="242">242</span>
-<span id="243">243</span>
-<span id="244">244</span>
-<span id="245">245</span>
-<span id="246">246</span>
-<span id="247">247</span>
-<span id="248">248</span>
-<span id="249">249</span>
-<span id="250">250</span>
-<span id="251">251</span>
-<span id="252">252</span>
-<span id="253">253</span>
-<span id="254">254</span>
-<span id="255">255</span>
-<span id="256">256</span>
-<span id="257">257</span>
-<span id="258">258</span>
-<span id="259">259</span>
-<span id="260">260</span>
-<span id="261">261</span>
-<span id="262">262</span>
-<span id="263">263</span>
-<span id="264">264</span>
-<span id="265">265</span>
-<span id="266">266</span>
-<span id="267">267</span>
-<span id="268">268</span>
-<span id="269">269</span>
-<span id="270">270</span>
-<span id="271">271</span>
-<span id="272">272</span>
-<span id="273">273</span>
-<span id="274">274</span>
-<span id="275">275</span>
-<span id="276">276</span>
-<span id="277">277</span>
-<span id="278">278</span>
-<span id="279">279</span>
-<span id="280">280</span>
-<span id="281">281</span>
-<span id="282">282</span>
-<span id="283">283</span>
-<span id="284">284</span>
-<span id="285">285</span>
-<span id="286">286</span>
-<span id="287">287</span>
-<span id="288">288</span>
-<span id="289">289</span>
-<span id="290">290</span>
-<span id="291">291</span>
-<span id="292">292</span>
-<span id="293">293</span>
-<span id="294">294</span>
-<span id="295">295</span>
-<span id="296">296</span>
-<span id="297">297</span>
-<span id="298">298</span>
-<span id="299">299</span>
-<span id="300">300</span>
-<span id="301">301</span>
-<span id="302">302</span>
-<span id="303">303</span>
-<span id="304">304</span>
-<span id="305">305</span>
-<span id="306">306</span>
-<span id="307">307</span>
-<span id="308">308</span>
-<span id="309">309</span>
-<span id="310">310</span>
-<span id="311">311</span>
-<span id="312">312</span>
-<span id="313">313</span>
-<span id="314">314</span>
-<span id="315">315</span>
-<span id="316">316</span>
-<span id="317">317</span>
-<span id="318">318</span>
-<span id="319">319</span>
-<span id="320">320</span>
-<span id="321">321</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState};
 <span class="kw">mod </span>keyboard;
-<span class="kw">use </span><span class="kw">crate</span>::platform::{
-  Color, JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig,
-};
-<span class="kw">use </span><span class="kw">crate</span>::system::System;
+<span class="kw">use </span><span class="kw">crate</span>::platform::{JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig};
+<span class="kw">use </span><span class="kw">crate</span>::systems::System;
+<span class="kw">use </span><span class="kw">crate</span>::time::VariableTimeStep;
 <span class="kw">use </span>gilrs::{Button, EventType, Gilrs};
-<span class="kw">use </span>instant::Instant;
+<span class="kw">use </span>instant::Duration;
 <span class="kw">use </span>keyboard::WinitAdapter;
 <span class="kw">use </span>pixels::{Pixels, SurfaceTexture};
 <span class="kw">use </span>rand;
 <span class="kw">use </span>std::io::Write;
 <span class="kw">use </span>std::sync::{Arc, Mutex};
-<span class="kw">use </span>std::time::Duration;
 <span class="kw">use </span>winit::dpi::LogicalSize;
 <span class="kw">use </span>winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 <span class="kw">use </span>winit::event_loop::{ControlFlow, EventLoop};
@@ -343,9 +262,7 @@
 /// This platform runs synchronously.
 </span><span class="kw">pub struct </span>WinitPlatform {
   config: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;WindowConfig&gt;&gt;&gt;,
-  pixels: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Pixels&gt;&gt;&gt;,
   provider: Arc&lt;WinitPlatformProvider&gt;,
-  dirty: Arc&lt;Mutex&lt;bool&gt;&gt;,
   key_state: Arc&lt;Mutex&lt;KeyState&lt;VirtualKeyCode&gt;&gt;&gt;,
   joystick_state: Arc&lt;Mutex&lt;JoystickState&gt;&gt;,
 }
@@ -353,22 +270,16 @@
 <span class="kw">impl </span>WinitPlatform {
   <span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
     <span class="kw">let </span>config = Arc::new(Mutex::new(<span class="prelude-val">None</span>));
-    <span class="kw">let </span>pixels = Arc::new(Mutex::new(<span class="prelude-val">None</span>));
-    <span class="kw">let </span>dirty = Arc::new(Mutex::new(<span class="bool-val">false</span>));
     <span class="kw">let </span>key_state = Arc::new(Mutex::new(KeyState::new()));
     <span class="kw">let </span>joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
 
     <span class="self">Self </span>{
       provider: Arc::new(WinitPlatformProvider::new(
         config.clone(),
-        pixels.clone(),
-        dirty.clone(),
         key_state.clone(),
         joystick_state.clone(),
       )),
       config,
-      pixels,
-      dirty,
       key_state,
       joystick_state,
     }
@@ -387,7 +298,7 @@
 }
 
 <span class="kw">impl </span>SyncPlatform <span class="kw">for </span>WinitPlatform {
-  <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>system: System) {
+  <span class="kw">fn </span>run(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>system: Box&lt;<span class="kw">dyn </span>System&gt;) {
     <span class="kw">let </span>event_loop = EventLoop::new();
 
     <span class="kw">let </span><span class="kw-2">mut </span>current_config = <span class="self">self</span>.get_config();
@@ -405,21 +316,16 @@
 
     <span class="kw">let </span>surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, <span class="kw-2">&amp;</span>window);
 
-    <span class="kw-2">*</span><span class="self">self</span>.pixels.lock().unwrap() =
-      <span class="prelude-val">Some</span>(Pixels::new(current_config.width, current_config.height, surface_texture).unwrap());
+    <span class="kw">let </span><span class="kw-2">mut </span>pixels =
+      Pixels::new(current_config.width, current_config.height, surface_texture).unwrap();
 
     <span class="kw">let </span><span class="kw-2">mut </span>input = WinitInputHelper::new();
-    <span class="kw">let </span>pixels = <span class="self">self</span>.pixels.clone();
-    <span class="kw">let </span>dirty = <span class="self">self</span>.dirty.clone();
     <span class="kw">let </span>key_state = <span class="self">self</span>.key_state.clone();
     <span class="kw">let </span>config = <span class="self">self</span>.config.clone();
 
     system.reset();
 
-    <span class="kw">let </span>start = Instant::now();
-    <span class="kw">let </span><span class="kw-2">mut </span>last_tick = start;
-    <span class="kw">let </span><span class="kw-2">mut </span>last_report = start;
-    <span class="kw">let </span><span class="kw-2">mut </span>outstanding_ticks = <span class="number">0.0</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>timer = VariableTimeStep::new(Duration::from_secs_f64(<span class="number">1.0 </span>/ <span class="number">60.0</span>));
 
     <span class="kw">let </span><span class="kw-2">mut </span>gilrs = Gilrs::new().unwrap();
     <span class="kw">let </span>joystick_state = <span class="self">self</span>.joystick_state.clone();
@@ -433,38 +339,13 @@
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(size) = input.window_resized() {
-          pixels
-            .lock()
-            .unwrap()
-            .as_mut()
-            .unwrap()
-            .resize_surface(size.width, size.height)
-            .unwrap();
+          pixels.resize_surface(size.width, size.height).unwrap();
         }
       }
 
       <span class="kw">match </span>event {
         Event::MainEventsCleared =&gt; {
-          <span class="kw">let </span>now = Instant::now();
-
-          outstanding_ticks += (now - last_tick).as_secs_f64();
-          <span class="kw">let </span><span class="kw-2">mut </span>frame_ticks = <span class="number">0.0</span>;
-
-          <span class="kw">while </span>outstanding_ticks &gt; <span class="number">0.0 </span>&amp;&amp; frame_ticks &lt; Duration::from_millis(<span class="number">30</span>).as_secs_f64() {
-            <span class="kw">let </span>ticks = system.tick();
-            outstanding_ticks -= ticks;
-            frame_ticks += ticks;
-          }
-
-          last_tick = now;
-
-          <span class="kw">if </span>now - last_report &gt; Duration::from_secs(<span class="number">1</span>) {
-            <span class="macro">println!</span>(
-              <span class="string">&quot;cycles per second: {}&quot;</span>,
-              system.get_info().cycle_count <span class="kw">as </span>f64 / (now - start).as_secs_f64()
-            );
-            last_report = now;
-          }
+          timer.do_update(<span class="kw-2">&amp;mut </span>|| system.tick());
 
           {
             <span class="kw">let </span><span class="kw-2">mut </span>joystick_state = joystick_state.lock().unwrap();
@@ -501,7 +382,6 @@
 
             <span class="kw">if </span>new_config != current_config {
               current_config = new_config;
-              <span class="kw-2">*</span>dirty.lock().unwrap() = <span class="bool-val">true</span>;
 
               window.set_inner_size(LogicalSize::new(
                 new_config.width <span class="kw">as </span>f64 * new_config.scale,
@@ -513,20 +393,17 @@
               <span class="kw">let </span>surface_texture =
                 SurfaceTexture::new(inner_size.width, inner_size.height, <span class="kw-2">&amp;</span>window);
 
-              <span class="kw-2">*</span>pixels.lock().unwrap() =
-                <span class="prelude-val">Some</span>(Pixels::new(new_config.width, new_config.height, surface_texture).unwrap());
+              pixels = Pixels::new(new_config.width, new_config.height, surface_texture).unwrap();
             }
           }
 
-          <span class="kw">if </span><span class="kw-2">*</span>dirty.lock().unwrap() {
-            window.request_redraw();
-          }
+          window.request_redraw();
 
-          <span class="kw-2">*</span>control_flow = ControlFlow::WaitUntil(now + Duration::from_millis(<span class="number">17</span>));
-        }
+          <span class="comment">// TODO: vsync?
+        </span>}
         Event::RedrawRequested(<span class="kw">_</span>) =&gt; {
-          <span class="kw-2">*</span>dirty.lock().unwrap() = <span class="bool-val">false</span>;
-          pixels.lock().unwrap().as_ref().unwrap().render().unwrap();
+          system.render(pixels.get_frame_mut(), config.lock().unwrap().unwrap());
+          pixels.render().unwrap();
         }
         Event::WindowEvent { event, .. } =&gt; <span class="kw">match </span>event {
           WindowEvent::KeyboardInput {
@@ -556,8 +433,6 @@
 
 <span class="kw">pub struct </span>WinitPlatformProvider {
   config: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;WindowConfig&gt;&gt;&gt;,
-  pixels: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Pixels&gt;&gt;&gt;,
-  dirty: Arc&lt;Mutex&lt;bool&gt;&gt;,
   key_state: Arc&lt;Mutex&lt;KeyState&lt;VirtualKeyCode&gt;&gt;&gt;,
   joystick_state: Arc&lt;Mutex&lt;JoystickState&gt;&gt;,
 }
@@ -565,53 +440,20 @@
 <span class="kw">impl </span>WinitPlatformProvider {
   <span class="kw">pub fn </span>new(
     config: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;WindowConfig&gt;&gt;&gt;,
-    pixels: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;Pixels&gt;&gt;&gt;,
-    dirty: Arc&lt;Mutex&lt;bool&gt;&gt;,
     key_state: Arc&lt;Mutex&lt;KeyState&lt;VirtualKeyCode&gt;&gt;&gt;,
     joystick_state: Arc&lt;Mutex&lt;JoystickState&gt;&gt;,
   ) -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{
       config,
-      pixels,
-      dirty,
       key_state,
       joystick_state,
     }
-  }
-  <span class="kw">fn </span>get_config(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; WindowConfig {
-    <span class="kw">let </span>config = <span class="self">self</span>.config.lock().unwrap();
-    config.expect(<span class="string">&quot;WindowConfig not set&quot;</span>)
   }
 }
 
 <span class="kw">impl </span>PlatformProvider <span class="kw">for </span>WinitPlatformProvider {
   <span class="kw">fn </span>request_window(<span class="kw-2">&amp;</span><span class="self">self</span>, config: WindowConfig) {
     <span class="kw-2">*</span><span class="self">self</span>.config.lock().unwrap() = <span class="prelude-val">Some</span>(config);
-  }
-
-  <span class="kw">fn </span>set_pixel(<span class="kw-2">&amp;</span><span class="self">self</span>, x: u32, y: u32, color: Color) {
-    <span class="kw">let </span><span class="kw-2">mut </span>pixels = <span class="self">self</span>.pixels.lock().unwrap();
-    <span class="kw">let </span>frame = pixels.as_mut().unwrap().get_frame_mut();
-    <span class="kw">let </span>config = <span class="self">self</span>.get_config();
-
-    <span class="kw">if </span>(x &gt;= config.width) || (y &gt;= config.height) {
-      <span class="macro">println!</span>(
-        <span class="string">&quot;Invalid pixel coordinates ({}, {}) for dimensions ({}, {})&quot;</span>,
-        x, y, config.width, config.height
-      );
-      <span class="kw">return</span>;
-    }
-
-    <span class="kw">let </span>index = ((y * config.width + x) * <span class="number">4</span>) <span class="kw">as </span>usize;
-    <span class="kw">if </span>index + <span class="number">4 </span>&gt; frame.len() {
-      <span class="comment">// Race condition: the app has just requested a new window size, but the
-      // framebuffer hasn&#39;t been resized yet
-      </span><span class="kw-2">*</span><span class="self">self</span>.dirty.lock().unwrap() = <span class="bool-val">true</span>;
-      <span class="kw">return</span>;
-    }
-    <span class="kw">let </span>pixel = <span class="kw-2">&amp;mut </span>frame[index..(index + <span class="number">4</span>)];
-    pixel.copy_from_slice(<span class="kw-2">&amp;</span>color.to_rgba());
-    <span class="kw-2">*</span><span class="self">self</span>.dirty.lock().unwrap() = <span class="bool-val">true</span>;
   }
 
   <span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt; {

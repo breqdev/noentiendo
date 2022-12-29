@@ -514,23 +514,7 @@
 <span id="514">514</span>
 <span id="515">515</span>
 <span id="516">516</span>
-<span id="517">517</span>
-<span id="518">518</span>
-<span id="519">519</span>
-<span id="520">520</span>
-<span id="521">521</span>
-<span id="522">522</span>
-<span id="523">523</span>
-<span id="524">524</span>
-<span id="525">525</span>
-<span id="526">526</span>
-<span id="527">527</span>
-<span id="528">528</span>
-<span id="529">529</span>
-<span id="530">530</span>
-<span id="531">531</span>
-<span id="532">532</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span>std::cell::RefCell;
 <span class="kw">use </span>std::rc::Rc;
@@ -642,9 +626,6 @@
   border_color: u8,
   reverse_field: bool,
   background_color: u8,
-
-  <span class="comment">// Misc
-  </span>last_draw_clock: u64,
 }
 
 <span class="kw">impl </span>VicChip {
@@ -679,7 +660,6 @@
       border_color: <span class="number">3</span>,
       reverse_field: <span class="bool-val">true</span>,
       background_color: <span class="number">1</span>,
-      last_draw_clock: <span class="number">0</span>,
     }
   }
 
@@ -847,13 +827,15 @@
   }
 
   <span class="doccomment">/// Redraw the character at the specified address.
-  </span><span class="kw">fn </span>redraw(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;) {
+  </span><span class="kw">fn </span>redraw(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;, framebuffer: <span class="kw-2">&amp;mut </span>[u8]) {
     <span class="kw">if </span>address &gt;= (<span class="self">self</span>.row_count <span class="kw">as </span>u16 * <span class="self">self</span>.column_count <span class="kw">as </span>u16) {
       <span class="kw">return</span>; <span class="comment">// ignore writes to the extra bytes
     </span>}
 
     <span class="kw">let </span>column = (address % <span class="self">self</span>.column_count <span class="kw">as </span>u16) <span class="kw">as </span>u32;
     <span class="kw">let </span>row = (address / <span class="self">self</span>.column_count <span class="kw">as </span>u16) <span class="kw">as </span>u32;
+    <span class="kw">let </span>base_column = column * <span class="number">8</span>;
+    <span class="kw">let </span>base_row = row * <span class="number">8</span>;
 
     <span class="kw">let </span>value = <span class="self">self</span>.read_vram(address, memory);
     <span class="kw">let </span>color = <span class="self">self</span>.read_color(address, memory);
@@ -872,9 +854,11 @@
             <span class="self">self</span>.get_background()
           };
 
-          <span class="self">self
-            </span>.platform
-            .set_pixel(column * char_width + pixel, row * char_height + line, color);
+          <span class="kw">let </span>x = base_column + pixel;
+          <span class="kw">let </span>y = base_row + line;
+          <span class="kw">let </span>index = (y * (<span class="self">self</span>.column_count <span class="kw">as </span>u32 * <span class="number">8</span>) + x) <span class="kw">as </span>usize * <span class="number">4</span>;
+          <span class="kw">let </span>pixel = <span class="kw-2">&amp;mut </span>framebuffer[index..(index + <span class="number">4</span>)];
+          pixel.copy_from_slice(<span class="kw-2">&amp;</span>color.to_rgba());
         }
       }
     } <span class="kw">else </span>{
@@ -892,15 +876,26 @@
             <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
           };
 
-          <span class="self">self
-            </span>.platform
-            .set_pixel(column * <span class="number">8 </span>+ (pixel * <span class="number">2</span>), row * char_height + line, color);
-          <span class="self">self</span>.platform.set_pixel(
-            column * <span class="number">8 </span>+ (pixel * <span class="number">2</span>) + <span class="number">1</span>,
-            row * char_height + line,
-            color,
-          );
+          <span class="kw">let </span>x = column * <span class="number">8 </span>+ (pixel * <span class="number">2</span>);
+          <span class="kw">let </span>y = row * char_height + line;
+          <span class="kw">let </span>index = ((y * <span class="self">self</span>.column_count <span class="kw">as </span>u32 + x) * <span class="number">4</span>) <span class="kw">as </span>usize;
+          <span class="kw">let </span>pixel = <span class="kw-2">&amp;mut </span>framebuffer[index..(index + <span class="number">4</span>)];
+          pixel.copy_from_slice(<span class="kw-2">&amp;</span>color.to_rgba());
+
+          <span class="kw">let </span>index = ((y * <span class="self">self</span>.column_count <span class="kw">as </span>u32 + x + <span class="number">1</span>) * <span class="number">4</span>) <span class="kw">as </span>usize;
+          <span class="kw">let </span>pixel = <span class="kw-2">&amp;mut </span>framebuffer[index..(index + <span class="number">4</span>)];
+          pixel.copy_from_slice(<span class="kw-2">&amp;</span>color.to_rgba());
         }
+      }
+    }
+  }
+
+  <span class="doccomment">/// Redraw the entire screen.
+  </span><span class="kw">pub fn </span>redraw_screen(<span class="kw-2">&amp;mut </span><span class="self">self</span>, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;, framebuffer: <span class="kw-2">&amp;mut </span>[u8]) {
+    <span class="kw">for </span>row <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.row_count {
+      <span class="kw">for </span>column <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.column_count {
+        <span class="kw">let </span>address = (row <span class="kw">as </span>u16) * (<span class="self">self</span>.column_count <span class="kw">as </span>u16) + (column <span class="kw">as </span>u16);
+        <span class="self">self</span>.redraw(address, memory, framebuffer);
       }
     }
   }
@@ -1016,33 +1011,6 @@
 
   <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
     ActiveInterrupt::None
-  }
-}
-
-<span class="doccomment">/// Handles drawing characters by reading directly from the main memory.
-</span><span class="kw">pub struct </span>VicChipDMA {
-  chip: Rc&lt;RefCell&lt;VicChip&gt;&gt;,
-}
-
-<span class="kw">impl </span>VicChipDMA {
-  <span class="kw">pub fn </span>new(chip: Rc&lt;RefCell&lt;VicChip&gt;&gt;) -&gt; <span class="self">Self </span>{
-    <span class="self">Self </span>{ chip }
-  }
-}
-
-<span class="kw">impl </span>DMA <span class="kw">for </span>VicChipDMA {
-  <span class="kw">fn </span>dma(<span class="kw-2">&amp;mut </span><span class="self">self</span>, memory: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>Memory&gt;, info: <span class="kw-2">&amp;</span>SystemInfo) {
-    <span class="kw">let </span><span class="kw-2">mut </span>chip = <span class="self">self</span>.chip.borrow_mut();
-
-    <span class="kw">if </span>(info.cycle_count - chip.last_draw_clock) &lt; <span class="number">50_000 </span>{
-      <span class="kw">return</span>;
-    }
-
-    chip.last_draw_clock = info.cycle_count;
-
-    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..(chip.column_count <span class="kw">as </span>u16 * chip.row_count <span class="kw">as </span>u16) {
-      chip.redraw(i, memory);
-    }
   }
 }
 

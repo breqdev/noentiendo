@@ -79,16 +79,16 @@
 <span id="79">79</span>
 <span id="80">80</span>
 <span id="81">81</span>
-<span id="82">82</span>
-<span id="83">83</span>
 </pre><pre class="rust"><code><span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">use </span>libnoentiendo::{
   keyboard::KeyMappingStrategy,
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
   roms::DiskLoadable,
   systems::{
-    BrookeSystemFactory, EasySystemFactory, KlausSystemFactory, PetSystemFactory, PetSystemRoms,
-    SystemFactory, Vic20SystemFactory, Vic20SystemRoms,
+    basic::BasicSystemBuilder, c64::C64SystemBuilder, c64::C64SystemConfig, c64::C64SystemRoms,
+    easy::Easy6502SystemBuilder, klaus::KlausSystemBuilder, pet::PetSystemBuilder,
+    pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder, vic::Vic20SystemConfig,
+    vic::Vic20SystemRoms, SystemBuilder,
   },
 };
 
@@ -114,14 +114,10 @@
 
 <span class="attribute">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">fn </span>main() {
-  <span class="kw">use </span>libnoentiendo::systems::{
-    pet::PetSystemConfig, vic::Vic20SystemConfig, C64SystemConfig, C64SystemFactory, C64SystemRoms,
-  };
-
   <span class="kw">let </span>args = Args::parse();
 
   <span class="kw">let </span><span class="kw-2">mut </span>platform: Box&lt;<span class="kw">dyn </span>SyncPlatform&gt; = <span class="kw">match </span>args.platform.as_str() {
-    <span class="string">&quot;text&quot; </span>=&gt; Box::new(TextPlatform::new(<span class="bool-val">false</span>)),
+    <span class="string">&quot;text&quot; </span>=&gt; Box::new(TextPlatform::new()),
     <span class="string">&quot;winit&quot; </span>=&gt; Box::new(WinitPlatform::new()),
     <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Unknown platform&quot;</span>),
   };
@@ -138,15 +134,15 @@
   };
 
   <span class="kw">let </span>system = <span class="kw">match </span>args.system.as_str() {
-    <span class="string">&quot;brooke&quot; </span>=&gt; BrookeSystemFactory::create(romfile.unwrap(), (), platform.provider()),
-    <span class="string">&quot;easy&quot; </span>=&gt; EasySystemFactory::create(romfile.unwrap(), (), platform.provider()),
-    <span class="string">&quot;klaus&quot; </span>=&gt; KlausSystemFactory::create(romfile.unwrap(), (), platform.provider()),
-    <span class="string">&quot;pet&quot; </span>=&gt; PetSystemFactory::create(
+    <span class="string">&quot;basic&quot; </span>=&gt; BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    <span class="string">&quot;easy&quot; </span>=&gt; Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    <span class="string">&quot;klaus&quot; </span>=&gt; KlausSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    <span class="string">&quot;pet&quot; </span>=&gt; PetSystemBuilder::build(
       PetSystemRoms::from_disk(),
       PetSystemConfig { mapping },
       platform.provider(),
     ),
-    <span class="string">&quot;vic&quot; </span>=&gt; Vic20SystemFactory::create(
+    <span class="string">&quot;vic&quot; </span>=&gt; Vic20SystemBuilder::build(
       Vic20SystemRoms::from_disk(<span class="kw">match </span>romfile {
         <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(args.rom_path.as_str()),
         <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
@@ -154,7 +150,7 @@
       Vic20SystemConfig { mapping },
       platform.provider(),
     ),
-    <span class="string">&quot;c64&quot; </span>=&gt; C64SystemFactory::create(
+    <span class="string">&quot;c64&quot; </span>=&gt; C64SystemBuilder::build(
       C64SystemRoms::from_disk(),
       C64SystemConfig { mapping },
       platform.provider(),

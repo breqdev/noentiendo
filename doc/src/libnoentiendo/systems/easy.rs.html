@@ -133,88 +133,18 @@
 <span id="133">133</span>
 <span id="134">134</span>
 <span id="135">135</span>
-<span id="136">136</span>
-<span id="137">137</span>
-<span id="138">138</span>
-<span id="139">139</span>
-<span id="140">140</span>
-<span id="141">141</span>
-<span id="142">142</span>
-<span id="143">143</span>
-<span id="144">144</span>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::KeyPosition;
+</pre><pre class="rust"><code><span class="kw">use </span>instant::Duration;
+
+<span class="kw">use </span><span class="kw">crate</span>::cpu::{MemoryIO, Mos6502};
+<span class="kw">use </span><span class="kw">crate</span>::keyboard::KeyPosition;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Color, PlatformProvider, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
-<span class="kw">use </span><span class="kw">crate</span>::system::System;
-<span class="kw">use </span><span class="kw">crate</span>::systems::SystemFactory;
+<span class="kw">use </span><span class="kw">crate</span>::systems::{System, SystemBuilder};
 <span class="kw">use </span>std::sync::Arc;
 
-<span class="doccomment">/// VRAM based around the Easy6502 display system from
-/// &lt;https://skilldrick.github.io/easy6502/&gt;.
-/// This is a 32x32 pixel display with 16 colors. Writing a byte to an
-/// address in the VRAM will set the color of the pixel at that address
-/// to the color in the palette at the index of the byte.
-</span><span class="kw">struct </span>EasyVram {
-  width: u32,
-  height: u32,
-  data: Vec&lt;u8&gt;,
-  platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
-  palette: Vec&lt;Color&gt;,
-}
-
+<span class="kw">const </span>WIDTH: u32 = <span class="number">32</span>;
 <span class="kw">const </span>SCALE: u32 = <span class="number">8</span>;
-
-<span class="kw">impl </span>EasyVram {
-  <span class="kw">pub fn </span>new(width: u32, height: u32, platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; <span class="self">Self </span>{
-    platform.request_window(WindowConfig::new(width, height, SCALE <span class="kw">as </span>f64));
-
-    <span class="kw">let </span>palette = [
-      <span class="number">0x000000</span>, <span class="number">0xffffff</span>, <span class="number">0x880000</span>, <span class="number">0xaaffee</span>, <span class="number">0xcc44cc</span>, <span class="number">0x00cc55</span>, <span class="number">0x0000aa</span>, <span class="number">0xeeee77</span>, <span class="number">0xdd8855</span>,
-      <span class="number">0x664400</span>, <span class="number">0xff7777</span>, <span class="number">0x333333</span>, <span class="number">0x777777</span>, <span class="number">0xaaff66</span>, <span class="number">0x0088ff</span>, <span class="number">0xbbbbbb</span>,
-    ];
-
-    <span class="kw">let </span>palette = palette
-      .iter()
-      .map(|<span class="kw-2">&amp;</span>c| Color::new((c &gt;&gt; <span class="number">16</span>) <span class="kw">as </span>u8, (c &gt;&gt; <span class="number">8</span>) <span class="kw">as </span>u8, c <span class="kw">as </span>u8))
-      .collect();
-
-    <span class="self">Self </span>{
-      width,
-      height,
-      data: <span class="macro">vec!</span>[<span class="number">0</span>; (width * height) <span class="kw">as </span>usize],
-      platform,
-      palette,
-    }
-  }
-}
-
-<span class="kw">impl </span>Memory <span class="kw">for </span>EasyVram {
-  <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16) -&gt; u8 {
-    <span class="self">self</span>.data[((address <span class="kw">as </span>u32) % (<span class="self">self</span>.width * <span class="self">self</span>.height)) <span class="kw">as </span>usize]
-  }
-
-  <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
-    <span class="kw">let </span>index = ((address <span class="kw">as </span>u32) % (<span class="self">self</span>.width * <span class="self">self</span>.height)) <span class="kw">as </span>usize;
-    <span class="self">self</span>.data[index] = value;
-
-    <span class="kw">let </span>x_base = (index % <span class="self">self</span>.width <span class="kw">as </span>usize) <span class="kw">as </span>u32;
-    <span class="kw">let </span>y_base = (index / <span class="self">self</span>.width <span class="kw">as </span>usize) <span class="kw">as </span>u32;
-    <span class="kw">let </span>color = <span class="self">self</span>.palette[(<span class="self">self</span>.data[index] <span class="kw">as </span>usize) % <span class="self">self</span>.palette.len()];
-
-    <span class="self">self</span>.platform.set_pixel(x_base, y_base, color);
-  }
-
-  <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
-    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.data.len() {
-      <span class="self">self</span>.data[i] = <span class="number">0</span>;
-    }
-  }
-
-  <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; ActiveInterrupt {
-    ActiveInterrupt::None
-  }
-}
 
 <span class="doccomment">/// Memory-mapped I/O for the Easy6502 system.
 /// &lt;https://skilldrick.github.io/easy6502/&gt;.
@@ -262,16 +192,17 @@
   }
 }
 
-<span class="doccomment">/// A port of the &quot;Easy6502&quot; system from
-/// &lt;https://skilldrick.github.io/easy6502/&gt;
-</span><span class="kw">pub struct </span>EasySystemFactory;
+<span class="doccomment">/// A factory for the Easy6502 system.
+</span><span class="kw">pub struct </span>Easy6502SystemBuilder;
 
-<span class="kw">impl </span>SystemFactory&lt;RomFile, ()&gt; <span class="kw">for </span>EasySystemFactory {
-  <span class="kw">fn </span>create(rom: RomFile, _config: (), platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; System {
+<span class="kw">impl </span>SystemBuilder&lt;Easy6502System, RomFile, ()&gt; <span class="kw">for </span>Easy6502SystemBuilder {
+  <span class="kw">fn </span>build(rom: RomFile, _config: (), platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;) -&gt; Box&lt;<span class="kw">dyn </span>System&gt; {
+    platform.request_window(WindowConfig::new(WIDTH, WIDTH, SCALE <span class="kw">as </span>f64));
+
     <span class="kw">let </span>zero_page = BlockMemory::ram(<span class="number">0x0100</span>);
     <span class="kw">let </span>io = EasyIO::new(platform.clone());
     <span class="kw">let </span>stack_ram = BlockMemory::ram(<span class="number">0x0100</span>);
-    <span class="kw">let </span>vram = EasyVram::new(<span class="number">32</span>, <span class="number">32</span>, platform);
+    <span class="kw">let </span>vram = BlockMemory::ram(<span class="number">0x0400</span>);
     <span class="kw">let </span>high_ram = BlockMemory::ram(<span class="number">0x7A00</span>);
     <span class="kw">let </span>rom = BlockMemory::from_file(<span class="number">0x8000</span>, rom);
 
@@ -283,7 +214,58 @@
       .map(<span class="number">0x0600</span>, Box::new(high_ram))
       .map(<span class="number">0x8000</span>, Box::new(rom));
 
-    System::new(Box::new(memory), <span class="number">20_000</span>)
+    <span class="kw">let </span>cpu = Mos6502::new(Box::new(memory));
+
+    Box::new(Easy6502System { cpu })
+  }
+}
+
+<span class="doccomment">/// A port of the &quot;Easy6502&quot; system from
+/// &lt;https://skilldrick.github.io/easy6502/&gt;
+</span><span class="kw">pub struct </span>Easy6502System {
+  cpu: Mos6502,
+}
+
+<span class="kw">impl </span>System <span class="kw">for </span>Easy6502System {
+  <span class="kw">fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Duration {
+    Duration::from_secs_f64(<span class="number">1.0 </span>/ <span class="number">20_000.0</span>) * <span class="self">self</span>.cpu.tick().into()
+  }
+
+  <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+    <span class="self">self</span>.cpu.reset();
+  }
+
+  <span class="kw">fn </span>render(<span class="kw-2">&amp;mut </span><span class="self">self</span>, framebuffer: <span class="kw-2">&amp;mut </span>[u8], config: WindowConfig) {
+    <span class="kw">for </span>y <span class="kw">in </span><span class="number">0</span>..WIDTH {
+      <span class="kw">for </span>x <span class="kw">in </span><span class="number">0</span>..WIDTH {
+        <span class="kw">let </span>index = (y * WIDTH + x) <span class="kw">as </span>u16;
+        <span class="kw">let </span>color = <span class="self">self</span>.cpu.read(<span class="number">0x0200 </span>+ index);
+
+        <span class="kw">let </span>color = <span class="kw">match </span>color &amp; <span class="number">0x0F </span>{
+          <span class="number">0 </span>=&gt; Color::new(<span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>),
+          <span class="number">1 </span>=&gt; Color::new(<span class="number">0xFF</span>, <span class="number">0xFF</span>, <span class="number">0xFF</span>),
+          <span class="number">2 </span>=&gt; Color::new(<span class="number">0x88</span>, <span class="number">0x00</span>, <span class="number">0x00</span>),
+          <span class="number">3 </span>=&gt; Color::new(<span class="number">0xAA</span>, <span class="number">0xFF</span>, <span class="number">0xEE</span>),
+          <span class="number">4 </span>=&gt; Color::new(<span class="number">0xCC</span>, <span class="number">0x44</span>, <span class="number">0xCC</span>),
+          <span class="number">5 </span>=&gt; Color::new(<span class="number">0x00</span>, <span class="number">0xCC</span>, <span class="number">0x55</span>),
+          <span class="number">6 </span>=&gt; Color::new(<span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0xAA</span>),
+          <span class="number">7 </span>=&gt; Color::new(<span class="number">0xEE</span>, <span class="number">0xEE</span>, <span class="number">0x77</span>),
+          <span class="number">8 </span>=&gt; Color::new(<span class="number">0xDD</span>, <span class="number">0x88</span>, <span class="number">0x55</span>),
+          <span class="number">9 </span>=&gt; Color::new(<span class="number">0x66</span>, <span class="number">0x44</span>, <span class="number">0x00</span>),
+          <span class="number">10 </span>=&gt; Color::new(<span class="number">0xFF</span>, <span class="number">0x77</span>, <span class="number">0x77</span>),
+          <span class="number">11 </span>=&gt; Color::new(<span class="number">0x33</span>, <span class="number">0x33</span>, <span class="number">0x33</span>),
+          <span class="number">12 </span>=&gt; Color::new(<span class="number">0x77</span>, <span class="number">0x77</span>, <span class="number">0x77</span>),
+          <span class="number">13 </span>=&gt; Color::new(<span class="number">0xAA</span>, <span class="number">0xFF</span>, <span class="number">0x66</span>),
+          <span class="number">14 </span>=&gt; Color::new(<span class="number">0x00</span>, <span class="number">0x88</span>, <span class="number">0xFF</span>),
+          <span class="number">15 </span>=&gt; Color::new(<span class="number">0xBB</span>, <span class="number">0xBB</span>, <span class="number">0xBB</span>),
+          <span class="kw">_ </span>=&gt; Color::new(<span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>),
+        };
+
+        <span class="kw">let </span>index = ((y * config.width + x) * <span class="number">4</span>) <span class="kw">as </span>usize;
+        <span class="kw">let </span>pixel = <span class="kw-2">&amp;mut </span>framebuffer[index..(index + <span class="number">4</span>)];
+        pixel.copy_from_slice(<span class="kw-2">&amp;</span>color.to_rgba());
+      }
+    }
   }
 }
 </code></pre></div>

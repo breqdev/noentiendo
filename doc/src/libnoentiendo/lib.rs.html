@@ -83,20 +83,14 @@
 <span id="83">83</span>
 <span id="84">84</span>
 <span id="85">85</span>
-<span id="86">86</span>
-<span id="87">87</span>
 </pre><pre class="rust"><code><span class="attribute">#![doc = <span class="macro">include_str!</span>(<span class="string">&quot;../README.md&quot;</span>)]
 #![allow(clippy::new_without_default)]
 
-</span><span class="kw">mod </span>execute;
-<span class="kw">mod </span>fetch;
-<span class="kw">mod </span>registers;
-<span class="doccomment">/// A [`system::System`] consists of a 6502 CPU and some attached _memory_. All computer peripherals are exposed to the CPU over the memory interface (i.e., _memory-mapped I/O_).
-</span><span class="kw">pub mod </span>system;
+</span><span class="doccomment">/// The [`cpu::Mos6502`] represents a 6502 processor and associated memory.
+</span><span class="kw">pub mod </span>cpu;
 
 <span class="doccomment">/// A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts. The [`memory`] module provides implementations for various types of memory and other memory-mapped devices. Mappings are handled using [`memory::BranchMemory`].
 ///
-/// Off-cycle memory access schemes such as the one used in the VIC-20 are handled using the [`memory::DMA`] trait. Systems may have objects which implement this trait attached, and these objects will have a chance to access memory in between clock cycles.
 </span><span class="kw">pub mod </span>memory;
 
 <span class="doccomment">/// Various representations of keyboard scancodes are required in different parts of the codebase. Each platform typically has its own definition of a scancode (e.g. JavaScript&#39;s `event.code` or Winit&#39;s `VirtualKeyCode`), and each emulated system has a different set of keys (e.g. the `Commodore` key on the VIC-20 or the standalone `&quot;` key on the PET).
@@ -119,8 +113,10 @@
 <span class="doccomment">/// ROM file loading and unloading is different on different platforms: desktop platforms typically load ROMs from a file, while WebAssembly platforms need to load ROMs from a `Uint8Array`. ROM file definition and loading is handled in the [`roms`] module, with specific [`roms::DiskLoadable`] and `roms::JsValueLoadable` traits for these two cases. Loaded ROMs are represented with a [`roms::RomFile`] object, which can be passed to [`memory::BlockMemory::from_file`].
 </span><span class="kw">pub mod </span>roms;
 
-<span class="doccomment">/// Systems are created by a [`systems::SystemFactory`]. A system is created with some roms, configuration, and platform. For instance, the `create` implementation on [`systems::PetSystemFactory`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc&lt;dyn PlatformProvider&gt;`.
+<span class="doccomment">/// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `build` implementation on [`systems::pet::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc&lt;dyn PlatformProvider&gt;`.
 </span><span class="kw">pub mod </span>systems;
+
+<span class="kw">mod </span>time;
 
 <span class="attribute">#[cfg(target_arch = <span class="string">&quot;wasm32&quot;</span>)]
 </span><span class="kw">extern crate </span>console_error_panic_hook;
@@ -137,8 +133,8 @@
   <span class="kw">use </span>keyboard::KeyMappingStrategy;
   <span class="kw">use </span>platform::{AsyncPlatform, CanvasPlatform, Platform};
   <span class="kw">use </span>systems::{
-    pet::PetSystemConfig, vic::Vic20SystemConfig, PetSystemFactory, PetSystemRoms, SystemFactory,
-    Vic20SystemFactory, Vic20SystemRoms,
+    pet::PetSystemBuilder, pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder,
+    vic::Vic20SystemConfig, vic::Vic20SystemRoms, SystemBuilder,
   };
   <span class="kw">use </span>wasm_bindgen_futures::spawn_local;
 
@@ -151,14 +147,14 @@
   <span class="kw">let </span>vic_roms = Vic20SystemRoms::from_jsvalue(<span class="kw-2">&amp;</span>vic_object);
 
   <span class="kw">let </span>system = <span class="kw">match </span>system.as_string().unwrap().as_str() {
-    <span class="string">&quot;pet&quot; </span>=&gt; PetSystemFactory::create(
+    <span class="string">&quot;pet&quot; </span>=&gt; PetSystemBuilder::build(
       pet_roms,
       PetSystemConfig {
         mapping: KeyMappingStrategy::Symbolic,
       },
       platform.provider(),
     ),
-    <span class="string">&quot;vic&quot; </span>=&gt; Vic20SystemFactory::create(
+    <span class="string">&quot;vic&quot; </span>=&gt; Vic20SystemBuilder::build(
       vic_roms,
       Vic20SystemConfig {
         mapping: KeyMappingStrategy::Symbolic,

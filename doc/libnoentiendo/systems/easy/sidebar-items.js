@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["EasySystemFactory","A port of the “Easy6502” system from https://skilldrick.github.io/easy6502/"]]};
+window.SIDEBAR_ITEMS = {"struct":[["Easy6502System","A port of the “Easy6502” system from https://skilldrick.github.io/easy6502/"],["Easy6502SystemBuilder","A factory for the Easy6502 system."]]};
