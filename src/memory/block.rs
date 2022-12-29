@@ -72,7 +72,7 @@ impl Memory for BlockMemory {
     }
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

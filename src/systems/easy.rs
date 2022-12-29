@@ -52,7 +52,7 @@ impl Memory for EasyIO {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

@@ -57,7 +57,7 @@ impl Port for PetPia1PortA {
     self.keyboard_row.set(value & 0b1111);
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> bool {
     // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
     let min_elapsed = 0; // TODO: fix
 
@@ -131,7 +131,7 @@ impl Port for PetPia1PortB {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 

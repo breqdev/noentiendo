@@ -45,8 +45,8 @@ impl PortRegisters {
   }
 
   /// Poll the underlying port for interrupts.
-  pub fn poll(&mut self, info: &SystemInfo) -> bool {
-    self.port.poll(info)
+  pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
+    self.port.poll(cycles, info)
   }
 
   /// Reset the port to its initial state.
@@ -93,7 +93,9 @@ pub struct Timer {
   latch: u16,
 
   /// The current value of the timer's internal counter.
-  counter: u16,
+  /// In reality, this is a 16-bit unsigned register. We store it as a 32-bit
+  /// signed integer since polling the timer does not happen at every cycle.
+  counter: i32,
 
   /// Whether the timer's interrupt flag is set.
   interrupt: bool,
@@ -125,10 +127,10 @@ impl Timer {
   }
 
   /// Poll the timer (decrement the counter, fire the interrupt if necessary).
-  pub fn poll(&mut self, _info: &SystemInfo) -> bool {
-    if self.counter == 0 {
+  pub fn poll(&mut self, cycles: u32, _info: &SystemInfo) -> bool {
+    if self.counter <= 0 {
       if self.continuous {
-        self.counter = self.latch
+        self.counter += self.latch as i32;
       } else {
         self.running = false;
         return false;
@@ -136,13 +138,15 @@ impl Timer {
     }
 
     if self.running {
-      self.counter = self.counter.wrapping_sub(1);
-    }
+      self.counter -= cycles as i32;
 
-    if self.counter == 0 {
-      self.interrupt = true;
-
-      true
+      if self.counter <= 0 {
+        // The counter underflowed
+        self.interrupt = true;
+        true
+      } else {
+        false
+      }
     } else {
       false
     }

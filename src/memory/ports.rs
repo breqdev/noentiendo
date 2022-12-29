@@ -12,7 +12,7 @@ pub trait Port {
 
   /// Poll the port for interrupts. A port may trigger an interrupt for any
   /// implementation-defined reason.
-  fn poll(&mut self, info: &SystemInfo) -> bool;
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool;
 
   /// Reset the port to its initial state, analogous to a system reboot.
   fn reset(&mut self);
@@ -52,7 +52,7 @@ impl Port for NullPort {
     }
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
