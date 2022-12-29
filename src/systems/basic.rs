@@ -1,9 +1,12 @@
+use instant::Duration;
+
+use crate::cpu::Mos6502;
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory};
-use crate::platform::PlatformProvider;
+use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::system::System;
-use crate::systems::SystemFactory;
+use crate::systems::{System, SystemBuilder};
+use std::io::Write;
 use std::sync::Arc;
 
 /// A Memory implementation that can be used to read from or write to
@@ -48,8 +51,8 @@ impl Memory for MappedStdIO {
       0x01 => self.provider.print(&format!("{}\n", value as char)),
       0x02 => self.provider.print(&format!("{:02X}\n", value)),
       0x03 => {
-        // print!("{}", value as char);
-        // std::io::stdout().flush().unwrap();
+        print!("{}", value as char);
+        std::io::stdout().flush().unwrap();
       }
       _ => unreachable!(),
     }
@@ -62,11 +65,11 @@ impl Memory for MappedStdIO {
   }
 }
 
-/// A system which only operates in text mode, for basic testing.
-pub struct BrookeSystemFactory;
+/// A factory for creating a BasicSystem.
+pub struct BasicSystemBuilder;
 
-impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
-  fn create(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> System {
+impl SystemBuilder<BasicSystem, RomFile, ()> for BasicSystemBuilder {
+  fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new(platform);
     let rom = BlockMemory::from_file(0x8000, rom);
@@ -76,6 +79,25 @@ impl SystemFactory<RomFile, ()> for BrookeSystemFactory {
       .map(0x4000, Box::new(io))
       .map(0x8000, Box::new(rom));
 
-    System::new(Box::new(memory), 0)
+    let cpu = Mos6502::new(Box::new(memory));
+
+    Box::new(BasicSystem { cpu })
   }
+}
+
+/// A system which only operates in text mode, for basic testing.
+pub struct BasicSystem {
+  cpu: Mos6502,
+}
+
+impl System for BasicSystem {
+  fn tick(&mut self) -> Duration {
+    Duration::from_secs_f64(1.0 / 20_000.0) * self.cpu.tick().into()
+  }
+
+  fn reset(&mut self) {
+    self.cpu.reset();
+  }
+
+  fn render(&mut self, _framebuffer: &mut [u8], _config: WindowConfig) {}
 }

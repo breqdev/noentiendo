@@ -1,19 +1,23 @@
-use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-use crate::memory::via::VIA;
+use crate::cpu::Mos6502;
+use crate::keyboard::{
+  commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+  KeyAdapter, KeyMappingStrategy, SymbolAdapter,
+};
+use crate::memory::mos652x::Via;
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
-use crate::platform::PlatformProvider;
+use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::system::System;
-use crate::systems::SystemFactory;
+use crate::systems::System;
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 
 mod chip;
 mod keyboard;
+use self::keyboard::KEYBOARD_MAPPING;
 use chip::{VicChip, VicChipIO};
-use keyboard::{Vic20KeyboardAdapter, KEYBOARD_MAPPING};
 
+use instant::Duration;
 #[cfg(target_arch = "wasm32")]
 use js_sys::Reflect;
 
@@ -26,8 +30,7 @@ use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
 
-use self::chip::VicChipDMA;
-use self::keyboard::Vic20SymbolAdapter;
+use super::SystemBuilder;
 
 /// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
@@ -93,16 +96,62 @@ impl Vic20SystemRoms {
   }
 }
 
+/// Port A on the first VIA chip.
+/// This is used to read the state from the joystick.
+pub struct VicVia1PortA {
+  platform: Arc<dyn PlatformProvider>,
+  joy_pin_3: Rc<Cell<bool>>,
+}
+
+impl VicVia1PortA {
+  pub fn new(platform: Arc<dyn PlatformProvider>) -> Self {
+    Self {
+      platform,
+      joy_pin_3: Rc::new(Cell::new(true)),
+    }
+  }
+
+  /// Return a reference to the joystick's pin 3 state.
+  pub fn get_joy_pin_3(&self) -> Rc<Cell<bool>> {
+    self.joy_pin_3.clone()
+  }
+}
+
+impl Port for VicVia1PortA {
+  fn read(&mut self) -> u8 {
+    let joystick = self.platform.get_joystick_state();
+
+    let pin_0 = !joystick.up;
+    let pin_1 = !joystick.down;
+    let pin_2 = !joystick.left;
+    self.joy_pin_3.set(!joystick.right);
+    let lightpen_fire = !joystick.fire;
+
+    (pin_0 as u8) << 2 | (pin_1 as u8) << 3 | (pin_2 as u8) << 4 | (lightpen_fire as u8) << 5
+  }
+
+  fn write(&mut self, _value: u8) {}
+
+  fn poll(&mut self, _info: &SystemInfo) -> bool {
+    false
+  }
+
+  fn reset(&mut self) {}
+}
+
 /// Port B on the second VIA chip.
-/// This is used to set the active columns on the keyboard matrix.
+/// This is used to set the active columns on the keyboard matrix,
+/// and to read the third pin of the joystick.
 pub struct VicVia2PortB {
   keyboard_col: Rc<Cell<u8>>,
+  joy_pin_3: Rc<Cell<bool>>,
 }
 
 impl VicVia2PortB {
-  pub fn new() -> Self {
+  pub fn new(joy_pin_3: Rc<Cell<bool>>) -> Self {
     Self {
       keyboard_col: Rc::new(Cell::new(0)),
+      joy_pin_3,
     }
   }
 
@@ -114,11 +163,11 @@ impl VicVia2PortB {
 
 impl Port for VicVia2PortB {
   fn read(&mut self) -> u8 {
-    self.keyboard_col.get()
+    self.keyboard_col.get() & 0x7F | (self.joy_pin_3.get() as u8) << 7
   }
 
   fn write(&mut self, value: u8) {
-    self.keyboard_col.set(value);
+    self.keyboard_col.set(value & 0x7F);
   }
 
   fn poll(&mut self, _info: &SystemInfo) -> bool {
@@ -159,9 +208,9 @@ impl Port for VicVia2PortA {
     let mut value = 0b1111_1111;
 
     let state = match &self.mapping_strategy {
-      KeyMappingStrategy::Physical => Vic20KeyboardAdapter::map(&self.platform.get_key_state()),
+      KeyMappingStrategy::Physical => C64KeyboardAdapter::map(&self.platform.get_key_state()),
       KeyMappingStrategy::Symbolic => {
-        Vic20SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
+        C64SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
       }
     };
 
@@ -190,25 +239,26 @@ pub struct Vic20SystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// The VIC-20 system by Commodore.
-pub struct Vic20SystemFactory;
+/// A factory for creating a VIC-20 system.
+pub struct Vic20SystemBuilder;
 
-impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
-  fn create(
+impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemBuilder {
+  fn build(
     roms: Vic20SystemRoms,
     config: Vic20SystemConfig,
     platform: Arc<dyn PlatformProvider>,
-  ) -> System {
+  ) -> Box<dyn System> {
     let low_ram = BlockMemory::ram(0x0400);
     let main_ram = BlockMemory::ram(0x0E00);
 
     let vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
-    let via1 = VIA::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
-    let b = VicVia2PortB::new();
-    let a = VicVia2PortA::new(b.get_keyboard_col(), config.mapping, platform);
+    let v1a = VicVia1PortA::new(platform.clone());
+    let v2b = VicVia2PortB::new(v1a.get_joy_pin_3());
+    let v2a = VicVia2PortA::new(v2b.get_keyboard_col(), config.mapping, platform);
 
-    let via2 = VIA::new(Box::new(a), Box::new(b));
+    let via1 = Via::new(Box::new(v1a), Box::new(NullPort::new()));
+    let via2 = Via::new(Box::new(v2a), Box::new(v2b));
 
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let kernel_rom = BlockMemory::from_file(0x2000, roms.kernal);
@@ -241,10 +291,31 @@ impl SystemFactory<Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemFactory {
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(kernel_rom));
 
-    let mut system = System::new(Box::new(memory), 1_000_000);
+    let cpu = Mos6502::new(Box::new(memory));
 
-    system.attach_dma(Box::new(VicChipDMA::new(vic_chip)));
+    Box::new(Vic20System { cpu, vic: vic_chip })
+  }
+}
 
-    system
+/// The VIC-20 system by Commodore.
+pub struct Vic20System {
+  cpu: Mos6502,
+  vic: Rc<RefCell<VicChip>>,
+}
+
+impl System for Vic20System {
+  fn tick(&mut self) -> instant::Duration {
+    Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
+  }
+
+  fn reset(&mut self) {
+    self.cpu.reset();
+  }
+
+  fn render(&mut self, framebuffer: &mut [u8], _config: WindowConfig) {
+    self
+      .vic
+      .borrow_mut()
+      .redraw_screen(&mut self.cpu.memory, framebuffer);
   }
 }

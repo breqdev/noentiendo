@@ -1,7 +1,7 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
 /// The keys found on the PET's "Graphics" keyboard.
-/// https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg
+/// Source: <https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PetKeys {
   Exclamation,
@@ -87,7 +87,7 @@ pub enum PetKeys {
 }
 
 /// The keyboard matrix for the PET's "Graphics" keyboard.
-/// Source: https://www.lemon64.com/forum/viewtopic.php?t=68210&sid=8b976b9f8699fc3588c5622b43a1f4b1
+/// Source: <https://www.lemon64.com/forum/viewtopic.php?t=68210&sid=8b976b9f8699fc3588c5622b43a1f4b1>
 pub const KEYBOARD_MAPPING: [[PetKeys; 8]; 10] = {
   use PetKeys::*;
 
@@ -223,6 +223,19 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
   fn map(state: &KeyState<KeySymbol>) -> KeyState<PetKeys> {
     let mut mapped = KeyState::new();
 
+    if state.is_pressed(KeySymbol::UpArrow) || state.is_pressed(KeySymbol::LeftArrow) {
+      mapped.press(PetKeys::LShift);
+
+      if state.is_pressed(KeySymbol::UpArrow) {
+        mapped.press(PetKeys::CursorUpDown);
+      }
+      if state.is_pressed(KeySymbol::LeftArrow) {
+        mapped.press(PetKeys::CursorLeftRight);
+      }
+
+      return mapped;
+    }
+
     for symbol in state.pressed() {
       use KeySymbol::*;
 
@@ -313,5 +326,115 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
     }
 
     mapped
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_positional() {
+    let mut state = KeyState::<KeyPosition>::new();
+
+    state.press(KeyPosition::A);
+    state.press(KeyPosition::Apostrophe);
+    state.press(KeyPosition::Digit9);
+    state.press(KeyPosition::Semicolon);
+
+    let mapped = PetKeyboardAdapter::map(&state);
+
+    assert_eq!(
+      &vec![
+        PetKeys::A,
+        PetKeys::Apostrophe,
+        PetKeys::Num9,
+        PetKeys::Semicolon,
+      ],
+      mapped.pressed()
+    );
+  }
+
+  #[test]
+  fn test_symbolic() {
+    let mut state = KeyState::<KeySymbol>::new();
+
+    state.press(KeySymbol::Char('a'));
+    state.press(KeySymbol::Char('\''));
+    state.press(KeySymbol::Char('9'));
+
+    let mapped = PetSymbolAdapter::map(&state);
+
+    assert_eq!(
+      &vec![PetKeys::A, PetKeys::Apostrophe, PetKeys::Num9,],
+      mapped.pressed()
+    );
+  }
+
+  #[test]
+  fn test_symbolic_unshifting() {
+    let mut state = KeyState::<KeySymbol>::new();
+
+    state.press(KeySymbol::Char('"'));
+
+    let mapped = PetSymbolAdapter::map(&state);
+
+    assert_eq!(&vec![PetKeys::DoubleQuote], mapped.pressed());
+  }
+
+  #[test]
+  fn test_alt_to_shift() {
+    let mut state = KeyState::<KeySymbol>::new();
+
+    state.press(KeySymbol::LAlt);
+    state.press(KeySymbol::Char('a'));
+
+    let mapped = PetSymbolAdapter::map(&state);
+    assert_eq!(&vec![PetKeys::LShift, PetKeys::A], mapped.pressed());
+
+    state.release(KeySymbol::LAlt);
+    state.press(KeySymbol::RAlt);
+
+    let mapped = PetSymbolAdapter::map(&state);
+    assert_eq!(&vec![PetKeys::A, PetKeys::RShift], mapped.pressed());
+  }
+
+  #[test]
+  fn test_cursor_keys() {
+    let mut state = KeyState::<KeySymbol>::new();
+
+    state.press(KeySymbol::DownArrow);
+    assert_eq!(
+      &vec![PetKeys::CursorUpDown],
+      PetSymbolAdapter::map(&state).pressed()
+    );
+
+    state.release(KeySymbol::DownArrow);
+    state.press(KeySymbol::UpArrow);
+    assert_eq!(
+      &vec![PetKeys::LShift, PetKeys::CursorUpDown],
+      PetSymbolAdapter::map(&state).pressed()
+    );
+
+    state.press(KeySymbol::LeftArrow);
+    assert_eq!(
+      &vec![
+        PetKeys::LShift,
+        PetKeys::CursorUpDown,
+        PetKeys::CursorLeftRight,
+      ],
+      PetSymbolAdapter::map(&state).pressed()
+    );
+
+    // map the up and left arrow, but give up on the right
+    state.press(KeySymbol::RightArrow);
+    assert_eq!(
+      &vec![
+        PetKeys::LShift,
+        PetKeys::CursorUpDown,
+        PetKeys::CursorLeftRight
+      ],
+      PetSymbolAdapter::map(&state).pressed()
+    );
   }
 }

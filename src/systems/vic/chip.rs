@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo, DMA};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -63,11 +63,10 @@ impl VicChipLightPen {
   }
 }
 
-// Source: http://tinyvga.com/6561
-
 /// The MOS 6560 VIC (Video Interface Chip).
 /// Uses VRAM memory, character memory, and color memory to draw the screen.
 /// Also handles the speakers and light pen.
+/// Source: <http://tinyvga.com/6561>
 pub struct VicChip {
   platform: Arc<dyn PlatformProvider>,
   // Registers
@@ -111,9 +110,6 @@ pub struct VicChip {
   border_color: u8,
   reverse_field: bool,
   background_color: u8,
-
-  // Misc
-  last_draw_clock: u64,
 }
 
 impl VicChip {
@@ -148,7 +144,6 @@ impl VicChip {
       border_color: 3,
       reverse_field: true,
       background_color: 1,
-      last_draw_clock: 0,
     }
   }
 
@@ -178,7 +173,7 @@ impl VicChip {
   }
 
   /// The Vic-20 only has 14 address lines, see:
-  /// http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327
+  /// <http://sleepingelephant.com/~sleeping/ipw-web/bulletin/bb/viewtopic.php?t=9928#p111327>
   fn vic_to_cpu_address(address: u16) -> u16 {
     // 0x0000 -> 0x8000
     // 0x0FFF -> 0x8FFF
@@ -187,6 +182,7 @@ impl VicChip {
     // 0x2000 -> 0x0000
     // 0x2FFF -> 0x0FFF
 
+    #[allow(clippy::identity_op)]
     match address & (1 << 13) {
       0 => 0x8000 + (address & 0x1fff),
       _ => 0x0000 + (address & 0x1fff),
@@ -315,13 +311,15 @@ impl VicChip {
   }
 
   /// Redraw the character at the specified address.
-  fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>) {
+  fn redraw(&mut self, address: u16, memory: &mut Box<dyn Memory>, framebuffer: &mut [u8]) {
     if address >= (self.row_count as u16 * self.column_count as u16) {
       return; // ignore writes to the extra bytes
     }
 
     let column = (address % self.column_count as u16) as u32;
     let row = (address / self.column_count as u16) as u32;
+    let base_column = column * 8;
+    let base_row = row * 8;
 
     let value = self.read_vram(address, memory);
     let color = self.read_color(address, memory);
@@ -340,17 +338,19 @@ impl VicChip {
             self.get_background()
           };
 
-          self
-            .platform
-            .set_pixel(column * char_width + pixel, row * char_height + line, color);
+          let x = base_column + pixel;
+          let y = base_row + line;
+          let index = (y * (self.column_count as u32 * 8) + x) as usize * 4;
+          let pixel = &mut framebuffer[index..(index + 4)];
+          pixel.copy_from_slice(&color.to_rgba());
         }
       }
     } else {
       // Multicolor characters
       for line in 0..char_height {
         let line_data = character[line as usize];
-        for pixel in 0..(char_width / 2) {
-          let color_code = (line_data >> (char_width - 2 - (pixel * 2))) & 0b11;
+        for pixel in 0..char_width {
+          let color_code = line_data >> (2 * (char_width - pixel - 1)) & 0b11;
 
           let color = match color_code {
             0b00 => self.get_background(),
@@ -360,17 +360,26 @@ impl VicChip {
             _ => unreachable!(),
           };
 
-          self.platform.set_pixel(
-            column * char_width + (pixel * 2),
-            row * char_height + line,
-            color,
-          );
-          self.platform.set_pixel(
-            column * char_width + (pixel * 2) + 1,
-            row * char_height + line,
-            color,
-          );
+          let x = column * 8 + (pixel * 2);
+          let y = row * char_height + line;
+          let index = ((y * self.column_count as u32 + x) * 4) as usize;
+          let pixel = &mut framebuffer[index..(index + 4)];
+          pixel.copy_from_slice(&color.to_rgba());
+
+          let index = ((y * self.column_count as u32 + x + 1) * 4) as usize;
+          let pixel = &mut framebuffer[index..(index + 4)];
+          pixel.copy_from_slice(&color.to_rgba());
         }
+      }
+    }
+  }
+
+  /// Redraw the entire screen.
+  pub fn redraw_screen(&mut self, memory: &mut Box<dyn Memory>, framebuffer: &mut [u8]) {
+    for row in 0..self.row_count {
+      for column in 0..self.column_count {
+        let address = (row as u16) * (self.column_count as u16) + (column as u16);
+        self.redraw(address, memory, framebuffer);
       }
     }
   }
@@ -391,7 +400,7 @@ impl Memory for VicChipIO {
   fn read(&mut self, address: u16) -> u8 {
     let chip = self.chip.borrow();
 
-    match address % 0xF {
+    match address & 0x0F {
       0x0 => chip.left_draw_offset | (chip.scan_mode as u8) << 7,
       0x1 => chip.top_draw_offset,
       0x2 => chip.column_count | (chip.color_ram_mapping as u8) << 7,
@@ -418,7 +427,7 @@ impl Memory for VicChipIO {
 
   fn write(&mut self, address: u16, value: u8) {
     let mut chip = self.chip.borrow_mut();
-    match address & 0xF {
+    match address & 0x0F {
       0x0 => {
         chip.scan_mode = (value & 0x80) != 0;
         chip.left_draw_offset = value & 0x7F;
@@ -489,29 +498,19 @@ impl Memory for VicChipIO {
   }
 }
 
-/// Handles drawing characters by reading directly from the main memory.
-pub struct VicChipDMA {
-  chip: Rc<RefCell<VicChip>>,
-}
+#[cfg(test)]
+mod tests {
+  use super::*;
 
-impl VicChipDMA {
-  pub fn new(chip: Rc<RefCell<VicChip>>) -> Self {
-    Self { chip }
-  }
-}
-
-impl DMA for VicChipDMA {
-  fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo) {
-    let mut chip = self.chip.borrow_mut();
-
-    if (info.cycle_count - chip.last_draw_clock) < 50_000 {
-      return;
-    }
-
-    chip.last_draw_clock = info.cycle_count;
-
-    for i in 0..(chip.column_count as u16 * chip.row_count as u16) {
-      chip.redraw(i as u16, memory);
-    }
+  #[test]
+  fn test_vic_to_cpu_address() {
+    assert_eq!(0x8000, VicChip::vic_to_cpu_address(0x0000));
+    assert_eq!(0x8FFF, VicChip::vic_to_cpu_address(0x0FFF));
+    assert_eq!(0x9000, VicChip::vic_to_cpu_address(0x1000));
+    assert_eq!(0x9FFF, VicChip::vic_to_cpu_address(0x1FFF));
+    assert_eq!(0x0000, VicChip::vic_to_cpu_address(0x2000));
+    assert_eq!(0x0FFF, VicChip::vic_to_cpu_address(0x2FFF));
+    assert_eq!(0x1000, VicChip::vic_to_cpu_address(0x3000));
+    assert_eq!(0x1FFF, VicChip::vic_to_cpu_address(0x3FFF));
   }
 }

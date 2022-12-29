@@ -4,8 +4,10 @@ use libnoentiendo::{
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
   roms::DiskLoadable,
   systems::{
-    BrookeSystemFactory, EasySystemFactory, KlausSystemFactory, PetSystemFactory, PetSystemRoms,
-    SystemFactory, Vic20SystemFactory, Vic20SystemRoms,
+    basic::BasicSystemBuilder, c64::C64SystemBuilder, c64::C64SystemConfig, c64::C64SystemRoms,
+    easy::Easy6502SystemBuilder, klaus::KlausSystemBuilder, pet::PetSystemBuilder,
+    pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder, vic::Vic20SystemConfig,
+    vic::Vic20SystemRoms, SystemBuilder,
   },
 };
 
@@ -31,8 +33,6 @@ struct Args {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-  use libnoentiendo::systems::{pet::PetSystemConfig, vic::Vic20SystemConfig};
-
   let args = Args::parse();
 
   let mut platform: Box<dyn SyncPlatform> = match args.platform.as_str() {
@@ -53,20 +53,25 @@ fn main() {
   };
 
   let system = match args.system.as_str() {
-    "brooke" => BrookeSystemFactory::create(romfile.unwrap(), (), platform.provider()),
-    "easy" => EasySystemFactory::create(romfile.unwrap(), (), platform.provider()),
-    "klaus" => KlausSystemFactory::create(romfile.unwrap(), (), platform.provider()),
-    "pet" => PetSystemFactory::create(
+    "basic" => BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    "easy" => Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    "klaus" => KlausSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    "pet" => PetSystemBuilder::build(
       PetSystemRoms::from_disk(),
       PetSystemConfig { mapping },
       platform.provider(),
     ),
-    "vic" => Vic20SystemFactory::create(
+    "vic" => Vic20SystemBuilder::build(
       Vic20SystemRoms::from_disk(match romfile {
         Some(_) => Some(args.rom_path.as_str()),
         None => None,
       }),
       Vic20SystemConfig { mapping },
+      platform.provider(),
+    ),
+    "c64" => C64SystemBuilder::build(
+      C64SystemRoms::from_disk(),
+      C64SystemConfig { mapping },
       platform.provider(),
     ),
     _ => panic!("Unknown system"),

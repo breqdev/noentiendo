@@ -3,7 +3,7 @@ use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
 // MOS 6520
 
 /// The registers associated with a single port in a MOS 6520 PIA.
-struct PortRegisters {
+struct PiaPortRegisters {
   /// The port itself.
   port: Box<dyn Port>,
 
@@ -17,7 +17,7 @@ struct PortRegisters {
   pub control: u8,
 }
 
-impl PortRegisters {
+impl PiaPortRegisters {
   /// Create a new PortRegisters with the given port.
   pub fn new(port: Box<dyn Port>) -> Self {
     Self {
@@ -34,7 +34,7 @@ impl PortRegisters {
   /// reads directly from the port. If the DDR is set to write, this reads from
   /// the written value.
   pub fn read(&mut self) -> u8 {
-    if self.control & control_bits::DDR_SELECT != 0 {
+    if self.control & pia_control_bits::DDR_SELECT != 0 {
       (self.port.read() & !self.ddr) | (self.writes & self.ddr)
     } else {
       self.ddr
@@ -46,7 +46,7 @@ impl PortRegisters {
   /// Respects the DDR, so if a bit in the DDR is set to read, then that bit
   /// will not be written.
   pub fn write(&mut self, value: u8) {
-    if self.control & control_bits::DDR_SELECT != 0 {
+    if self.control & pia_control_bits::DDR_SELECT != 0 {
       self.writes = value;
       self.port.write(value & self.ddr);
     } else {
@@ -68,8 +68,9 @@ impl PortRegisters {
   }
 }
 
+#[allow(dead_code)]
 /// The meanings of each bit in the control register.
-pub mod control_bits {
+pub mod pia_control_bits {
   pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000; // 1 = 0->1, 0 = 1->0
   pub const C2_ACTIVE_TRANSITION_FLAG: u8 = 0b01000000;
   pub const C2_DIRECTION: u8 = 0b00100000; // 1 = output, 0 = input
@@ -78,23 +79,24 @@ pub mod control_bits {
   pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
 }
 
-/// A MOS 6520 PIA, containing two ports.
-pub struct PIA {
-  a: PortRegisters,
-  b: PortRegisters,
+/// The MOS 6520 Peripheral Interface Adapter (PIA), containing two ports and
+/// some control lines.
+pub struct Pia {
+  a: PiaPortRegisters,
+  b: PiaPortRegisters,
 }
 
-impl PIA {
+impl Pia {
   /// Create a new PIA with the two given port implementations.
   pub fn new(a: Box<dyn Port>, b: Box<dyn Port>) -> Self {
     Self {
-      a: PortRegisters::new(a),
-      b: PortRegisters::new(b),
+      a: PiaPortRegisters::new(a),
+      b: PiaPortRegisters::new(b),
     }
   }
 }
 
-impl Memory for PIA {
+impl Memory for Pia {
   fn read(&mut self, address: u16) -> u8 {
     match address % 0x04 {
       0x00 => self.a.read(),
@@ -129,5 +131,62 @@ impl Memory for PIA {
     } else {
       ActiveInterrupt::None
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::memory::NullPort;
+
+  use super::*;
+
+  #[test]
+  fn test_read() {
+    let mut pia = Pia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // deselect the DDR
+    pia.write(0x01, pia_control_bits::DDR_SELECT);
+
+    assert_eq!(0, pia.read(0x00));
+    assert_eq!(pia_control_bits::DDR_SELECT, pia.read(0x01));
+    assert_eq!(0, pia.read(0x02));
+    assert_eq!(0, pia.read(0x03));
+
+    // wraps around
+    assert_eq!(0, pia.read(0x04));
+
+    // select the DDR
+    pia.write(0x01, 0);
+
+    assert_eq!(0, pia.read(0x00));
+    assert_eq!(0, pia.read(0x01));
+    assert_eq!(0, pia.read(0x02));
+    assert_eq!(0, pia.read(0x03));
+  }
+
+  #[test]
+  fn test_write() {
+    let mut pia = Pia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    // deselect the DDR
+    pia.write(0x01, pia_control_bits::DDR_SELECT);
+
+    // writes without DDR shouldn't be reflected in reads
+    pia.write(0x00, 0b10101010);
+    assert_eq!(0, pia.read(0x00));
+
+    // write to the DDR
+    pia.write(0x01, 0);
+    pia.write(0x00, 0b11110000);
+
+    // now, our past writes should be reflected in reads
+    // (masked by the DDR)
+    pia.write(0x01, pia_control_bits::DDR_SELECT);
+    assert_eq!(0b10100000, pia.read(0x00));
+    assert_eq!(pia_control_bits::DDR_SELECT, pia.read(0x01));
+
+    // and future writes should be reflected in reads
+    pia.write(0x00, 0b01010101);
+    assert_eq!(0b01010000, pia.read(0x00));
   }
 }

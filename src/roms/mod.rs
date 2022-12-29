@@ -12,11 +12,13 @@ pub use wasm::JsValueLoadable;
 
 /// Represents a predefined, immutable ROM file.
 /// Useful for storing character, BASIC, kernal, etc. ROMs.
+#[derive(Clone, Debug)]
 pub struct RomFile {
   data: Vec<u8>,
 }
 
 impl RomFile {
+  /// Creates a new ROM file from the given data.
   pub fn new(data: Vec<u8>) -> Self {
     Self { data }
   }

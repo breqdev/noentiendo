@@ -1,16 +1,21 @@
+mod banked;
 mod block;
 mod branch;
+mod mos6510;
+/// The various interface adapters (6520, 6522, 6526) for the MOS 6502 CPU.
+pub mod mos652x;
 mod null;
-pub mod pia;
-pub mod ports;
-pub mod via;
+mod ports;
 
+pub use banked::BankedMemory;
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
+pub use mos6510::Mos6510Port;
 pub use null::NullMemory;
 pub use ports::{NullPort, Port};
 
 /// Represents the state of the interrupts on the system.
+#[derive(Debug, PartialEq, Eq)]
 pub enum ActiveInterrupt {
   /// No interrupts are active.
   None,
@@ -22,8 +27,8 @@ pub enum ActiveInterrupt {
 
 /// Information about the system that Memory implementations can use to
 /// determine if an interrupt should be triggered.
+#[derive(Debug, Default)]
 pub struct SystemInfo {
-  pub cycles_per_second: u64,
   pub cycle_count: u64,
 }
 
@@ -46,14 +51,4 @@ pub trait Memory {
   /// Implementations may trigger an NMI or IRQ for any
   /// implementation-dependent reason.
   fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt;
-}
-
-/// Represents a system component which may access the memory in between
-/// cycles. This is used to implement the VIC chip's alternate-clock memory
-/// access.
-pub trait DMA {
-  /// Handle DMA for the current instruction tick.
-  /// Implementations may perform whatever operations on the memory that they
-  /// would like.
-  fn dma(&mut self, memory: &mut Box<dyn Memory>, info: &SystemInfo);
 }

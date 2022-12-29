@@ -58,3 +58,16 @@ impl Port for NullPort {
 
   fn reset(&mut self) {}
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_null() {
+    let mut port = NullPort::new();
+    assert_eq!(port.read(), 0);
+    port.write(0x12);
+    assert_eq!(port.read(), 0);
+  }
+}

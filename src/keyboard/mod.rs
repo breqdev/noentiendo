@@ -1,5 +1,12 @@
+/// Keys and adapters for the Commodore 64, VIC-20, and other Commodore machines.
+pub mod commodore;
+
+/// Keys used for positional keyboard mapping.
 mod positions;
+
+/// Keys used for symbolic keyboard mapping.
 mod symbols;
+
 pub use positions::KeyPosition;
 pub use symbols::{KeySymbol, SymbolAdapter};
 

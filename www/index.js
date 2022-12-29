@@ -6,7 +6,7 @@ import petKernalBin from "../pet/kernal.bin";
 import vicCharBin from "../vic/char.bin";
 import vicBasicBin from "../vic/basic.bin";
 import vicKernalBin from "../vic/kernal.bin";
-import vicPacManBin from "../vic/pacman.bin";
+import vicPacManBin from "../vic/frogger.bin";
 
 document.getElementById("canvas").focus();
 
