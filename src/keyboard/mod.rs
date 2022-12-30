@@ -12,7 +12,7 @@ pub use symbols::{KeySymbol, SymbolAdapter};
 
 /// A set of keys that are currently pressed.
 /// Parameter `T` is the type of the key symbols.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct KeyState<T: PartialEq> {
   pressed: Vec<T>,
 }
