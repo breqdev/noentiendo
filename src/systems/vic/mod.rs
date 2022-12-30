@@ -163,11 +163,11 @@ impl VicVia2PortB {
 
 impl Port for VicVia2PortB {
   fn read(&mut self) -> u8 {
-    self.keyboard_col.get() & 0x7F | (self.joy_pin_3.get() as u8) << 7
+    self.keyboard_col.get() | (self.joy_pin_3.get() as u8) << 7
   }
 
   fn write(&mut self, value: u8) {
-    self.keyboard_col.set(value & 0x7F);
+    self.keyboard_col.set(value);
   }
 
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
