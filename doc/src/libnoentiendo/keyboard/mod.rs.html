@@ -83,7 +83,7 @@
 
 <span class="doccomment">/// A set of keys that are currently pressed.
 /// Parameter `T` is the type of the key symbols.
-</span><span class="attribute">#[derive(Default)]
+</span><span class="attribute">#[derive(Default, Debug, Clone, PartialEq)]
 </span><span class="kw">pub struct </span>KeyState&lt;T: PartialEq&gt; {
   pressed: Vec&lt;T&gt;,
 }
