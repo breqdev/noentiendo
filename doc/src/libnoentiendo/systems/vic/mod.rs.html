@@ -484,11 +484,11 @@
 
 <span class="kw">impl </span>Port <span class="kw">for </span>VicVia2PortB {
   <span class="kw">fn </span>read(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
-    <span class="self">self</span>.keyboard_col.get() &amp; <span class="number">0x7F </span>| (<span class="self">self</span>.joy_pin_3.get() <span class="kw">as </span>u8) &lt;&lt; <span class="number">7
+    <span class="self">self</span>.keyboard_col.get() | (<span class="self">self</span>.joy_pin_3.get() <span class="kw">as </span>u8) &lt;&lt; <span class="number">7
   </span>}
 
   <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: u8) {
-    <span class="self">self</span>.keyboard_col.set(value &amp; <span class="number">0x7F</span>);
+    <span class="self">self</span>.keyboard_col.set(value);
   }
 
   <span class="kw">fn </span>poll(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _cycles: u32, _info: <span class="kw-2">&amp;</span>SystemInfo) -&gt; bool {
