@@ -2,6 +2,7 @@ use crate::platform::{PlatformProvider, WindowConfig};
 use instant::Duration;
 use std::sync::Arc;
 
+pub mod aiie;
 pub mod basic;
 pub mod c64;
 pub mod easy;

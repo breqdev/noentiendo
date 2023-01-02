@@ -74,6 +74,11 @@ fn main() {
       C64SystemConfig { mapping },
       platform.provider(),
     ),
+    "aiie" => AiieSystemBuilder::build(
+      AiieSystemRoms::from_disk(),
+      AiieSystemConfig { mapping },
+      platform.provider(),
+    ),
     _ => panic!("Unknown system"),
   };
 
