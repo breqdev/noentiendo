@@ -8,6 +8,7 @@ use libnoentiendo::{
     easy::Easy6502SystemBuilder, klaus::KlausSystemBuilder, pet::PetSystemBuilder,
     pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder, vic::Vic20SystemConfig,
     vic::Vic20SystemRoms, SystemBuilder,
+    aiie::{AiieSystemBuilder, AiieSystemConfig, AiieSystemRoms},
   },
 };
 
@@ -33,6 +34,7 @@ struct Args {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
+
   let args = Args::parse();
 
   let mut platform: Box<dyn SyncPlatform> = match args.platform.as_str() {
