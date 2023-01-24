@@ -107,6 +107,7 @@ impl NoentiendoBuilder {
 #[wasm_bindgen]
 pub struct Noentiendo {
   interval_id: i32,
+  system: Rc<RefCell<Box<dyn System>>>,
 }
 
 #[wasm_bindgen]
@@ -128,35 +129,43 @@ impl Noentiendo {
 
     let system = Rc::new(RefCell::new(system));
 
-    let handler: Box<dyn FnMut() -> ()> = Box::new(move || {
-      if platform_ready.get() {
-        let platform = platform.clone();
-        let system = system.clone();
-        spawn_local(async move {
-          let platform = platform.try_borrow_mut();
+    let interval_id = {
+      let system = system.clone();
+      let handler: Box<dyn FnMut() -> ()> = Box::new(move || {
+        if platform_ready.get() {
+          let platform = platform.clone();
+          let system = system.clone();
+          spawn_local(async move {
+            let platform = platform.try_borrow_mut();
 
-          if let Ok(mut platform) = platform {
-            platform.tick(&mut Box::new(system.borrow_mut())).await;
-          } else {
-            web_sys::console::log_1(&"can't borrow!".into());
-          }
-        });
-      }
-    });
+            if let Ok(mut platform) = platform {
+              platform.tick(&mut Box::new(system.borrow_mut())).await;
+            } else {
+              web_sys::console::log_1(&"can't borrow!".into());
+            }
+          });
+        }
+      });
 
-    let handle_tick = Closure::new(handler);
+      let handle_tick = Closure::new(handler);
 
-    let interval_id = window()
-      .unwrap()
-      .set_interval_with_callback_and_timeout_and_arguments_0(
-        handle_tick.as_ref().unchecked_ref(),
-        20,
-      )
-      .unwrap();
+      let interval_id = window()
+        .unwrap()
+        .set_interval_with_callback_and_timeout_and_arguments_0(
+          handle_tick.as_ref().unchecked_ref(),
+          20,
+        )
+        .unwrap();
 
-    handle_tick.forget();
+      handle_tick.forget();
 
-    Self { interval_id }
+      interval_id
+    };
+
+    Self {
+      interval_id,
+      system,
+    }
   }
 
   pub fn close(&mut self) {
@@ -166,7 +175,7 @@ impl Noentiendo {
   }
 
   pub fn reset(&mut self) {
-    // todo!();
+    self.system.borrow_mut().reset();
   }
 
   pub fn dispatch_key(&mut self, key: String, down: bool) {
