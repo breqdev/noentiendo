@@ -32,6 +32,8 @@ pub struct NoentiendoBuilder {
 impl NoentiendoBuilder {
   #[wasm_bindgen(constructor)]
   pub fn new() -> Self {
+    console_error_panic_hook::set_once();
+
     Self {
       canvas: None,
       roms: None,
@@ -71,7 +73,7 @@ impl NoentiendoBuilder {
 
     let system = self.system.as_ref().expect("System not set");
 
-    let system = match system.as_str() {
+    let mut system = match system.as_str() {
       "pet" => PetSystemBuilder::build(
         pet_roms,
         PetSystemConfig {
@@ -95,6 +97,8 @@ impl NoentiendoBuilder {
       ),
       _ => panic!("Unknown system"),
     };
+
+    system.reset();
 
     Noentiendo::new(platform, system)
   }
