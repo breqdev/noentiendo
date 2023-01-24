@@ -30,3 +30,7 @@ declare module "noentiendo" {
     dispatch_key(key: string, down: boolean): void;
   }
 }
+
+declare module "*.bin" {
+  export default string;
+}
