@@ -1,36 +1,27 @@
 {
-  "name": "noentiendo",
+  "name": "www",
   "private": true,
-  "version": "0.1.0",
-  "description": "wasm-based emulator for 6502-based systems",
-  "license": "AGPL-3.0-or-later",
-  "main": "index.js",
-  "bin": {
-    "create-wasm-app": ".bin/create-wasm-app.js"
-  },
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "start": "webpack-dev-server"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rustwasm/create-wasm-app.git"
-  },
-  "keywords": [
-    "webassembly",
-    "wasm",
-    "rust",
-    "webpack"
-  ],
-  "author": "noentiendo team <noentiendo@breq.dev>",
-  "devDependencies": {
-    "copy-webpack-plugin": "^11.0.0",
-    "noentiendo": "file:../pkg",
-    "webpack": "^5.75.0",
-    "webpack-cli": "^5.0.1",
-    "webpack-dev-server": "^4.11.1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "url-loader": "^4.1.1"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "vite-plugin-wasm": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.15",
+    "@types/react-dom": "^18.0.6",
+    "@vitejs/plugin-react": "^2.0.0",
+    "autoprefixer": "^10.4.13",
+    "noentiendo": "file:../pkg",
+    "postcss": "^8.4.21",
+    "tailwindcss": "^3.2.4",
+    "typescript": "^4.6.4",
+    "vite": "^3.0.0"
   }
 }
