@@ -35,6 +35,7 @@ features = [
   'Attr',
   'Gamepad',
   'GamepadButton',
+  'console',
 ]
 
 # Dependencies used when building for desktop

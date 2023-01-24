@@ -6,13 +6,10 @@ use js_sys::Math;
 mod handles;
 use handles::CanvasWindow;
 use pixels::{Pixels, SurfaceTexture};
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::spawn_local;
 use web_sys::{Gamepad, GamepadButton, HtmlCanvasElement, KeyboardEvent};
 mod keyboard;
 use crate::keyboard::{KeyAdapter, KeyPosition};
@@ -30,6 +27,9 @@ extern "C" {
 /// events. It ticks forward the emulator time on a specified interval.
 /// This platform runs asynchronously (using the JS event loop).
 pub struct CanvasPlatform {
+  canvas: HtmlCanvasElement,
+  pixels: Option<Pixels>,
+  window: Option<CanvasWindow>,
   config: Arc<Mutex<Option<WindowConfig>>>,
   resize_requested: Arc<Mutex<bool>>,
   provider: Arc<CanvasPlatformProvider>,
@@ -38,7 +38,7 @@ pub struct CanvasPlatform {
 }
 
 impl CanvasPlatform {
-  pub fn new() -> Self {
+  pub fn new(canvas: HtmlCanvasElement) -> Self {
     let config = Arc::new(Mutex::new(None));
     let resize_requested = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
@@ -51,6 +51,9 @@ impl CanvasPlatform {
         key_state.clone(),
         joystick_state.clone(),
       )),
+      canvas,
+      pixels: None,
+      window: None,
       config,
       resize_requested,
       key_state,
@@ -72,47 +75,41 @@ impl Platform for CanvasPlatform {
 
 #[async_trait(?Send)]
 impl AsyncPlatform for CanvasPlatform {
-  async fn run_async(&mut self, mut system: Box<dyn System>) {
+  async fn setup(&mut self) {
     let config = self.get_config();
 
     let width = (config.width as f64 * config.scale) as usize;
     let height = (config.height as f64 * config.scale) as usize;
 
-    let canvas = web_sys::window()
-      .unwrap()
-      .document()
-      .unwrap()
-      .get_element_by_id("canvas")
-      .unwrap()
-      .dyn_into::<HtmlCanvasElement>()
-      .unwrap();
+    self.canvas.set_width(width as u32);
+    self.canvas.set_height(height as u32);
 
-    canvas.set_width(width as u32);
-    canvas.set_height(height as u32);
-
-    canvas
+    self
+      .canvas
       .style()
       .set_property("width", &format!("{}px", width))
       .unwrap();
-    canvas
+    self
+      .canvas
       .style()
       .set_property("height", &format!("{}px", height))
       .unwrap();
 
-    canvas.set_attribute("data-raw-handle", "1").unwrap();
-    let window = CanvasWindow::new(&canvas);
+    self.canvas.set_attribute("data-raw-handle", "1").unwrap();
+    self.window = Some(CanvasWindow::new(&self.canvas));
 
+    let window = &self.window.unwrap();
     let surface_texture = SurfaceTexture::new(
       (config.width as f64 * config.scale) as u32,
       (config.height as f64 * config.scale) as u32,
-      &window,
+      window,
     );
 
-    let pixels = Rc::new(RefCell::new(
+    self.pixels = Some(
       Pixels::new_async(config.width, config.height, surface_texture)
         .await
         .unwrap(),
-    ));
+    );
 
     {
       let key_state = self.key_state.clone();
@@ -143,109 +140,93 @@ impl AsyncPlatform for CanvasPlatform {
         .unwrap();
       keyup.forget();
     }
+  }
 
-    system.reset();
+  async fn tick(&mut self, system: &mut Box<dyn System>) {
+    let mut duration = Duration::ZERO;
 
-    let config = self.config.clone();
-    let resize_requested = self.resize_requested.clone();
-    let joystick_state = self.joystick_state.clone();
+    while duration < Duration::from_millis(20) {
+      duration += system.tick();
+    }
 
-    let interval = Closure::new(move || {
-      let mut duration = Duration::ZERO;
+    let pixels = self.pixels.as_mut().unwrap();
+    system.render(pixels.get_frame_mut(), self.config.lock().unwrap().unwrap());
 
-      while duration < Duration::from_millis(20) {
-        duration += system.tick();
+    let gamepads = web_sys::window().unwrap().navigator().get_gamepads();
+
+    if let Ok(gamepads) = gamepads {
+      let first = gamepads.iter().find(|gamepad| gamepad.is_truthy());
+
+      if let Some(gamepad) = first {
+        let gamepad = gamepad.dyn_into::<Gamepad>().unwrap();
+
+        let mut joystick_state = self.joystick_state.lock().unwrap();
+        joystick_state.up = gamepad
+          .buttons()
+          .get(12)
+          .dyn_into::<GamepadButton>()
+          .map_or(false, |button| button.pressed());
+
+        joystick_state.down = gamepad
+          .buttons()
+          .get(13)
+          .dyn_into::<GamepadButton>()
+          .map_or(false, |button| button.pressed());
+
+        joystick_state.left = gamepad
+          .buttons()
+          .get(14)
+          .dyn_into::<GamepadButton>()
+          .map_or(false, |button| button.pressed());
+
+        joystick_state.right = gamepad
+          .buttons()
+          .get(15)
+          .dyn_into::<GamepadButton>()
+          .map_or(false, |button| button.pressed());
+
+        joystick_state.fire = gamepad
+          .buttons()
+          .get(0)
+          .dyn_into::<GamepadButton>()
+          .map_or(false, |button| button.pressed());
       }
+    }
 
-      {
-        system.render(
-          pixels.borrow_mut().get_frame_mut(),
-          config.lock().unwrap().unwrap(),
-        );
-      }
+    if *self.resize_requested.lock().unwrap() {
+      let config = self.config.lock().unwrap().unwrap();
 
-      let gamepads = web_sys::window().unwrap().navigator().get_gamepads();
+      let width = (config.width as f64 * config.scale) as u32;
+      let height = (config.height as f64 * config.scale) as u32;
 
-      if let Ok(gamepads) = gamepads {
-        let first = gamepads.iter().find(|gamepad| gamepad.is_truthy());
+      *self.resize_requested.lock().unwrap() = false;
 
-        if let Some(gamepad) = first {
-          let gamepad = gamepad.dyn_into::<Gamepad>().unwrap();
+      let window = &self.window.unwrap();
+      let surface_texture = SurfaceTexture::new(width, height, window);
 
-          let mut joystick_state = joystick_state.lock().unwrap();
-          joystick_state.up = gamepad
-            .buttons()
-            .get(12)
-            .dyn_into::<GamepadButton>()
-            .map_or(false, |button| button.pressed());
+      self.pixels = Some(
+        Pixels::new_async(config.width, config.height, surface_texture)
+          .await
+          .unwrap(),
+      );
 
-          joystick_state.down = gamepad
-            .buttons()
-            .get(13)
-            .dyn_into::<GamepadButton>()
-            .map_or(false, |button| button.pressed());
+      self
+        .canvas
+        .style()
+        .set_property("width", &format!("{}px", width))
+        .unwrap();
 
-          joystick_state.left = gamepad
-            .buttons()
-            .get(14)
-            .dyn_into::<GamepadButton>()
-            .map_or(false, |button| button.pressed());
+      self
+        .canvas
+        .style()
+        .set_property("height", &format!("{}px", height))
+        .unwrap();
 
-          joystick_state.right = gamepad
-            .buttons()
-            .get(15)
-            .dyn_into::<GamepadButton>()
-            .map_or(false, |button| button.pressed());
+      self.canvas.set_width(width);
+      self.canvas.set_height(height);
+    }
 
-          joystick_state.fire = gamepad
-            .buttons()
-            .get(0)
-            .dyn_into::<GamepadButton>()
-            .map_or(false, |button| button.pressed());
-        }
-      }
-
-      if *resize_requested.lock().unwrap() {
-        let config = config.lock().unwrap().unwrap();
-
-        let width = (config.width as f64 * config.scale) as u32;
-        let height = (config.height as f64 * config.scale) as u32;
-
-        let pixels = pixels.clone();
-
-        *resize_requested.lock().unwrap() = false;
-
-        spawn_local(async move {
-          let surface_texture = SurfaceTexture::new(width, height, &window);
-
-          *pixels.borrow_mut() = Pixels::new_async(config.width, config.height, surface_texture)
-            .await
-            .unwrap();
-        });
-
-        canvas
-          .style()
-          .set_property("width", &format!("{}px", width))
-          .unwrap();
-
-        canvas
-          .style()
-          .set_property("height", &format!("{}px", height))
-          .unwrap();
-
-        canvas.set_width(width);
-        canvas.set_height(height);
-      }
-
-      pixels.borrow_mut().render().unwrap();
-    });
-
-    web_sys::window()
-      .unwrap()
-      .set_interval_with_callback_and_timeout_and_arguments_0(interval.as_ref().unchecked_ref(), 20)
-      .unwrap();
-
-    interval.forget();
+    self.pixels.as_mut().unwrap().render().unwrap();
   }
 }
 
