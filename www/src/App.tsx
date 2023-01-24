@@ -1,26 +1,36 @@
 import { Noentiendo, NoentiendoBuilder } from "noentiendo";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import Emulator from "./Emulator";
 import roms from "./roms";
 
 export default function App() {
-  const instance = useRef<Noentiendo>();
-  const canvas = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    instance.current = new NoentiendoBuilder()
-      .with_canvas(canvas.current!)
-      .with_roms(roms)
-      .with_system("pet")
-      .build();
-
-    return () => {
-      instance.current?.close();
-    };
-  });
+  let [system, setSystem] = useState<"pet" | "vic" | "c64">("pet");
 
   return (
-    <div>
-      <canvas ref={canvas} />
+    <div className="w-full h-full grid place-items-center bg-gray-400">
+      <div className="flex flex-col items-center gap-4">
+        <Emulator system={system} />
+        <div className="flex gap-2">
+          <button
+            className="bg-white rounded px-2 py-1"
+            onClick={() => setSystem("pet")}
+          >
+            PET
+          </button>
+          <button
+            className="bg-white rounded px-2 py-1"
+            onClick={() => setSystem("vic")}
+          >
+            VIC
+          </button>
+          <button
+            className="bg-white rounded px-2 py-1"
+            onClick={() => setSystem("c64")}
+          >
+            C64
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

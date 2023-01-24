@@ -30,7 +30,7 @@ const roms = {
     basic: await parseRom(vicBasicBin),
     char: await parseRom(vicCharBin),
     kernal: await parseRom(vicKernalBin),
-    cartridge: await parseRom(vicPacManBin),
+    // cartridge: await parseRom(vicPacManBin),
   },
   c64: {
     basic: await parseRom(c64BasicBin),

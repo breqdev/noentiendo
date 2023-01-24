@@ -84,14 +84,18 @@ impl Vic20SystemRoms {
       .unwrap();
     let cartridge = Reflect::get(value, &JsValue::from_str("cartridge"))
       .unwrap()
-      .dyn_into::<Uint8Array>()
-      .unwrap();
+      .dyn_into::<Uint8Array>();
+
+    let cartridge = match cartridge {
+      Ok(v) => Some(RomFile::from_uint8array(&v)),
+      Err(_) => None,
+    };
 
     Self {
       character: RomFile::from_uint8array(&character),
       basic: RomFile::from_uint8array(&basic),
       kernal: RomFile::from_uint8array(&kernal),
-      cartridge: Some(RomFile::from_uint8array(&cartridge)),
+      cartridge,
     }
   }
 }
