@@ -319,6 +319,10 @@
 <span id="319">319</span>
 <span id="320">320</span>
 <span id="321">321</span>
+<span id="322">322</span>
+<span id="323">323</span>
+<span id="324">324</span>
+<span id="325">325</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::Mos6502;
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
@@ -405,14 +409,18 @@
       .unwrap();
     <span class="kw">let </span>cartridge = Reflect::get(value, <span class="kw-2">&amp;</span>JsValue::from_str(<span class="string">&quot;cartridge&quot;</span>))
       .unwrap()
-      .dyn_into::&lt;Uint8Array&gt;()
-      .unwrap();
+      .dyn_into::&lt;Uint8Array&gt;();
+
+    <span class="kw">let </span>cartridge = <span class="kw">match </span>cartridge {
+      <span class="prelude-val">Ok</span>(v) =&gt; <span class="prelude-val">Some</span>(RomFile::from_uint8array(<span class="kw-2">&amp;</span>v)),
+      <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
+    };
 
     <span class="self">Self </span>{
       character: RomFile::from_uint8array(<span class="kw-2">&amp;</span>character),
       basic: RomFile::from_uint8array(<span class="kw-2">&amp;</span>basic),
       kernal: RomFile::from_uint8array(<span class="kw-2">&amp;</span>kernal),
-      cartridge: <span class="prelude-val">Some</span>(RomFile::from_uint8array(<span class="kw-2">&amp;</span>cartridge)),
+      cartridge,
     }
   }
 }

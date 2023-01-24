@@ -134,6 +134,7 @@
 <span id="134">134</span>
 <span id="135">135</span>
 <span id="136">136</span>
+<span id="137">137</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
 <span class="kw">use </span><span class="kw">crate</span>::systems::System;
 <span class="kw">use </span>async_trait::async_trait;
@@ -170,7 +171,8 @@
 <span class="doccomment">/// A platform which can be run asynchronously.
 </span><span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
 </span><span class="kw">pub trait </span>AsyncPlatform: Platform {
-  <span class="kw">async fn </span>run_async(<span class="kw-2">&amp;mut </span><span class="self">self</span>, system: Box&lt;<span class="kw">dyn </span>System&gt;);
+  <span class="kw">async fn </span>setup(<span class="kw-2">&amp;mut </span><span class="self">self</span>);
+  <span class="kw">async fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>, system: <span class="kw-2">&amp;mut </span>Box&lt;<span class="kw">dyn </span>System&gt;);
 }
 
 <span class="doccomment">/// Represents an RGB color with 8 bits per channel.
