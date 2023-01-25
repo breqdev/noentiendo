@@ -8,6 +8,7 @@ pub struct BlockMemory {
   size: usize,
   data: Vec<u8>,
   persistent: bool,
+  writeable: bool,
 }
 
 impl BlockMemory {
@@ -18,6 +19,7 @@ impl BlockMemory {
       size,
       data: vec![0; size],
       persistent: false,
+      writeable: true,
     }
   }
 
@@ -28,6 +30,7 @@ impl BlockMemory {
       size,
       data: vec![0; size],
       persistent: true,
+      writeable: false,
     }
   }
 
@@ -51,6 +54,7 @@ impl BlockMemory {
       size,
       data,
       persistent: true,
+      writeable: false,
     }
   }
 }
@@ -61,7 +65,9 @@ impl Memory for BlockMemory {
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    self.data[(address as usize) % self.size] = value;
+    if self.writeable {
+      self.data[(address as usize) % self.size] = value;
+    }
   }
 
   fn reset(&mut self) {
