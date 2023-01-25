@@ -140,6 +140,12 @@
 <span id="140">140</span>
 <span id="141">141</span>
 <span id="142">142</span>
+<span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 
@@ -150,6 +156,7 @@
   size: usize,
   data: Vec&lt;u8&gt;,
   persistent: bool,
+  writeable: bool,
 }
 
 <span class="kw">impl </span>BlockMemory {
@@ -160,6 +167,7 @@
       size,
       data: <span class="macro">vec!</span>[<span class="number">0</span>; size],
       persistent: <span class="bool-val">false</span>,
+      writeable: <span class="bool-val">true</span>,
     }
   }
 
@@ -170,6 +178,7 @@
       size,
       data: <span class="macro">vec!</span>[<span class="number">0</span>; size],
       persistent: <span class="bool-val">true</span>,
+      writeable: <span class="bool-val">false</span>,
     }
   }
 
@@ -193,6 +202,7 @@
       size,
       data,
       persistent: <span class="bool-val">true</span>,
+      writeable: <span class="bool-val">false</span>,
     }
   }
 }
@@ -203,7 +213,9 @@
   }
 
   <span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
-    <span class="self">self</span>.data[(address <span class="kw">as </span>usize) % <span class="self">self</span>.size] = value;
+    <span class="kw">if </span><span class="self">self</span>.writeable {
+      <span class="self">self</span>.data[(address <span class="kw">as </span>usize) % <span class="self">self</span>.size] = value;
+    }
   }
 
   <span class="kw">fn </span>reset(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
