@@ -84,17 +84,6 @@ impl AsyncPlatform for CanvasPlatform {
     self.canvas.set_width(width as u32);
     self.canvas.set_height(height as u32);
 
-    self
-      .canvas
-      .style()
-      .set_property("width", &format!("{}px", width))
-      .unwrap();
-    self
-      .canvas
-      .style()
-      .set_property("height", &format!("{}px", height))
-      .unwrap();
-
     self.canvas.set_attribute("data-raw-handle", "1").unwrap();
     self.window = Some(CanvasWindow::new(&self.canvas));
 
@@ -209,18 +198,6 @@ impl AsyncPlatform for CanvasPlatform {
           .await
           .unwrap(),
       );
-
-      self
-        .canvas
-        .style()
-        .set_property("width", &format!("{}px", width))
-        .unwrap();
-
-      self
-        .canvas
-        .style()
-        .set_property("height", &format!("{}px", height))
-        .unwrap();
 
       self.canvas.set_width(width);
       self.canvas.set_height(height);

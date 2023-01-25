@@ -8,9 +8,9 @@ export default function App() {
   const instance = useRef<any>();
 
   return (
-    <div className="w-full h-full grid place-items-center bg-gray-400">
+    <div className="w-full h-full grid place-items-center bg-gray-400 p-4">
       <div className="flex flex-col items-center gap-4">
-        <Emulator system={system} ref={instance} />
+        <Emulator system={system} ref={instance} className="w-full" />
         <div className="flex gap-2">
           <button
             className="bg-white rounded px-2 py-1"
