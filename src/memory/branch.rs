@@ -104,7 +104,7 @@ mod tests {
 
   #[test]
   fn test_single_block() {
-    let mut block = BlockMemory::rom(0x1000);
+    let mut block = BlockMemory::ram(0x1000);
     block.write(0x00, 0x12);
     block.write(0x34, 0x56);
 
@@ -122,7 +122,7 @@ mod tests {
 
   #[test]
   fn test_single_with_offset() {
-    let mut block = BlockMemory::rom(0x1000);
+    let mut block = BlockMemory::ram(0x1000);
     block.write(0x00, 0x12);
     block.write(0x34, 0x56);
 
@@ -163,8 +163,8 @@ mod tests {
       .map(0x1000, Box::new(block2));
 
     // test reads
-    assert_eq!(0x12, memory.read(0x0000));
-    assert_eq!(0x56, memory.read(0x0034));
+    assert_eq!(0x00, memory.read(0x0000));
+    assert_eq!(0x00, memory.read(0x0034));
     assert_eq!(0x78, memory.read(0x1000));
     assert_eq!(0x9A, memory.read(0x1034));
 
@@ -172,23 +172,23 @@ mod tests {
     memory.write(0x0000, 0x34);
     memory.write(0x1034, 0x78);
 
-    assert_eq!(0x34, memory.read(0x0000));
-    assert_eq!(0x56, memory.read(0x0034));
+    assert_eq!(0x00, memory.read(0x0000));
+    assert_eq!(0x00, memory.read(0x0034));
     assert_eq!(0x78, memory.read(0x1000));
     assert_eq!(0x78, memory.read(0x1034));
 
     // test reset
     memory.reset();
 
-    assert_eq!(0x34, memory.read(0x0000));
-    assert_eq!(0x56, memory.read(0x0034));
+    assert_eq!(0x00, memory.read(0x0000));
+    assert_eq!(0x00, memory.read(0x0034));
     assert_eq!(0x00, memory.read(0x1000));
     assert_eq!(0x00, memory.read(0x1034));
   }
 
   #[test]
   fn test_overlapping_blocks() {
-    let mut block1 = BlockMemory::rom(0x1000);
+    let mut block1 = BlockMemory::ram(0x1000);
     let mut block2 = BlockMemory::ram(0x1000);
 
     block1.write(0x000, 0x12);

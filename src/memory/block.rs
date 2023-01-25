@@ -108,13 +108,11 @@ mod tests {
     let mut mem = BlockMemory::rom(0x1000);
     assert_eq!(0x00, mem.read(0x123));
 
+    // persistent memory should not be writeable
     mem.write(0x123, 0x45);
-    assert_eq!(0x45, mem.read(0x123));
-    assert_eq!(0x00, mem.read(0x124));
+    assert_eq!(0x00, mem.read(0x123));
 
     mem.reset();
-    // persistent memory should not be reset
-    assert_eq!(0x45, mem.read(0x123));
   }
 
   #[test]
