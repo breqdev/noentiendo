@@ -320,7 +320,7 @@
 
   <span class="attribute">#[test]
   </span><span class="kw">fn </span>test_single_block() {
-    <span class="kw">let </span><span class="kw-2">mut </span>block = BlockMemory::rom(<span class="number">0x1000</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>block = BlockMemory::ram(<span class="number">0x1000</span>);
     block.write(<span class="number">0x00</span>, <span class="number">0x12</span>);
     block.write(<span class="number">0x34</span>, <span class="number">0x56</span>);
 
@@ -338,7 +338,7 @@
 
   <span class="attribute">#[test]
   </span><span class="kw">fn </span>test_single_with_offset() {
-    <span class="kw">let </span><span class="kw-2">mut </span>block = BlockMemory::rom(<span class="number">0x1000</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>block = BlockMemory::ram(<span class="number">0x1000</span>);
     block.write(<span class="number">0x00</span>, <span class="number">0x12</span>);
     block.write(<span class="number">0x34</span>, <span class="number">0x56</span>);
 
@@ -379,8 +379,8 @@
       .map(<span class="number">0x1000</span>, Box::new(block2));
 
     <span class="comment">// test reads
-    </span><span class="macro">assert_eq!</span>(<span class="number">0x12</span>, memory.read(<span class="number">0x0000</span>));
-    <span class="macro">assert_eq!</span>(<span class="number">0x56</span>, memory.read(<span class="number">0x0034</span>));
+    </span><span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x0000</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x0034</span>));
     <span class="macro">assert_eq!</span>(<span class="number">0x78</span>, memory.read(<span class="number">0x1000</span>));
     <span class="macro">assert_eq!</span>(<span class="number">0x9A</span>, memory.read(<span class="number">0x1034</span>));
 
@@ -388,23 +388,23 @@
     </span>memory.write(<span class="number">0x0000</span>, <span class="number">0x34</span>);
     memory.write(<span class="number">0x1034</span>, <span class="number">0x78</span>);
 
-    <span class="macro">assert_eq!</span>(<span class="number">0x34</span>, memory.read(<span class="number">0x0000</span>));
-    <span class="macro">assert_eq!</span>(<span class="number">0x56</span>, memory.read(<span class="number">0x0034</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x0000</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x0034</span>));
     <span class="macro">assert_eq!</span>(<span class="number">0x78</span>, memory.read(<span class="number">0x1000</span>));
     <span class="macro">assert_eq!</span>(<span class="number">0x78</span>, memory.read(<span class="number">0x1034</span>));
 
     <span class="comment">// test reset
     </span>memory.reset();
 
-    <span class="macro">assert_eq!</span>(<span class="number">0x34</span>, memory.read(<span class="number">0x0000</span>));
-    <span class="macro">assert_eq!</span>(<span class="number">0x56</span>, memory.read(<span class="number">0x0034</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x0000</span>));
+    <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x0034</span>));
     <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x1000</span>));
     <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, memory.read(<span class="number">0x1034</span>));
   }
 
   <span class="attribute">#[test]
   </span><span class="kw">fn </span>test_overlapping_blocks() {
-    <span class="kw">let </span><span class="kw-2">mut </span>block1 = BlockMemory::rom(<span class="number">0x1000</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>block1 = BlockMemory::ram(<span class="number">0x1000</span>);
     <span class="kw">let </span><span class="kw-2">mut </span>block2 = BlockMemory::ram(<span class="number">0x1000</span>);
 
     block1.write(<span class="number">0x000</span>, <span class="number">0x12</span>);

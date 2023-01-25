@@ -144,8 +144,6 @@
 <span id="144">144</span>
 <span id="145">145</span>
 <span id="146">146</span>
-<span id="147">147</span>
-<span id="148">148</span>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
 
@@ -256,13 +254,11 @@
     <span class="kw">let </span><span class="kw-2">mut </span>mem = BlockMemory::rom(<span class="number">0x1000</span>);
     <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, mem.read(<span class="number">0x123</span>));
 
-    mem.write(<span class="number">0x123</span>, <span class="number">0x45</span>);
-    <span class="macro">assert_eq!</span>(<span class="number">0x45</span>, mem.read(<span class="number">0x123</span>));
-    <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, mem.read(<span class="number">0x124</span>));
+    <span class="comment">// persistent memory should not be writeable
+    </span>mem.write(<span class="number">0x123</span>, <span class="number">0x45</span>);
+    <span class="macro">assert_eq!</span>(<span class="number">0x00</span>, mem.read(<span class="number">0x123</span>));
 
     mem.reset();
-    <span class="comment">// persistent memory should not be reset
-    </span><span class="macro">assert_eq!</span>(<span class="number">0x45</span>, mem.read(<span class="number">0x123</span>));
   }
 
   <span class="attribute">#[test]
