@@ -135,7 +135,7 @@ impl KeyAdapter<KeyPosition, C64Keys> for C64KeyboardAdapter {
         Equals => C64Keys::Equals,
         Enter => C64Keys::Return,
 
-        LAlt => C64Keys::Commodore,
+        LSuper | RSuper => C64Keys::Commodore,
         LShift => C64Keys::LShift,
         Z => C64Keys::Z,
         X => C64Keys::X,
@@ -209,7 +209,7 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
         // TODO: UpArrow
         // TODO: Restore
 
-        // TODO: RunStop
+        LAlt => C64Keys::RunStop, // TODO: should this be mapped differently?
         CapsLock => C64Keys::ShiftLock,
         Char('a') | Char('A') => C64Keys::A,
         Char('s') | Char('S') => C64Keys::S,
@@ -225,7 +225,7 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
         Char('=') => C64Keys::Equals,
         Return => C64Keys::Return,
 
-        LAlt => C64Keys::Commodore,
+        LSuper | RSuper => C64Keys::Commodore,
         LShift => continue, // Handled separately
         Char('z') | Char('Z') => C64Keys::Z,
         Char('x') | Char('X') => C64Keys::X,
