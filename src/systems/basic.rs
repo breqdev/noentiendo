@@ -47,9 +47,9 @@ impl Memory for MappedStdIO {
   /// 0x02: u8 as hex
   fn write(&mut self, address: u16, value: u8) {
     match address & 0x03 {
-      0x00 => self.provider.print(&format!("{}\n", value)),
+      0x00 => self.provider.print(&format!("{value}\n")),
       0x01 => self.provider.print(&format!("{}\n", value as char)),
-      0x02 => self.provider.print(&format!("{:02X}\n", value)),
+      0x02 => self.provider.print(&format!("{value:02X}\n")),
       0x03 => {
         print!("{}", value as char);
         std::io::stdout().flush().unwrap();

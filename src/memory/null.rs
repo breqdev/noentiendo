@@ -21,22 +21,16 @@ impl NullMemory {
 }
 
 impl Memory for NullMemory {
-  fn read(&mut self, _address: u16) -> u8 {
+  fn read(&mut self, address: u16) -> u8 {
     if let Some(message) = self.warn {
-      println!(
-        "attempted to read from {} at address {:04x}",
-        message, _address
-      );
+      println!("attempted to read from {message} at address {address:04x}",);
     }
     0
   }
 
-  fn write(&mut self, _address: u16, _value: u8) {
+  fn write(&mut self, address: u16, _value: u8) {
     if let Some(message) = self.warn {
-      println!(
-        "attempted to write to {} at address {:04x}",
-        message, _address
-      );
+      println!("attempted to write to {message} at address {address:04x}",);
     }
   }
 

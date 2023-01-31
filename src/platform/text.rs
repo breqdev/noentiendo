@@ -57,7 +57,7 @@ impl PlatformProvider for TextPlatformProvider {
   }
 
   fn print(&self, text: &str) {
-    print!("{}", text);
+    print!("{text}");
   }
 
   fn input(&self) -> String {

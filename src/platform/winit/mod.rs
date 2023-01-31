@@ -223,7 +223,7 @@ impl PlatformProvider for WinitPlatformProvider {
   }
 
   fn print(&self, text: &str) {
-    print!("{}", text);
+    print!("{text}");
   }
 
   fn input(&self) -> String {
