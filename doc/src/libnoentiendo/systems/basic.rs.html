@@ -150,9 +150,9 @@
   /// 0x02: u8 as hex
   </span><span class="kw">fn </span>write(<span class="kw-2">&amp;mut </span><span class="self">self</span>, address: u16, value: u8) {
     <span class="kw">match </span>address &amp; <span class="number">0x03 </span>{
-      <span class="number">0x00 </span>=&gt; <span class="self">self</span>.provider.print(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}\n&quot;</span>, value)),
+      <span class="number">0x00 </span>=&gt; <span class="self">self</span>.provider.print(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{value}\n&quot;</span>)),
       <span class="number">0x01 </span>=&gt; <span class="self">self</span>.provider.print(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}\n&quot;</span>, value <span class="kw">as </span>char)),
-      <span class="number">0x02 </span>=&gt; <span class="self">self</span>.provider.print(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{:02X}\n&quot;</span>, value)),
+      <span class="number">0x02 </span>=&gt; <span class="self">self</span>.provider.print(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{value:02X}\n&quot;</span>)),
       <span class="number">0x03 </span>=&gt; {
         <span class="macro">print!</span>(<span class="string">&quot;{}&quot;</span>, value <span class="kw">as </span>char);
         std::io::stdout().flush().unwrap();

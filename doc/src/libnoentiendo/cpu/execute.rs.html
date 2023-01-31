@@ -862,7 +862,7 @@
       }
 
       <span class="kw">_ </span>=&gt; {
-        <span class="macro">println!</span>(<span class="string">&quot;Unimplemented opcode: {:02X}&quot;</span>, opcode);
+        <span class="macro">println!</span>(<span class="string">&quot;Unimplemented opcode: {opcode:02X}&quot;</span>);
         <span class="prelude-val">Err</span>(())
       }
     }
