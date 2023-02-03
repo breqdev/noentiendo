@@ -509,4 +509,16 @@ mod tests {
       symbols.pressed()
     );
   }
+
+  #[test]
+  fn test_control_sequences() {
+    let mut positions = KeyState::<KeyPosition>::new();
+
+    positions.press(KeyPosition::LControl);
+    positions.press(KeyPosition::C);
+
+    let symbols = SymbolAdapter::map(&positions);
+
+    assert_eq!(&vec![KeySymbol::Interrupt], symbols.pressed());
+  }
 }
