@@ -208,7 +208,7 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
         Char('*') => C64Keys::Asterisk,
         // TODO: UpArrow
         // TODO: Restore
-        LAlt => C64Keys::RunStop, // TODO: should this be mapped differently?
+        Interrupt => C64Keys::RunStop,
         CapsLock => C64Keys::ShiftLock,
         Char('a') | Char('A') => C64Keys::A,
         Char('s') | Char('S') => C64Keys::S,
