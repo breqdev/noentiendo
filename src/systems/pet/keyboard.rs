@@ -313,7 +313,7 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
         Char(' ') => PetKeys::Space,
         Char('<') => PetKeys::LessThan,
         Char('>') => PetKeys::GreaterThan,
-        // TODO: Run Stop
+        Interrupt => PetKeys::RunStop,
         RAlt => PetKeys::RShift,
 
         Char('0') => PetKeys::Num0,

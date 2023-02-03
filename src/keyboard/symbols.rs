@@ -52,6 +52,9 @@ pub enum KeySymbol {
   F10,
   F11,
   F12,
+
+  // Control sequences (e.g. Ctrl+C)
+  Interrupt, // Ctrl+C
 }
 
 /// An adapter that maps physical key positions to symbols.
@@ -63,7 +66,14 @@ impl KeyAdapter<KeyPosition, KeySymbol> for SymbolAdapter {
 
     let mut symbols = KeyState::new();
 
-    if !state.is_pressed(KeyPosition::LShift) && !state.is_pressed(KeyPosition::RShift) {
+    if state.is_pressed(LControl) || state.is_pressed(RControl) {
+      for position in state.pressed() {
+        symbols.press(match position {
+          C => KeySymbol::Interrupt,
+          _ => continue,
+        })
+      }
+    } else if !state.is_pressed(LShift) && !state.is_pressed(RShift) {
       for position in state.pressed() {
         symbols.press(match position {
           Escape => KeySymbol::Escape,
