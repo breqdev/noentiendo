@@ -1,7 +1,7 @@
 import { Noentiendo, NoentiendoBuilder } from "noentiendo";
 import { useEffect, useRef, useState } from "react";
 import Emulator from "./Emulator";
-import Keyboard, { PET } from "./keyboards/Common";
+import Keyboard, { C64, PET } from "./keyboards/Common";
 import PetGraphicsKeyboard from "./keyboards/PetGraphics";
 import roms from "./roms";
 
@@ -41,7 +41,7 @@ export default function App() {
         </div>
       </div>
       {/* <PetGraphicsKeyboard /> */}
-      <Keyboard layout={PET} />
+      <Keyboard layout={C64} />
     </div>
   );
 }

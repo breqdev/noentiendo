@@ -17,23 +17,25 @@ export function Key({ keyInfo: key }: { keyInfo: KeyInfo }) {
     : [key];
 
   const width =
-    typeof key === "object" && !Array.isArray(key) ? key.width || 3 : 3;
+    typeof key === "object" && !Array.isArray(key) ? key.width || 1 : 1;
 
   const offset =
     typeof key === "object" && !Array.isArray(key) ? key.offset || 0 : 0;
 
   return (
-    <button
-      className="bg-gray-600 text-white flex flex-col justify-center"
+    <div
+      className="p-0.5 grid"
       style={{
-        width: `${width}rem`,
-        marginLeft: `${offset}rem`,
+        width: `${width * 3}rem`,
+        marginLeft: `${offset * 3}rem`,
       }}
     >
-      {label.map((line) => (
-        <span>{line}</span>
-      ))}
-    </button>
+      <button className="bg-gray-600 text-white flex flex-col items-stretch justify-center min-h-0 min-w-0">
+        {label.map((line) => (
+          <span className="text-center">{line}</span>
+        ))}
+      </button>
+    </div>
   );
 }
 
@@ -42,7 +44,7 @@ export const PET: KeyInfo[][] = [
   [
     {
       label: ["OFF", "RVS"],
-      width: 4,
+      width: 1.5,
     },
     "Q",
     "W",
@@ -62,7 +64,7 @@ export const PET: KeyInfo[][] = [
     {
       label: ["SHIFT", "LOCK"],
       offset: 1,
-      width: 4,
+      width: 1.5,
     },
     "A",
     "S",
@@ -77,14 +79,14 @@ export const PET: KeyInfo[][] = [
     ["RUN", "STOP"],
     {
       label: "RETURN",
-      width: 4.5,
+      width: 1.5,
     },
   ],
   [
     {
       label: "SHIFT",
       offset: 1,
-      width: 6,
+      width: 2,
     },
     "Z",
     "X",
@@ -98,23 +100,115 @@ export const PET: KeyInfo[][] = [
     "?",
     {
       label: "SHIFT",
-      width: 6,
+      width: 2,
     },
   ],
   [
     {
       label: "",
-      width: 28.5,
-      offset: 9.5,
+      width: 10,
+      offset: 3.5,
     },
   ],
 ];
 
+export const C64: KeyInfo[][] = [
+  [
+    {
+      label: "<-",
+      offset: 0.5,
+    },
+    ["!", "1"],
+    ['"', "2"],
+    ["#", "3"],
+    ["$", "4"],
+    ["%", "5"],
+    ["&", "6"],
+    ["'", "7"],
+    ["(", "8"],
+    [")", "9"],
+    ["", "0"],
+    "+",
+    "-",
+    "£",
+    ["CLR", "HOME"],
+    ["INST", "DEL"],
+  ],
+  [
+    {
+      label: "CTRL",
+      offset: 0.5,
+      width: 1.5,
+    },
+    "Q",
+    "W",
+    "E",
+    "R",
+    "T",
+    "Y",
+    "U",
+    "I",
+    "O",
+    "P",
+    "@",
+    "*",
+    "^",
+    {
+      label: "RESTORE",
+      width: 1.5,
+    },
+  ],
+  [
+    ["RUN", "STOP"],
+    ["SHIFT", "LOCK"],
+    "A",
+    "S",
+    "D",
+    "F",
+    "G",
+    "H",
+    "J",
+    "K",
+    "L",
+    ["(", ":"],
+    [")", ";"],
+    "=",
+    {
+      label: "RETURN",
+      width: 2,
+    },
+  ],
+  [
+    "C=",
+    {
+      label: "SHIFT",
+      width: 1.5,
+    },
+    "Z",
+    "X",
+    "C",
+    "V",
+    "B",
+    "N",
+    "M",
+    ["<", ","],
+    [">", "."],
+    ["?", "/"],
+    {
+      label: "SHIFT",
+      width: 1.5,
+    },
+    ["^", "CRSR", "v"],
+    ["<-", "CRSR", "->"],
+  ],
+  [{ label: "", offset: 3, width: 8.5 }],
+];
+
 export default function Keyboard({ layout }: { layout: KeyInfo[][] }) {
   return (
-    <div className="flex flex-col bg-yellow-50 p-12 gap-1">
+    <div className="flex flex-col bg-yellow-50 p-12">
       {layout.map((row, i) => (
-        <div key={i} className="flex h-12 gap-1">
+        <div key={i} className="flex h-12">
           {row.map((key, i) => (
             <Key keyInfo={key} key={i} />
           ))}
