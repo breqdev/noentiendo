@@ -12,7 +12,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{Gamepad, GamepadButton, HtmlCanvasElement, KeyboardEvent};
 mod keyboard;
-use crate::keyboard::{KeyAdapter, KeyPosition};
+use crate::keyboard::{KeyAdapter, KeyPosition, VirtualKey};
 use keyboard::JavaScriptAdapter;
 
 #[cfg(target_arch = "wasm32")]
@@ -238,6 +238,10 @@ impl PlatformProvider for CanvasPlatformProvider {
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     JavaScriptAdapter::map(&self.key_state.lock().unwrap())
+  }
+
+  fn get_virtual_key_state(&self) -> KeyState<VirtualKey> {
+    KeyState::new() // TODO
   }
 
   fn get_joystick_state(&self) -> JoystickState {

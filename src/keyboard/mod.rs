@@ -7,8 +7,12 @@ mod positions;
 /// Keys used for symbolic keyboard mapping.
 mod symbols;
 
+/// Keys which can be pressed on a virtual / emulated keyboard.
+mod virtualkey;
+
 pub use positions::KeyPosition;
 pub use symbols::{KeySymbol, SymbolAdapter};
+pub use virtualkey::VirtualKey;
 
 /// A set of keys that are currently pressed.
 /// Parameter `T` is the type of the key symbols.

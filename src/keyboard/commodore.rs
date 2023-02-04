@@ -1,5 +1,7 @@
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
+use super::VirtualKey;
+
 /// Keys found on a VIC-20 or Commodore 64 keyboard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum C64Keys {
@@ -283,6 +285,22 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
       // If we added keys, make sure shift is pressed
       if !mapped.pressed().is_empty() {
         mapped.press(C64Keys::LShift);
+      }
+    }
+
+    mapped
+  }
+}
+
+pub struct C64VirtualAdapter;
+
+impl KeyAdapter<VirtualKey, C64Keys> for C64VirtualAdapter {
+  fn map(state: &KeyState<VirtualKey>) -> KeyState<C64Keys> {
+    let mut mapped = KeyState::new();
+
+    for symbol in state.pressed() {
+      if let VirtualKey::Commodore(symbol) = symbol {
+        mapped.press(symbol.clone());
       }
     }
 

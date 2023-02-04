@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
+use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol, VirtualKey};
 
 /// The keys found on the PET's "Graphics" keyboard.
 /// Source: <https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg>
@@ -323,6 +323,22 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
 
         _ => continue,
       })
+    }
+
+    mapped
+  }
+}
+
+pub struct PetVirtualAdapter;
+
+impl KeyAdapter<VirtualKey, PetKeys> for PetVirtualAdapter {
+  fn map(state: &KeyState<VirtualKey>) -> KeyState<PetKeys> {
+    let mut mapped = KeyState::new();
+
+    for symbol in state.pressed() {
+      if let VirtualKey::CommodorePet(symbol) = symbol {
+        mapped.press(symbol.clone());
+      }
     }
 
     mapped

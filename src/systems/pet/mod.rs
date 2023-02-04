@@ -12,6 +12,7 @@ use std::time::Duration;
 mod roms;
 pub use roms::PetSystemRoms;
 mod keyboard;
+pub use keyboard::PetKeys;
 use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
 
 const WIDTH: u32 = 40;
