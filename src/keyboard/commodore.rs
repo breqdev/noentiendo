@@ -1,9 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
 use super::VirtualKey;
 
 /// Keys found on a VIC-20 or Commodore 64 keyboard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum C64Keys {
   LeftArrow,
   Digit1,

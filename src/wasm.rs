@@ -10,6 +10,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, HtmlCanvasElement};
 
+use crate::keyboard::KeyState;
+use crate::keyboard::VirtualKey;
 use crate::{
   keyboard::KeyMappingStrategy,
   platform::{AsyncPlatform, CanvasPlatform, Platform},
@@ -108,6 +110,7 @@ impl NoentiendoBuilder {
 pub struct Noentiendo {
   interval_id: i32,
   system: Rc<RefCell<Box<dyn System>>>,
+  virtual_keys: KeyState<VirtualKey>,
 }
 
 #[wasm_bindgen]
@@ -165,6 +168,7 @@ impl Noentiendo {
     Self {
       interval_id,
       system,
+      virtual_keys: KeyState::new(),
     }
   }
 
@@ -178,52 +182,15 @@ impl Noentiendo {
     self.system.borrow_mut().reset();
   }
 
-  pub fn dispatch_key(&mut self, key: String, down: bool) {
-    todo!();
+  pub fn dispatch_key(&mut self, key: JsValue, down: bool) {
+    if down {
+      self
+        .virtual_keys
+        .press(serde_wasm_bindgen::from_value(key).unwrap());
+    } else {
+      self
+        .virtual_keys
+        .release(serde_wasm_bindgen::from_value(key).unwrap());
+    }
   }
 }
-
-// #[cfg(target_arch = "wasm32")]
-// #[wasm_bindgen]
-// pub fn main(roms: &JsValue, system: &JsValue) {
-//   console_error_panic_hook::set_once();
-
-//   use js_sys::Reflect;
-//   use keyboard::KeyMappingStrategy;
-//   use platform::{AsyncPlatform, CanvasPlatform, Platform};
-//   use systems::{
-//     pet::PetSystemBuilder, pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder,
-//     vic::Vic20SystemConfig, vic::Vic20SystemRoms, SystemBuilder,
-//   };
-//   use wasm_bindgen_futures::spawn_local;
-
-//   let mut platform = CanvasPlatform::new();
-
-//   let pet_object = Reflect::get(&roms, &JsValue::from_str("pet")).unwrap();
-//   let vic_object = Reflect::get(&roms, &JsValue::from_str("vic")).unwrap();
-
-//   let pet_roms = PetSystemRoms::from_jsvalue(&pet_object);
-//   let vic_roms = Vic20SystemRoms::from_jsvalue(&vic_object);
-
-//   let system = match system.as_string().unwrap().as_str() {
-//     "pet" => PetSystemBuilder::build(
-//       pet_roms,
-//       PetSystemConfig {
-//         mapping: KeyMappingStrategy::Symbolic,
-//       },
-//       platform.provider(),
-//     ),
-//     "vic" => Vic20SystemBuilder::build(
-//       vic_roms,
-//       Vic20SystemConfig {
-//         mapping: KeyMappingStrategy::Symbolic,
-//       },
-//       platform.provider(),
-//     ),
-//     _ => panic!("Unknown system"),
-//   };
-
-//   spawn_local(async move {
-//     platform.run_async(system).await;
-//   });
-// }

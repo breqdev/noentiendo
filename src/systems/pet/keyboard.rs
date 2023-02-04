@@ -1,8 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol, VirtualKey};
 
 /// The keys found on the PET's "Graphics" keyboard.
 /// Source: <https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PetKeys {
   Exclamation,
   DoubleQuote,
