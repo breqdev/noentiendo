@@ -339,7 +339,7 @@ impl KeyAdapter<VirtualKey, PetKeys> for PetVirtualAdapter {
 
     for symbol in state.pressed() {
       if let VirtualKey::CommodorePet(symbol) = symbol {
-        mapped.press(symbol.clone());
+        mapped.press(*symbol);
       }
     }
 

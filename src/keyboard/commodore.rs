@@ -302,7 +302,7 @@ impl KeyAdapter<VirtualKey, C64Keys> for C64VirtualAdapter {
 
     for symbol in state.pressed() {
       if let VirtualKey::Commodore(symbol) = symbol {
-        mapped.press(symbol.clone());
+        mapped.press(*symbol);
       }
     }
 
