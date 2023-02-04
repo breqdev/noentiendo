@@ -6,8 +6,10 @@ import PetGraphicsKeyboard from "./keyboards/PetGraphics";
 import roms from "./roms";
 
 export default function App() {
-  let [system, setSystem] = useState<"pet" | "vic" | "c64">("pet");
+  const [system, setSystem] = useState<"pet" | "vic" | "c64">("pet");
   const instance = useRef<any>();
+
+  const layout = system === "pet" ? PET : C64;
 
   return (
     <div className="w-full h-full grid place-items-center bg-gray-400 p-4">
@@ -40,8 +42,7 @@ export default function App() {
           </button>
         </div>
       </div>
-      {/* <PetGraphicsKeyboard /> */}
-      <Keyboard layout={C64} />
+      <Keyboard layout={layout} />
     </div>
   );
 }

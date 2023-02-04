@@ -63,7 +63,7 @@ export const PET: KeyInfo[][] = [
   [
     {
       label: ["SHIFT", "LOCK"],
-      offset: 1,
+      offset: 1 / 3,
       width: 1.5,
     },
     "A",
@@ -85,7 +85,7 @@ export const PET: KeyInfo[][] = [
   [
     {
       label: "SHIFT",
-      offset: 1,
+      offset: 1 / 3,
       width: 2,
     },
     "Z",
@@ -106,8 +106,8 @@ export const PET: KeyInfo[][] = [
   [
     {
       label: "",
-      width: 10,
-      offset: 3.5,
+      width: 8 + 5 / 6,
+      offset: 3,
     },
   ],
 ];
