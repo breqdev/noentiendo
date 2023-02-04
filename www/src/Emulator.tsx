@@ -33,6 +33,9 @@ const Emulator = forwardRef(
         reset: () => {
           instance.current?.reset();
         },
+        dispatchKey: (key: any, down: boolean) => {
+          instance.current?.dispatch_key(key, down);
+        },
       };
     });
 

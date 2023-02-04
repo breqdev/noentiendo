@@ -3,6 +3,8 @@ extern crate console_error_panic_hook;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use js_sys::{Object, Reflect};
 use wasm_bindgen::prelude::*;
@@ -60,7 +62,8 @@ impl NoentiendoBuilder {
 
   pub fn build(&self) -> Noentiendo {
     let canvas = self.canvas.as_ref().expect("Canvas not set");
-    let platform = CanvasPlatform::new(canvas.clone());
+    let virtual_key_state = Arc::new(Mutex::new(KeyState::new()));
+    let platform = CanvasPlatform::new(canvas.clone(), virtual_key_state.clone());
 
     let roms = self.roms.as_ref().expect("Roms not set");
 
@@ -102,7 +105,7 @@ impl NoentiendoBuilder {
 
     system.reset();
 
-    Noentiendo::new(platform, system)
+    Noentiendo::new(platform, system, virtual_key_state)
   }
 }
 
@@ -110,12 +113,16 @@ impl NoentiendoBuilder {
 pub struct Noentiendo {
   interval_id: i32,
   system: Rc<RefCell<Box<dyn System>>>,
-  virtual_keys: KeyState<VirtualKey>,
+  virtual_keys: Arc<Mutex<KeyState<VirtualKey>>>,
 }
 
 #[wasm_bindgen]
 impl Noentiendo {
-  fn new(platform: CanvasPlatform, system: Box<dyn System>) -> Self {
+  fn new(
+    platform: CanvasPlatform,
+    system: Box<dyn System>,
+    virtual_key_state: Arc<Mutex<KeyState<VirtualKey>>>,
+  ) -> Self {
     console_error_panic_hook::set_once();
 
     let platform = Rc::new(RefCell::new(platform));
@@ -168,7 +175,7 @@ impl Noentiendo {
     Self {
       interval_id,
       system,
-      virtual_keys: KeyState::new(),
+      virtual_keys: virtual_key_state,
     }
   }
 
@@ -186,10 +193,14 @@ impl Noentiendo {
     if down {
       self
         .virtual_keys
+        .lock()
+        .unwrap()
         .press(serde_wasm_bindgen::from_value(key).unwrap());
     } else {
       self
         .virtual_keys
+        .lock()
+        .unwrap()
         .release(serde_wasm_bindgen::from_value(key).unwrap());
     }
   }

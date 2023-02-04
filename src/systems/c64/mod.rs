@@ -7,7 +7,7 @@ use std::{
 use crate::{
   cpu::Mos6502,
   keyboard::{
-    commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+    commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
   },
   memory::{
@@ -101,6 +101,8 @@ impl Port for C64Cia1PortB {
         C64SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
       }
     };
+
+    let state = state | C64VirtualAdapter::map(&self.platform.get_virtual_key_state());
 
     for (y, row) in KEYBOARD_MAPPING.iter().enumerate() {
       for (x, key) in row.iter().enumerate() {

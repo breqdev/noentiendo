@@ -38,7 +38,10 @@ pub struct CanvasPlatform {
 }
 
 impl CanvasPlatform {
-  pub fn new(canvas: HtmlCanvasElement) -> Self {
+  pub fn new(
+    canvas: HtmlCanvasElement,
+    virtual_key_state: Arc<Mutex<KeyState<VirtualKey>>>,
+  ) -> Self {
     let config = Arc::new(Mutex::new(None));
     let resize_requested = Arc::new(Mutex::new(false));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
@@ -49,6 +52,7 @@ impl CanvasPlatform {
         config.clone(),
         resize_requested.clone(),
         key_state.clone(),
+        virtual_key_state.clone(),
         joystick_state.clone(),
       )),
       canvas,
@@ -211,6 +215,7 @@ pub struct CanvasPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   resize_requested: Arc<Mutex<bool>>,
   key_state: Arc<Mutex<KeyState<String>>>,
+  virtual_key_state: Arc<Mutex<KeyState<VirtualKey>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
 }
 
@@ -219,12 +224,14 @@ impl CanvasPlatformProvider {
     config: Arc<Mutex<Option<WindowConfig>>>,
     resize_requested: Arc<Mutex<bool>>,
     key_state: Arc<Mutex<KeyState<String>>>,
+    virtual_key_state: Arc<Mutex<KeyState<VirtualKey>>>,
     joystick_state: Arc<Mutex<JoystickState>>,
   ) -> Self {
     Self {
       config,
       resize_requested,
       key_state,
+      virtual_key_state,
       joystick_state,
     }
   }
@@ -241,7 +248,7 @@ impl PlatformProvider for CanvasPlatformProvider {
   }
 
   fn get_virtual_key_state(&self) -> KeyState<VirtualKey> {
-    KeyState::new() // TODO
+    self.virtual_key_state.lock().unwrap().clone()
   }
 
   fn get_joystick_state(&self) -> JoystickState {

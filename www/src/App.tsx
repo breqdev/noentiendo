@@ -40,9 +40,20 @@ export default function App() {
           >
             Reset
           </button>
+          <button
+            className="bg-white rounded px-2 py-1"
+            onClick={() =>
+              instance.current?.dispatchKey(
+                { Commodore: { Digit2: null } },
+                true
+              )
+            }
+          >
+            Boop
+          </button>
         </div>
       </div>
-      <Keyboard layout={layout} />
+      <Keyboard layout={layout} dispatch={instance.current?.dispatchKey} />
     </div>
   );
 }

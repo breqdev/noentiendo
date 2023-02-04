@@ -7,7 +7,15 @@ type KeyInfo =
       offset?: number;
     };
 
-export function Key({ keyInfo: key }: { keyInfo: KeyInfo }) {
+export function Key({
+  keyInfo: key,
+  onPress,
+  onRelease,
+}: {
+  keyInfo: KeyInfo;
+  onPress: () => void;
+  onRelease: () => void;
+}) {
   const label = Array.isArray(key)
     ? key
     : typeof key === "object"
@@ -30,7 +38,11 @@ export function Key({ keyInfo: key }: { keyInfo: KeyInfo }) {
         marginLeft: `${offset * 3}rem`,
       }}
     >
-      <button className="bg-gray-600 text-white flex flex-col items-stretch justify-center min-h-0 min-w-0">
+      <button
+        className="bg-gray-600 text-white flex flex-col items-stretch justify-center min-h-0 min-w-0"
+        onMouseDown={() => onPress()}
+        onMouseUp={() => onRelease()}
+      >
         {label.map((line) => (
           <span className="text-center">{line}</span>
         ))}
@@ -204,13 +216,28 @@ export const C64: KeyInfo[][] = [
   [{ label: "", offset: 3, width: 8.5 }],
 ];
 
-export default function Keyboard({ layout }: { layout: KeyInfo[][] }) {
+export default function Keyboard({
+  layout,
+  dispatch,
+}: {
+  layout: KeyInfo[][];
+  dispatch: (key: any, down: boolean) => void;
+}) {
   return (
     <div className="flex flex-col bg-yellow-50 p-12">
       {layout.map((row, i) => (
         <div key={i} className="flex h-12">
           {row.map((key, i) => (
-            <Key keyInfo={key} key={i} />
+            <Key
+              keyInfo={key}
+              key={i}
+              onPress={() => {
+                dispatch({ Commodore: { Digit2: null } }, true);
+              }}
+              onRelease={() => {
+                dispatch({ Commodore: { Digit2: null } }, false);
+              }}
+            />
           ))}
         </div>
       ))}
