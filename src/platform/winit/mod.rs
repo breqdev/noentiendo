@@ -219,7 +219,7 @@ impl PlatformProvider for WinitPlatformProvider {
   }
 
   fn get_virtual_key_state(&self) -> KeyState<VirtualKey> {
-    KeyState::new();
+    KeyState::new()
   }
 
   fn get_joystick_state(&self) -> JoystickState {
