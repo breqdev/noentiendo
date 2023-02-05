@@ -1,11 +1,8 @@
-import { Noentiendo, NoentiendoBuilder } from "noentiendo";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Emulator from "./Emulator";
 import Keyboard from "./keyboards/Common";
 import C64 from "./keyboards/mappings/commodore";
 import PET from "./keyboards/mappings/pet";
-import PetGraphicsKeyboard from "./keyboards/PetGraphics";
-import roms from "./roms";
 
 export default function App() {
   const [system, setSystem] = useState<"pet" | "vic" | "c64">("pet");
@@ -41,17 +38,6 @@ export default function App() {
             onClick={() => instance.current?.reset()}
           >
             Reset
-          </button>
-          <button
-            className="bg-white rounded px-2 py-1"
-            onClick={() =>
-              instance.current?.dispatchKey(
-                { Commodore: { Digit2: null } },
-                true
-              )
-            }
-          >
-            Boop
           </button>
         </div>
       </div>

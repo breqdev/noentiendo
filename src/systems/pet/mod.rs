@@ -15,6 +15,8 @@ mod keyboard;
 pub use keyboard::PetKeys;
 use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
 
+use self::keyboard::PetVirtualAdapter;
+
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
 const CHAR_WIDTH: u32 = 8;
@@ -121,6 +123,8 @@ impl Port for PetPia1PortB {
         PetSymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
       }
     };
+
+    let state = state | PetVirtualAdapter::map(&self.platform.get_virtual_key_state());
 
     for (i, key) in row.iter().enumerate() {
       if state.is_pressed(*key) {
