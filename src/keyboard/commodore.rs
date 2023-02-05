@@ -38,6 +38,7 @@ pub enum C64Keys {
   At,
   Asterisk,
   UpArrow,
+  Restore,
 
   RunStop,
   ShiftLock,

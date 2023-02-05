@@ -1,7 +1,9 @@
 import { Noentiendo, NoentiendoBuilder } from "noentiendo";
 import { useEffect, useRef, useState } from "react";
 import Emulator from "./Emulator";
-import Keyboard, { C64, PET } from "./keyboards/Common";
+import Keyboard from "./keyboards/Common";
+import C64 from "./keyboards/mappings/commodore";
+import PET from "./keyboards/mappings/pet";
 import PetGraphicsKeyboard from "./keyboards/PetGraphics";
 import roms from "./roms";
 
