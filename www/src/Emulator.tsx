@@ -7,9 +7,11 @@ const Emulator = forwardRef(
     {
       system,
       className,
+      onReady,
     }: {
       system: "pet" | "vic" | "c64";
       className?: string;
+      onReady?: (instance: Noentiendo) => void;
     },
     ref
   ) => {
@@ -22,6 +24,8 @@ const Emulator = forwardRef(
         .with_roms(roms)
         .with_system(system)
         .build();
+
+      onReady?.(instance.current);
 
       return () => {
         instance.current?.close();
