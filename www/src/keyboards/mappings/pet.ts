@@ -1,5 +1,12 @@
 import KeyInfo, { KeyLayout, normalizeLayout } from "./keyinfo";
 
+function digit(digit: number) {
+  return {
+    label: digit.toString(),
+    key: `Num${digit}`,
+  };
+}
+
 const PET: KeyLayout = normalizeLayout("CommodorePet", [
   [
     ["@", "At"],
@@ -16,6 +23,23 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
     ["<-", "LeftArrow"],
     ["[", "LeftBracket"],
     ["]", "RightBracket"],
+    {
+      label: ["CLR", "HOME"],
+      offset: 1.5,
+      key: "ClrHome",
+    },
+    {
+      label: ["^", "CRSR", "v"],
+      key: "CursorUpDown",
+    },
+    {
+      label: ["<-", "CRSR", "->"],
+      key: "CursorLeftRight",
+    },
+    {
+      label: ["INST", "DEL"],
+      key: "InsertDelete",
+    },
   ],
   [
     {
@@ -36,6 +60,16 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
     ["^", "UpArrow"],
     ["<", "LessThan"],
     [">", "GreaterThan"],
+    {
+      offset: 1,
+      ...digit(7),
+    },
+    digit(8),
+    digit(9),
+    {
+      label: "/",
+      key: "NumDivide",
+    },
   ],
   [
     {
@@ -60,6 +94,16 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
       width: 1.5,
       key: "Return",
     },
+    {
+      offset: 1 + 1 / 6,
+      ...digit(4),
+    },
+    digit(5),
+    digit(6),
+    {
+      label: "*",
+      key: "NumMultiply",
+    },
   ],
   [
     {
@@ -83,6 +127,16 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
       width: 2,
       key: "RShift",
     },
+    {
+      offset: 1 + 1 / 6,
+      ...digit(1),
+    },
+    digit(2),
+    digit(3),
+    {
+      label: "+",
+      key: "NumPlus",
+    },
   ],
   [
     {
@@ -90,6 +144,22 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
       width: 8 + 5 / 6,
       offset: 3,
       key: "Space",
+    },
+    {
+      offset: 3 + 2 / 3,
+      ...digit(0),
+    },
+    {
+      label: ".",
+      key: "NumPeriod",
+    },
+    {
+      label: "-",
+      key: "NumMinus",
+    },
+    {
+      label: "=",
+      key: "NumEquals",
     },
   ],
 ]);
