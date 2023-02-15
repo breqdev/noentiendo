@@ -12,7 +12,7 @@ export function Key({
 }) {
   const { label, width, offset } = key;
 
-  const scale = useMediaQuery({ query: "(min-width: 768px)" }) ? 3 : 1.5;
+  const scale = useMediaQuery({ query: "(min-width: 768px)" }) ? 3 : 1.25;
 
   return (
     <div

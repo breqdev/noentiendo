@@ -29,12 +29,12 @@ const C64: KeyLayout = normalizeLayout("Commodore", [
     ["£", "Pound"],
     [["CLR", "HOME"], "ClrHome"],
     [["INST", "DEL"], "InsertDelete"],
-    {
-      label: "F1",
-      offset: 1.5,
-      width: 1 + 2 / 3,
-      key: "F1",
-    },
+    // {
+    //   label: "F1",
+    //   offset: 1.5,
+    //   width: 1 + 2 / 3,
+    //   key: "F1",
+    // },
   ],
   [
     {
@@ -61,12 +61,12 @@ const C64: KeyLayout = normalizeLayout("Commodore", [
       width: 1.5,
       key: "Restore",
     },
-    {
-      label: "F3",
-      offset: 1.5,
-      width: 1 + 2 / 3,
-      key: "F3",
-    },
+    // {
+    //   label: "F3",
+    //   offset: 1.5,
+    //   width: 1 + 2 / 3,
+    //   key: "F3",
+    // },
   ],
   [
     [["RUN", "STOP"], "RunStop"],
@@ -88,12 +88,12 @@ const C64: KeyLayout = normalizeLayout("Commodore", [
       width: 2,
       key: "Return",
     },
-    {
-      label: "F5",
-      offset: 2,
-      width: 1 + 2 / 3,
-      key: "F5",
-    },
+    // {
+    //   label: "F5",
+    //   offset: 2,
+    //   width: 1 + 2 / 3,
+    //   key: "F5",
+    // },
   ],
   [
     ["C=", "Commodore"],
@@ -119,12 +119,12 @@ const C64: KeyLayout = normalizeLayout("Commodore", [
     },
     [["^", "CRSR", "v"], "CursorUpDown"],
     [["<-", "CRSR", "->"], "CursorLeftRight"],
-    {
-      label: "F7",
-      offset: 2,
-      width: 1 + 2 / 3,
-      key: "F7",
-    },
+    // {
+    //   label: "F7",
+    //   offset: 2,
+    //   width: 1 + 2 / 3,
+    //   key: "F7",
+    // },
   ],
   [
     {
