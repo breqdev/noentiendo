@@ -28,18 +28,9 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
       offset: 1.5,
       key: "ClrHome",
     },
-    {
-      label: ["^", "CRSR", "v"],
-      key: "CursorUpDown",
-    },
-    {
-      label: ["<-", "CRSR", "->"],
-      key: "CursorLeftRight",
-    },
-    {
-      label: ["INST", "DEL"],
-      key: "InsertDelete",
-    },
+    [["^", "CRSR", "v"], "CursorUpDown"],
+    [["<-", "CRSR", "->"], "CursorLeftRight"],
+    [["INST", "DEL"], "InsertDelete"],
   ],
   [
     {
@@ -66,10 +57,7 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
     },
     digit(8),
     digit(9),
-    {
-      label: "/",
-      key: "NumDivide",
-    },
+    ["/", "NumDivide"],
   ],
   [
     {
@@ -100,10 +88,7 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
     },
     digit(5),
     digit(6),
-    {
-      label: "*",
-      key: "NumMultiply",
-    },
+    ["*", "NumMultiply"],
   ],
   [
     {
@@ -133,10 +118,7 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
     },
     digit(2),
     digit(3),
-    {
-      label: "+",
-      key: "NumPlus",
-    },
+    ["+", "NumPlus"],
   ],
   [
     {
@@ -149,18 +131,9 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
       offset: 3 + 2 / 3,
       ...digit(0),
     },
-    {
-      label: ".",
-      key: "NumPeriod",
-    },
-    {
-      label: "-",
-      key: "NumMinus",
-    },
-    {
-      label: "=",
-      key: "NumEquals",
-    },
+    [".", "NumPeriod"],
+    ["-", "NumMinus"],
+    ["=", "NumEquals"],
   ],
 ]);
 
