@@ -45,22 +45,26 @@ export default function Keyboard({
   dispatch: (key: any, down: boolean) => void;
 }) {
   return (
-    <div className="flex flex-col bg-yellow-50 min-w-0 p-2">
-      {layout.keys.map((row, i) => (
-        <div key={i} className="flex h-12">
-          {row.map((key, i) => (
-            <Key
-              keyInfo={key}
-              key={i}
-              onPress={() => {
-                console.log("press", layout.name, key.key, "ON");
-                dispatch({ [layout.name]: { [key.key]: null } }, true);
-              }}
-              onRelease={() => {
-                console.log("press", layout.name, key.key, "OFF");
-                dispatch({ [layout.name]: { [key.key]: null } }, false);
-              }}
-            />
+    <div className="flex flex-col sm:flex-row bg-yellow-50 min-w-0 p-2 gap-16">
+      {layout.parts.map((part) => (
+        <div className="flex flex-col">
+          {part.keys.map((row, i) => (
+            <div key={i} className="flex h-12">
+              {row.map((key, i) => (
+                <Key
+                  keyInfo={key}
+                  key={i}
+                  onPress={() => {
+                    console.log("press", layout.name, key.key, "ON");
+                    dispatch({ [layout.name]: { [key.key]: null } }, true);
+                  }}
+                  onRelease={() => {
+                    console.log("press", layout.name, key.key, "OFF");
+                    dispatch({ [layout.name]: { [key.key]: null } }, false);
+                  }}
+                />
+              ))}
+            </div>
           ))}
         </div>
       ))}

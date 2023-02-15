@@ -53,14 +53,25 @@ export function normalizeKeyInfo(info: KeyInfo): FullKeyInfo {
   throw new Error("Invalid key info");
 }
 
-export type KeyLayout = {
+export type KeyboardPart = {
   name: string;
   keys: FullKeyInfo[][];
 };
 
-export function normalizeLayout(name: string, layout: KeyInfo[][]): KeyLayout {
+export type KeyLayout = {
+  name: string;
+  parts: KeyboardPart[];
+};
+
+export function normalizeLayout(
+  name: string,
+  parts: { name: string; keys: KeyInfo[][] }[]
+): KeyLayout {
   return {
     name,
-    keys: layout.map((row) => row.map(normalizeKeyInfo)),
+    parts: parts.map((part) => ({
+      name: part.name,
+      keys: part.keys.map((row) => row.map(normalizeKeyInfo)),
+    })),
   };
 }
