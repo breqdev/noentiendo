@@ -26,6 +26,8 @@ export function Key({
         className="bg-gray-600 text-white flex flex-col items-stretch justify-center min-h-0 min-w-0"
         onMouseDown={() => onPress()}
         onMouseUp={() => onRelease()}
+        onTouchStart={() => onPress()}
+        onTouchEnd={() => onRelease()}
       >
         {label.map((line) => (
           <span className="text-center">{line}</span>
