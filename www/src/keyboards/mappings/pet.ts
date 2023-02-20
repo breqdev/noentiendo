@@ -53,6 +53,7 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
           offset: 1 / 3,
           width: 1.5,
           key: "ShiftLock",
+          toggle: true,
         },
         "A",
         "S",
@@ -77,6 +78,7 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
           offset: 1 / 3,
           width: 2,
           key: "LShift",
+          toggle: true,
         },
         "Z",
         "X",
@@ -92,6 +94,7 @@ const PET: KeyLayout = normalizeLayout("CommodorePet", [
           label: "SHIFT",
           width: 2,
           key: "RShift",
+          toggle: true,
         },
       ],
       [

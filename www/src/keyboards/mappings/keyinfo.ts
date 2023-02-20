@@ -3,6 +3,7 @@ export type FullKeyInfo = {
   key: string;
   width: number;
   offset: number;
+  toggle: boolean;
 };
 
 type KeyInfo =
@@ -14,6 +15,7 @@ type KeyInfo =
       key: string;
       width?: number;
       offset?: number;
+      toggle?: boolean;
     };
 
 export default KeyInfo;
@@ -29,6 +31,7 @@ export function normalizeKeyInfo(info: KeyInfo): FullKeyInfo {
       key: info[1],
       width: 1,
       offset: 0,
+      toggle: false,
     };
   }
 
@@ -38,6 +41,7 @@ export function normalizeKeyInfo(info: KeyInfo): FullKeyInfo {
       key: info.key,
       width: info.width || 1,
       offset: info.offset || 0,
+      toggle: info.toggle || false,
     };
   }
 
@@ -47,6 +51,7 @@ export function normalizeKeyInfo(info: KeyInfo): FullKeyInfo {
       key: info,
       width: 1,
       offset: 0,
+      toggle: false,
     };
   }
 

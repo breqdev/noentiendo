@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { useMediaQuery } from "react-responsive";
-import KeyInfo, {
-  FullKeyInfo,
-  KeyLayout,
-  KeyboardPart,
-} from "./mappings/keyinfo";
+import { FullKeyInfo, KeyLayout, KeyboardPart } from "./mappings/keyinfo";
 
 export function Key({
   keyInfo: key,
@@ -17,6 +13,27 @@ export function Key({
 }) {
   const { label, width, offset } = key;
 
+  const [down, setDown] = useState(false);
+
+  const handlePress = () => {
+    if (key.toggle) {
+      setDown((down) => !down);
+      if (down) {
+        onRelease();
+      } else {
+        onPress();
+      }
+    } else {
+      onPress();
+    }
+  };
+
+  const handleRelease = () => {
+    if (!key.toggle) {
+      onRelease();
+    }
+  };
+
   const scale = useMediaQuery({ query: "(min-width: 768px)" }) ? 3 : 1.2;
 
   return (
@@ -28,11 +45,14 @@ export function Key({
       }}
     >
       <button
-        className="bg-gray-600 text-white flex flex-col items-stretch justify-center min-h-0 min-w-0"
-        onMouseDown={() => onPress()}
-        onMouseUp={() => onRelease()}
-        onTouchStart={() => onPress()}
-        onTouchEnd={() => onRelease()}
+        className={
+          "text-white flex flex-col items-stretch justify-center min-h-0 min-w-0 " +
+          (down ? "bg-gray-400" : "bg-gray-600")
+        }
+        onMouseDown={handlePress}
+        onMouseUp={handleRelease}
+        onTouchStart={handlePress}
+        onTouchEnd={handleRelease}
       >
         {label.map((line) => (
           <span className="text-center">{line}</span>
