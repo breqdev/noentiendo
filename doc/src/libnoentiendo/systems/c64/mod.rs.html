@@ -329,6 +329,8 @@
 <a href="#329" id="329">329</a>
 <a href="#330" id="330">330</a>
 <a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
   cell::{Cell, RefCell},
   rc::Rc,
@@ -338,7 +340,7 @@
 <span class="kw">use crate</span>::{
   cpu::Mos6502,
   keyboard::{
-    commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+    commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
   },
   memory::{
@@ -432,6 +434,8 @@
         C64SymbolAdapter::map(<span class="kw-2">&amp;</span>SymbolAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()))
       }
     };
+
+    <span class="kw">let </span>state = state | C64VirtualAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_virtual_key_state());
 
     <span class="kw">for </span>(y, row) <span class="kw">in </span>KEYBOARD_MAPPING.iter().enumerate() {
       <span class="kw">for </span>(x, key) <span class="kw">in </span>row.iter().enumerate() {
@@ -661,4 +665,4 @@
   }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0 (fc594f156 2023-01-24)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.1 (d5a82bbd2 2023-02-07)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

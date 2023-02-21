@@ -247,6 +247,11 @@
 <a href="#247" id="247">247</a>
 <a href="#248" id="248">248</a>
 <a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
+<a href="#251" id="251">251</a>
+<a href="#252" id="252">252</a>
+<a href="#253" id="253">253</a>
+<a href="#254" id="254">254</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::{MemoryIO, Mos6502};
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 <span class="kw">use </span><span class="kw">crate</span>::memory::mos652x::{Pia, Via};
@@ -261,7 +266,10 @@
 <span class="kw">mod </span>roms;
 <span class="kw">pub use </span>roms::PetSystemRoms;
 <span class="kw">mod </span>keyboard;
+<span class="kw">pub use </span>keyboard::PetKeys;
 <span class="kw">use </span>keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
+
+<span class="kw">use </span><span class="self">self</span>::keyboard::PetVirtualAdapter;
 
 <span class="kw">const </span>WIDTH: u32 = <span class="number">40</span>;
 <span class="kw">const </span>HEIGHT: u32 = <span class="number">25</span>;
@@ -369,6 +377,8 @@
         PetSymbolAdapter::map(<span class="kw-2">&amp;</span>SymbolAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_key_state()))
       }
     };
+
+    <span class="kw">let </span>state = state | PetVirtualAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_virtual_key_state());
 
     <span class="kw">for </span>(i, key) <span class="kw">in </span>row.iter().enumerate() {
       <span class="kw">if </span>state.is_pressed(<span class="kw-2">*</span>key) {
@@ -497,4 +507,4 @@
   }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0 (fc594f156 2023-01-24)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.1 (d5a82bbd2 2023-02-07)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

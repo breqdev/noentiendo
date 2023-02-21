@@ -323,7 +323,11 @@
 <a href="#323" id="323">323</a>
 <a href="#324" id="324">324</a>
 <a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::Mos6502;
+<span class="kw">use </span><span class="kw">crate</span>::keyboard::commodore::C64VirtualAdapter;
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -543,6 +547,8 @@
       }
     };
 
+    <span class="kw">let </span>state = state | C64VirtualAdapter::map(<span class="kw-2">&amp;</span><span class="self">self</span>.platform.get_virtual_key_state());
+
     <span class="kw">for </span>(y, row) <span class="kw">in </span>KEYBOARD_MAPPING.iter().enumerate() {
       <span class="kw">for </span>(x, key) <span class="kw">in </span>row.iter().enumerate() {
         <span class="kw">if </span>((!col_mask &amp; (<span class="number">1 </span>&lt;&lt; x)) != <span class="number">0</span>) &amp;&amp; state.is_pressed(<span class="kw-2">*</span>key) {
@@ -649,4 +655,4 @@
   }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0 (fc594f156 2023-01-24)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.1 (d5a82bbd2 2023-02-07)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

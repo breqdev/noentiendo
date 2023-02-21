@@ -74,7 +74,11 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState, VirtualKey};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{Platform, PlatformProvider, SyncPlatform, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::systems::System;
 <span class="kw">use </span><span class="kw">crate</span>::time::FixedTimeStep;
@@ -128,6 +132,10 @@
     KeyState::new()
   }
 
+  <span class="kw">fn </span>get_virtual_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;VirtualKey&gt; {
+    KeyState::new()
+  }
+
   <span class="kw">fn </span>get_joystick_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; JoystickState {
     JoystickState::empty()
   }
@@ -151,4 +159,4 @@
   }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0 (fc594f156 2023-01-24)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.1 (d5a82bbd2 2023-02-07)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

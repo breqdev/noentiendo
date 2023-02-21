@@ -135,7 +135,11 @@
 <a href="#135" id="135">135</a>
 <a href="#136" id="136">136</a>
 <a href="#137" id="137">137</a>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState};
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyPosition, KeyState, VirtualKey};
 <span class="kw">use </span><span class="kw">crate</span>::systems::System;
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>std::sync::Arc;
@@ -250,8 +254,12 @@
   /// should resize it to the new size.
   </span><span class="kw">fn </span>request_window(<span class="kw-2">&amp;</span><span class="self">self</span>, config: WindowConfig);
 
-  <span class="doccomment">/// Get the current state of the keyboard.
+  <span class="doccomment">/// Get the current state of the user&#39;s physical keyboard.
   </span><span class="kw">fn </span>get_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;KeyPosition&gt;;
+
+  <span class="doccomment">/// Get the state of a virtual keyboard (emulating the target system),
+  /// if one is available.
+  </span><span class="kw">fn </span>get_virtual_key_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyState&lt;VirtualKey&gt;;
 
   <span class="doccomment">/// Get the current state of the connected joystick.
   /// If no joystick is connected, this should return a default state.
@@ -273,4 +281,4 @@
   </span><span class="kw">fn </span>random(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u8;
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0 (fc594f156 2023-01-24)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libnoentiendo" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.1 (d5a82bbd2 2023-02-07)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>
