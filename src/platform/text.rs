@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyPosition, KeyState};
+use crate::keyboard::{KeyPosition, KeyState, VirtualKey};
 use crate::platform::{Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
 use crate::time::FixedTimeStep;
@@ -49,6 +49,10 @@ impl PlatformProvider for TextPlatformProvider {
   fn request_window(&self, _config: WindowConfig) {}
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {
+    KeyState::new()
+  }
+
+  fn get_virtual_key_state(&self) -> KeyState<VirtualKey> {
     KeyState::new()
   }
 

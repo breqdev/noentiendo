@@ -3,6 +3,8 @@ extern crate console_error_panic_hook;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use js_sys::{Object, Reflect};
 use wasm_bindgen::prelude::*;
@@ -10,6 +12,8 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{window, HtmlCanvasElement};
 
+use crate::keyboard::KeyState;
+use crate::keyboard::VirtualKey;
 use crate::{
   keyboard::KeyMappingStrategy,
   platform::{AsyncPlatform, CanvasPlatform, Platform},
@@ -58,7 +62,8 @@ impl NoentiendoBuilder {
 
   pub fn build(&self) -> Noentiendo {
     let canvas = self.canvas.as_ref().expect("Canvas not set");
-    let platform = CanvasPlatform::new(canvas.clone());
+    let virtual_key_state = Arc::new(Mutex::new(KeyState::new()));
+    let platform = CanvasPlatform::new(canvas.clone(), virtual_key_state.clone());
 
     let roms = self.roms.as_ref().expect("Roms not set");
 
@@ -100,7 +105,7 @@ impl NoentiendoBuilder {
 
     system.reset();
 
-    Noentiendo::new(platform, system)
+    Noentiendo::new(platform, system, virtual_key_state)
   }
 }
 
@@ -108,11 +113,16 @@ impl NoentiendoBuilder {
 pub struct Noentiendo {
   interval_id: i32,
   system: Rc<RefCell<Box<dyn System>>>,
+  virtual_keys: Arc<Mutex<KeyState<VirtualKey>>>,
 }
 
 #[wasm_bindgen]
 impl Noentiendo {
-  fn new(platform: CanvasPlatform, system: Box<dyn System>) -> Self {
+  fn new(
+    platform: CanvasPlatform,
+    system: Box<dyn System>,
+    virtual_key_state: Arc<Mutex<KeyState<VirtualKey>>>,
+  ) -> Self {
     console_error_panic_hook::set_once();
 
     let platform = Rc::new(RefCell::new(platform));
@@ -165,6 +175,7 @@ impl Noentiendo {
     Self {
       interval_id,
       system,
+      virtual_keys: virtual_key_state,
     }
   }
 
@@ -178,52 +189,19 @@ impl Noentiendo {
     self.system.borrow_mut().reset();
   }
 
-  pub fn dispatch_key(&mut self, key: String, down: bool) {
-    todo!();
+  pub fn dispatch_key(&mut self, key: JsValue, down: bool) {
+    if down {
+      self
+        .virtual_keys
+        .lock()
+        .unwrap()
+        .press(serde_wasm_bindgen::from_value(key).unwrap());
+    } else {
+      self
+        .virtual_keys
+        .lock()
+        .unwrap()
+        .release(serde_wasm_bindgen::from_value(key).unwrap());
+    }
   }
 }
-
-// #[cfg(target_arch = "wasm32")]
-// #[wasm_bindgen]
-// pub fn main(roms: &JsValue, system: &JsValue) {
-//   console_error_panic_hook::set_once();
-
-//   use js_sys::Reflect;
-//   use keyboard::KeyMappingStrategy;
-//   use platform::{AsyncPlatform, CanvasPlatform, Platform};
-//   use systems::{
-//     pet::PetSystemBuilder, pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder,
-//     vic::Vic20SystemConfig, vic::Vic20SystemRoms, SystemBuilder,
-//   };
-//   use wasm_bindgen_futures::spawn_local;
-
-//   let mut platform = CanvasPlatform::new();
-
-//   let pet_object = Reflect::get(&roms, &JsValue::from_str("pet")).unwrap();
-//   let vic_object = Reflect::get(&roms, &JsValue::from_str("vic")).unwrap();
-
-//   let pet_roms = PetSystemRoms::from_jsvalue(&pet_object);
-//   let vic_roms = Vic20SystemRoms::from_jsvalue(&vic_object);
-
-//   let system = match system.as_string().unwrap().as_str() {
-//     "pet" => PetSystemBuilder::build(
-//       pet_roms,
-//       PetSystemConfig {
-//         mapping: KeyMappingStrategy::Symbolic,
-//       },
-//       platform.provider(),
-//     ),
-//     "vic" => Vic20SystemBuilder::build(
-//       vic_roms,
-//       Vic20SystemConfig {
-//         mapping: KeyMappingStrategy::Symbolic,
-//       },
-//       platform.provider(),
-//     ),
-//     _ => panic!("Unknown system"),
-//   };
-
-//   spawn_local(async move {
-//     platform.run_async(system).await;
-//   });
-// }

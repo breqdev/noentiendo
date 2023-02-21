@@ -1,4 +1,5 @@
 use crate::cpu::Mos6502;
+use crate::keyboard::commodore::C64VirtualAdapter;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -217,6 +218,8 @@ impl Port for VicVia2PortA {
         C64SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
       }
     };
+
+    let state = state | C64VirtualAdapter::map(&self.platform.get_virtual_key_state());
 
     for (y, row) in KEYBOARD_MAPPING.iter().enumerate() {
       for (x, key) in row.iter().enumerate() {

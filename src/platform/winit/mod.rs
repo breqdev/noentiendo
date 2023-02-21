@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyAdapter, KeyPosition, KeyState};
+use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, VirtualKey};
 mod keyboard;
 use crate::platform::{JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
@@ -216,6 +216,10 @@ impl PlatformProvider for WinitPlatformProvider {
 
   fn get_key_state(&self) -> KeyState<KeyPosition> {
     WinitAdapter::map(&self.key_state.lock().unwrap())
+  }
+
+  fn get_virtual_key_state(&self) -> KeyState<VirtualKey> {
+    KeyState::new()
   }
 
   fn get_joystick_state(&self) -> JoystickState {

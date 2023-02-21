@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyPosition, KeyState};
+use crate::keyboard::{KeyPosition, KeyState, VirtualKey};
 use crate::systems::System;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -113,8 +113,12 @@ pub trait PlatformProvider {
   /// should resize it to the new size.
   fn request_window(&self, config: WindowConfig);
 
-  /// Get the current state of the keyboard.
+  /// Get the current state of the user's physical keyboard.
   fn get_key_state(&self) -> KeyState<KeyPosition>;
+
+  /// Get the state of a virtual keyboard (emulating the target system),
+  /// if one is available.
+  fn get_virtual_key_state(&self) -> KeyState<VirtualKey>;
 
   /// Get the current state of the connected joystick.
   /// If no joystick is connected, this should return a default state.

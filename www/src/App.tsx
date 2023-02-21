@@ -1,16 +1,25 @@
-import { Noentiendo, NoentiendoBuilder } from "noentiendo";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Emulator from "./Emulator";
-import roms from "./roms";
+import Keyboard from "./keyboards/Common";
+import C64 from "./keyboards/mappings/commodore";
+import PET from "./keyboards/mappings/pet";
 
 export default function App() {
-  let [system, setSystem] = useState<"pet" | "vic" | "c64">("pet");
+  const [system, setSystem] = useState<"pet" | "vic" | "c64">("pet");
+  const [ready, setReady] = useState(false);
   const instance = useRef<any>();
+
+  const layout = system === "pet" ? PET : C64;
 
   return (
     <div className="w-full h-full grid place-items-center bg-gray-400 p-4">
       <div className="flex flex-col items-center gap-4">
-        <Emulator system={system} ref={instance} className="w-full" />
+        <Emulator
+          system={system}
+          ref={instance}
+          onReady={() => setReady(true)}
+          className="w-full"
+        />
         <div className="flex gap-2">
           <button
             className="bg-white rounded px-2 py-1"
@@ -38,6 +47,10 @@ export default function App() {
           </button>
         </div>
       </div>
+      <Keyboard
+        layout={layout}
+        dispatch={ready && instance.current.dispatchKey}
+      />
     </div>
   );
 }
