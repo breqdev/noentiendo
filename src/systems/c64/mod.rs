@@ -11,7 +11,7 @@ use crate::{
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
   },
   memory::{
-    mos::{Cia, Mos6510Port, NullPort, Port},
+    mos::{Cia, Mos6510Port, NullPort, Port, PortInterrupt},
     BankedMemory, BlockMemory, BranchMemory, NullMemory, SystemInfo,
   },
   platform::{PlatformProvider, WindowConfig},
@@ -59,8 +59,11 @@ impl Port for C64Cia1PortA {
     self.keyboard_row.set(value);
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
-    false
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
+    PortInterrupt {
+      c1: false,
+      c2: false,
+    }
   }
 
   fn reset(&mut self) {}
@@ -119,8 +122,11 @@ impl Port for C64Cia1PortB {
     panic!("Tried to write to keyboard row");
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
-    false
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
+    PortInterrupt {
+      c1: false,
+      c2: false,
+    }
   }
 
   fn reset(&mut self) {}
@@ -188,8 +194,11 @@ impl Port for C64BankSwitching {
     self.selectors[5].set(if !self.hiram { 1 } else { 0 });
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
-    false
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
+    PortInterrupt {
+      c1: false,
+      c2: false,
+    }
   }
 
   fn reset(&mut self) {

@@ -57,7 +57,11 @@ impl PiaPortRegisters {
 
   /// Poll the underlying port for interrupts.
   pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
-    self.port.poll(cycles, info)
+    let interrupts = self.port.poll(cycles, info);
+
+    // TODO: handle C1 and C2
+
+    false
   }
 
   /// Reset the DDR, control register, and underlying port.

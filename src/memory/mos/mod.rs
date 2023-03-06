@@ -10,6 +10,11 @@ pub use via::Via;
 
 use crate::memory::SystemInfo;
 
+pub struct PortInterrupt {
+  pub c1: bool,
+  pub c2: bool,
+}
+
 /// A Port that can be read from, written to, reset, or polled for interrupts.
 /// Used in the MOS 6520 PIA and the 6522 VIA.
 pub trait Port {
@@ -22,7 +27,7 @@ pub trait Port {
 
   /// Poll the port for interrupts. A port may trigger an interrupt for any
   /// implementation-defined reason.
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool;
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> PortInterrupt;
 
   /// Reset the port to its initial state, analogous to a system reboot.
   fn reset(&mut self);
@@ -62,8 +67,11 @@ impl Port for NullPort {
     }
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
-    false
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
+    PortInterrupt {
+      c1: false,
+      c2: false,
+    }
   }
 
   fn reset(&mut self) {}
@@ -120,7 +128,11 @@ impl PortRegisters {
 
   /// Poll the underlying port for interrupts.
   pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
-    self.port.poll(cycles, info)
+    let interrupts = self.port.poll(cycles, info);
+
+    // TODO: process C1 and C2
+
+    false
   }
 
   /// Reset the port to its initial state.

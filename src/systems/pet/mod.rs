@@ -1,6 +1,6 @@
 use crate::cpu::{MemoryIO, Mos6502};
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-use crate::memory::mos::{Pia, Via};
+use crate::memory::mos::{Pia, PortInterrupt, Via};
 use crate::memory::{
   mos::{NullPort, Port},
   BlockMemory, BranchMemory, NullMemory, SystemInfo,
@@ -63,7 +63,7 @@ impl Port for PetPia1PortA {
     self.keyboard_row.set(value & 0b1111);
   }
 
-  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> PortInterrupt {
     // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
     let min_elapsed = 0; // TODO: fix
 
@@ -74,15 +74,24 @@ impl Port for PetPia1PortA {
         {
           self.last_draw_cycle = info.cycle_count;
           self.last_draw_instant = Some(Instant::now());
-          true
-          // false
+
+          PortInterrupt {
+            c1: false,
+            c2: true,
+          }
         } else {
-          false
+          PortInterrupt {
+            c1: false,
+            c2: false,
+          }
         }
       }
       None => {
         self.last_draw_instant = Some(Instant::now());
-        false
+        PortInterrupt {
+          c1: false,
+          c2: false,
+        }
       }
     }
   }
@@ -139,8 +148,11 @@ impl Port for PetPia1PortB {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
-    false
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
+    PortInterrupt {
+      c1: false,
+      c2: false,
+    }
   }
 
   fn reset(&mut self) {}
