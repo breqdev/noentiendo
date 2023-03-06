@@ -4,7 +4,7 @@ use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
 };
-use crate::memory::mos::{PortInterrupt, Via};
+use crate::memory::mos::{ControlLines, Via};
 use crate::memory::{
   mos::{NullPort, Port},
   BlockMemory, BranchMemory, NullMemory, SystemInfo,
@@ -140,11 +140,8 @@ impl Port for VicVia1PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
-    PortInterrupt {
-      c1: false,
-      c2: false,
-    }
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    ControlLines::new()
   }
 
   fn reset(&mut self) {}
@@ -181,11 +178,8 @@ impl Port for VicVia2PortB {
     self.keyboard_col.set(value);
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
-    PortInterrupt {
-      c1: false,
-      c2: false,
-    }
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    ControlLines::new()
   }
 
   fn reset(&mut self) {}
@@ -243,11 +237,8 @@ impl Port for VicVia2PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
-    PortInterrupt {
-      c1: false,
-      c2: false,
-    }
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    ControlLines::new()
   }
 
   fn reset(&mut self) {}

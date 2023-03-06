@@ -1,5 +1,7 @@
 use crate::memory::{mos::Port, ActiveInterrupt, Memory, SystemInfo};
 
+use super::ControlLines;
+
 // MOS 6520
 // http://archive.6502.org/datasheets/mos_6520.pdf
 
@@ -16,6 +18,9 @@ struct PiaPortRegisters {
 
   // Control register. Each bit has a specific function.
   pub control: u8,
+
+  /// Previous state of the control lines. Used to detect rising or falling edges.
+  control_lines: ControlLines,
 }
 
 impl PiaPortRegisters {
@@ -26,6 +31,7 @@ impl PiaPortRegisters {
       writes: 0,
       ddr: 0,
       control: 0,
+      control_lines: ControlLines::new(),
     }
   }
 
@@ -38,6 +44,8 @@ impl PiaPortRegisters {
     if self.control & pia_control_bits::DDR_SELECT != 0 {
       (self.port.read() & !self.ddr) | (self.writes & self.ddr)
     } else {
+      self.control &= !pia_control_bits::C1_ACTIVE_TRANSITION_FLAG;
+      self.control &= !pia_control_bits::C2_ACTIVE_TRANSITION_FLAG;
       self.ddr
     }
   }
@@ -47,6 +55,7 @@ impl PiaPortRegisters {
   /// Respects the DDR, so if a bit in the DDR is set to read, then that bit
   /// will not be written.
   pub fn write(&mut self, value: u8) {
+    // TODO: support writes to C2
     if self.control & pia_control_bits::DDR_SELECT != 0 {
       self.writes = value;
       self.port.write(value & self.ddr);
@@ -57,11 +66,59 @@ impl PiaPortRegisters {
 
   /// Poll the underlying port for interrupts.
   pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
-    let interrupts = self.port.poll(cycles, info);
+    let control_lines = self.port.poll(cycles, info);
+    let mut interrupt = false;
 
-    // TODO: handle C1 and C2
+    if control_lines.c1 != self.control_lines.c1 {
+      if control_lines.c1 {
+        // Rising edge (positive transition)
+        if self.control & pia_control_bits::C1_ACTIVE_TRANSITION != 0 {
+          self.control |= pia_control_bits::C1_ACTIVE_TRANSITION_FLAG;
 
-    false
+          if self.control & pia_control_bits::C1_ENABLE_INTERRUPT != 0 {
+            interrupt = true;
+          }
+        }
+      } else {
+        // Falling edge (negative transition)
+        if self.control & pia_control_bits::C1_ACTIVE_TRANSITION == 0 {
+          self.control |= pia_control_bits::C1_ACTIVE_TRANSITION_FLAG;
+
+          if self.control & pia_control_bits::C1_ENABLE_INTERRUPT != 0 {
+            interrupt = true;
+          }
+        }
+      }
+    }
+
+    if self.control & pia_control_bits::C2_DIRECTION == 0 {
+      // C2 is an input
+      if control_lines.c2 != self.control_lines.c2 {
+        if control_lines.c2 {
+          // Rising edge (positive transition)
+          if self.control & pia_control_bits::C2_ACTIVE_TRANSITION != 0 {
+            self.control |= pia_control_bits::C2_ACTIVE_TRANSITION_FLAG;
+
+            if self.control & pia_control_bits::C2_ENABLE_INTERRUPT != 0 {
+              interrupt = true;
+            }
+          }
+        } else {
+          // Falling edge (negative transition)
+          if self.control & pia_control_bits::C2_ACTIVE_TRANSITION == 0 {
+            self.control |= pia_control_bits::C2_ACTIVE_TRANSITION_FLAG;
+
+            if self.control & pia_control_bits::C2_ENABLE_INTERRUPT != 0 {
+              interrupt = true;
+            }
+          }
+        }
+      }
+    }
+
+    self.control_lines = control_lines;
+
+    interrupt
   }
 
   /// Reset the DDR, control register, and underlying port.
@@ -76,12 +133,23 @@ impl PiaPortRegisters {
 #[allow(dead_code)]
 /// The meanings of each bit in the control register.
 pub mod pia_control_bits {
+  /// Flags that are set when a signal edge is detected.
   pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000; // 1 = 0->1, 0 = 1->0
   pub const C2_ACTIVE_TRANSITION_FLAG: u8 = 0b01000000;
+
+  /// Set the direction of the C2 line.
   pub const C2_DIRECTION: u8 = 0b00100000; // 1 = output, 0 = input
-  pub const C2_CONTROL: u8 = 0b00011000; // ???
+
+  /// The control bits of the C2 line. Note that multiple meanings exist
+  /// depending on the mode.
+  pub const C2_CONTROL: u8 = 0b00011000;
+
+  pub const C2_ACTIVE_TRANSITION: u8 = 0b00010000; // 0 = falling, 1 = rising
+  pub const C2_ENABLE_INTERRUPT: u8 = 0b00001000; // 0 = disable IRQ, 1 = enable
+
   pub const DDR_SELECT: u8 = 0b00000100; // enable accessing DDR
-  pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
+  pub const C1_ACTIVE_TRANSITION: u8 = 0b00000010; // 0 = falling, 1 = rising
+  pub const C1_ENABLE_INTERRUPT: u8 = 0b00000001; // 0 = disable IRQ, 1 = enable
 }
 
 /// The MOS 6520 Peripheral Interface Adapter (PIA), containing two ports and

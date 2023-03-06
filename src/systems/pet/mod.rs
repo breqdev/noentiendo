@@ -1,6 +1,6 @@
 use crate::cpu::{MemoryIO, Mos6502};
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-use crate::memory::mos::{Pia, PortInterrupt, Via};
+use crate::memory::mos::{ControlLines, Pia, Via};
 use crate::memory::{
   mos::{NullPort, Port},
   BlockMemory, BranchMemory, NullMemory, SystemInfo,
@@ -27,21 +27,15 @@ const CHAR_HEIGHT: u32 = 8;
 const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 
 /// Port A on the first PIA.
-/// This is used for generating the 60Hz interrupt (which is fired when the
-/// screen drawing reaches the last line), and for setting the active
-/// row of the keyboard matrix.
+/// This is used for setting the active row of the keyboard matrix.
 pub struct PetPia1PortA {
   keyboard_row: Rc<Cell<u8>>,
-  last_draw_instant: Option<Instant>,
-  last_draw_cycle: u64,
 }
 
 impl PetPia1PortA {
   pub fn new() -> Self {
     Self {
       keyboard_row: Rc::new(Cell::new(0)),
-      last_draw_instant: None,
-      last_draw_cycle: 0,
     }
   }
 
@@ -63,37 +57,8 @@ impl Port for PetPia1PortA {
     self.keyboard_row.set(value & 0b1111);
   }
 
-  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> PortInterrupt {
-    // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
-    let min_elapsed = 0; // TODO: fix
-
-    match self.last_draw_instant {
-      Some(last_draw) => {
-        if (last_draw.elapsed() > Duration::from_millis(17))
-          && (info.cycle_count > self.last_draw_cycle + min_elapsed)
-        {
-          self.last_draw_cycle = info.cycle_count;
-          self.last_draw_instant = Some(Instant::now());
-
-          PortInterrupt {
-            c1: false,
-            c2: true,
-          }
-        } else {
-          PortInterrupt {
-            c1: false,
-            c2: false,
-          }
-        }
-      }
-      None => {
-        self.last_draw_instant = Some(Instant::now());
-        PortInterrupt {
-          c1: false,
-          c2: false,
-        }
-      }
-    }
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    ControlLines::new()
   }
 
   fn reset(&mut self) {
@@ -102,11 +67,14 @@ impl Port for PetPia1PortA {
 }
 
 /// Port B on the first PIA.
-/// This is used for reading the keyboard matrix.
+/// This is used for reading the keyboard matrix,
+/// and for generating the 60Hz screen interrupt.
 pub struct PetPia1PortB {
   keyboard_row: Rc<Cell<u8>>,
   mapping_strategy: KeyMappingStrategy,
   platform: Arc<dyn PlatformProvider>,
+  last_draw_instant: Option<Instant>,
+  last_draw_cycle: u64,
 }
 
 impl PetPia1PortB {
@@ -119,6 +87,8 @@ impl PetPia1PortB {
       keyboard_row,
       mapping_strategy,
       platform,
+      last_draw_instant: None,
+      last_draw_cycle: 0,
     }
   }
 }
@@ -148,10 +118,36 @@ impl Port for PetPia1PortB {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
-    PortInterrupt {
-      c1: false,
-      c2: false,
+  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> ControlLines {
+    // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
+    let min_elapsed = 0; // TODO: fix
+
+    match self.last_draw_instant {
+      Some(last_draw) => {
+        if (last_draw.elapsed() > Duration::from_millis(17))
+          && (info.cycle_count > self.last_draw_cycle + min_elapsed)
+        {
+          self.last_draw_cycle = info.cycle_count;
+          self.last_draw_instant = Some(Instant::now());
+
+          ControlLines {
+            c1: true,
+            c2: false,
+          }
+        } else {
+          ControlLines {
+            c1: false,
+            c2: false,
+          }
+        }
+      }
+      None => {
+        self.last_draw_instant = Some(Instant::now());
+        ControlLines {
+          c1: false,
+          c2: false,
+        }
+      }
     }
   }
 

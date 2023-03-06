@@ -10,9 +10,18 @@ pub use via::Via;
 
 use crate::memory::SystemInfo;
 
-pub struct PortInterrupt {
+pub struct ControlLines {
   pub c1: bool,
   pub c2: bool,
+}
+
+impl ControlLines {
+  pub fn new() -> Self {
+    Self {
+      c1: false,
+      c2: false,
+    }
+  }
 }
 
 /// A Port that can be read from, written to, reset, or polled for interrupts.
@@ -27,7 +36,7 @@ pub trait Port {
 
   /// Poll the port for interrupts. A port may trigger an interrupt for any
   /// implementation-defined reason.
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> PortInterrupt;
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ControlLines;
 
   /// Reset the port to its initial state, analogous to a system reboot.
   fn reset(&mut self);
@@ -67,11 +76,8 @@ impl Port for NullPort {
     }
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> PortInterrupt {
-    PortInterrupt {
-      c1: false,
-      c2: false,
-    }
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    ControlLines::new()
   }
 
   fn reset(&mut self) {}
