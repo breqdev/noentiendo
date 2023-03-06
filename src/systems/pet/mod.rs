@@ -1,7 +1,10 @@
 use crate::cpu::{MemoryIO, Mos6502};
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
-use crate::memory::mos652x::{Pia, Via};
-use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
+use crate::memory::mos::{Pia, Via};
+use crate::memory::{
+  mos::{NullPort, Port},
+  BlockMemory, BranchMemory, NullMemory, SystemInfo,
+};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::systems::{System, SystemBuilder};
 use instant::Instant;

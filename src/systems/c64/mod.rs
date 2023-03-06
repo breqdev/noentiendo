@@ -11,8 +11,8 @@ use crate::{
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
   },
   memory::{
-    mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
-    SystemInfo,
+    mos::{Cia, Mos6510Port, NullPort, Port},
+    BankedMemory, BlockMemory, BranchMemory, NullMemory, SystemInfo,
   },
   platform::{PlatformProvider, WindowConfig},
   systems::System,

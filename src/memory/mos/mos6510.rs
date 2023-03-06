@@ -1,4 +1,4 @@
-use super::{ActiveInterrupt, Memory, Port, SystemInfo};
+use crate::memory::{mos::Port, ActiveInterrupt, Memory, SystemInfo};
 
 /// Represents the port built into a MOS 6510 processor, mapped to memory addresses 0x0000 (for the DDR) and 0x0001 (for the port itself).
 pub struct Mos6510Port {

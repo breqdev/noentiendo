@@ -1,6 +1,6 @@
 use crate::memory::{
-  mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer},
-  ActiveInterrupt, Memory, Port, SystemInfo,
+  mos::{InterruptRegister, Port, PortRegisters, ShiftRegister, Timer},
+  ActiveInterrupt, Memory, SystemInfo,
 };
 
 struct TimeRegisters {
@@ -231,7 +231,7 @@ impl Memory for Cia {
 
 #[cfg(test)]
 mod tests {
-  use crate::memory::NullPort;
+  use crate::memory::mos::NullPort;
 
   use super::*;
 

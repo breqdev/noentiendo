@@ -1,6 +1,7 @@
-use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
+use crate::memory::{mos::Port, ActiveInterrupt, Memory, SystemInfo};
 
 // MOS 6520
+// http://archive.6502.org/datasheets/mos_6520.pdf
 
 /// The registers associated with a single port in a MOS 6520 PIA.
 struct PiaPortRegisters {
@@ -136,7 +137,7 @@ impl Memory for Pia {
 
 #[cfg(test)]
 mod tests {
-  use crate::memory::NullPort;
+  use crate::memory::mos::NullPort;
 
   use super::*;
 

@@ -4,8 +4,11 @@ use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
 };
-use crate::memory::mos652x::Via;
-use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
+use crate::memory::mos::Via;
+use crate::memory::{
+  mos::{NullPort, Port},
+  BlockMemory, BranchMemory, NullMemory, SystemInfo,
+};
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::System;
