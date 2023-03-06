@@ -1,6 +1,6 @@
-use crate::memory::{mos::Port, ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 
-use super::ControlLines;
+use super::{ControlLines, ControlLinesPort};
 
 // MOS 6520
 // http://archive.6502.org/datasheets/mos_6520.pdf
@@ -8,7 +8,7 @@ use super::ControlLines;
 /// The registers associated with a single port in a MOS 6520 PIA.
 struct PiaPortRegisters {
   /// The port itself.
-  port: Box<dyn Port>,
+  port: Box<dyn ControlLinesPort>,
 
   /// If the DDR is write, the current written value.
   writes: u8,
@@ -25,7 +25,7 @@ struct PiaPortRegisters {
 
 impl PiaPortRegisters {
   /// Create a new PortRegisters with the given port.
-  pub fn new(port: Box<dyn Port>) -> Self {
+  pub fn new(port: Box<dyn ControlLinesPort>) -> Self {
     Self {
       port,
       writes: 0,
@@ -161,7 +161,7 @@ pub struct Pia {
 
 impl Pia {
   /// Create a new PIA with the two given port implementations.
-  pub fn new(a: Box<dyn Port>, b: Box<dyn Port>) -> Self {
+  pub fn new(a: Box<dyn ControlLinesPort>, b: Box<dyn ControlLinesPort>) -> Self {
     Self {
       a: PiaPortRegisters::new(a),
       b: PiaPortRegisters::new(b),

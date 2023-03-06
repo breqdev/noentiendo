@@ -4,7 +4,7 @@ use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
 };
-use crate::memory::mos::{ControlLines, Via};
+use crate::memory::mos::{ControlLines, ControlLinesPort, Via};
 use crate::memory::{
   mos::{NullPort, Port},
   BlockMemory, BranchMemory, NullMemory, SystemInfo,
@@ -140,11 +140,13 @@ impl Port for VicVia1PortA {
 
   fn write(&mut self, _value: u8) {}
 
+  fn reset(&mut self) {}
+}
+
+impl ControlLinesPort for VicVia1PortA {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
-
-  fn reset(&mut self) {}
 }
 
 /// Port B on the second VIA chip.
@@ -178,11 +180,13 @@ impl Port for VicVia2PortB {
     self.keyboard_col.set(value);
   }
 
+  fn reset(&mut self) {}
+}
+
+impl ControlLinesPort for VicVia2PortB {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
-
-  fn reset(&mut self) {}
 }
 
 /// Port A on the second VIA chip.
@@ -237,11 +241,13 @@ impl Port for VicVia2PortA {
 
   fn write(&mut self, _value: u8) {}
 
+  fn reset(&mut self) {}
+}
+
+impl ControlLinesPort for VicVia2PortA {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
-
-  fn reset(&mut self) {}
 }
 
 /// Configuration for a VIC-20 system.

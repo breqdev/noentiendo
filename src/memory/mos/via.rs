@@ -1,7 +1,56 @@
 use crate::memory::{
-  mos::{InterruptRegister, Port, PortRegisters, ShiftRegister, Timer, TimerOutput},
+  mos::{ControlLines, ControlLinesPort, InterruptRegister, ShiftRegister, Timer, TimerOutput},
   ActiveInterrupt, Memory, SystemInfo,
 };
+
+/// A port and its associated registers on the MOS 6522 VIA.
+pub struct PortRegisters {
+  /// The Port implementation that this instance delegates to.
+  port: Box<dyn ControlLinesPort>,
+
+  /// Stores the current value written to the port.
+  writes: u8,
+
+  /// Data Direction Register. Each bit controls whether the line is an input (0) or output (1).
+  ddr: u8,
+
+  /// Latch enable.
+  latch_enabled: bool,
+}
+
+impl PortRegisters {
+  pub fn new(port: Box<dyn ControlLinesPort>) -> Self {
+    Self {
+      port,
+      writes: 0,
+      ddr: 0,
+      latch_enabled: false,
+    }
+  }
+
+  /// Read from the port, respecting the DDR.
+  pub fn read(&mut self) -> u8 {
+    (self.port.read() & !self.ddr) | (self.writes & self.ddr)
+  }
+
+  /// Write to the port, respecting the DDR.
+  pub fn write(&mut self, value: u8) {
+    self.writes = value;
+    self.port.write(value & self.ddr);
+  }
+
+  /// Poll the underlying port for interrupts.
+  pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ControlLines {
+    self.port.poll(cycles, info)
+  }
+
+  /// Reset the port to its initial state.
+  pub fn reset(&mut self) {
+    self.ddr = 0;
+
+    self.port.reset();
+  }
+}
 
 #[allow(dead_code)]
 pub mod sr_control_bits {
@@ -49,7 +98,7 @@ pub mod interrupt_bits {
 }
 
 impl Via {
-  pub fn new(a: Box<dyn Port>, b: Box<dyn Port>) -> Self {
+  pub fn new(a: Box<dyn ControlLinesPort>, b: Box<dyn ControlLinesPort>) -> Self {
     Self {
       a: PortRegisters::new(a),
       b: PortRegisters::new(b),
@@ -192,9 +241,7 @@ impl Memory for Via {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.a.poll(cycles, info) || self.b.poll(cycles, info) {
-      return ActiveInterrupt::IRQ;
-    }
+    // TODO: handle control lines
 
     ActiveInterrupt::None
   }

@@ -10,6 +10,8 @@ pub use via::Via;
 
 use crate::memory::SystemInfo;
 
+/// A pair of control lines (CA1 and CA2, or CB1 and CB2) as found on the
+/// MOS 6520 PIA and the 6522 VIA.
 pub struct ControlLines {
   pub c1: bool,
   pub c2: bool,
@@ -24,8 +26,8 @@ impl ControlLines {
   }
 }
 
-/// A Port that can be read from, written to, reset, or polled for interrupts.
-/// Used in the MOS 6520 PIA and the 6522 VIA.
+/// A Port that can be read from, written to, or reset. Useful in a variety
+/// of peripheral implementations.
 pub trait Port {
   /// Read a byte from the port. This is implementation-defined, and may have
   /// side effects.
@@ -34,12 +36,15 @@ pub trait Port {
   /// Write a byte to the port. This is implementation-defined.
   fn write(&mut self, value: u8);
 
-  /// Poll the port for interrupts. A port may trigger an interrupt for any
-  /// implementation-defined reason.
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ControlLines;
-
   /// Reset the port to its initial state, analogous to a system reboot.
   fn reset(&mut self);
+}
+
+/// A Port with two control lines (CA1 and CA2, or CB1 and CB2) as found on the
+/// MOS 6520 PIA and the 6522 VIA.
+pub trait ControlLinesPort: Port {
+  /// Poll the port for interrupts on its two control lines.
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ControlLines;
 }
 
 /// A Port that does nothing.
@@ -76,11 +81,13 @@ impl Port for NullPort {
     }
   }
 
+  fn reset(&mut self) {}
+}
+
+impl ControlLinesPort for NullPort {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
-
-  fn reset(&mut self) {}
 }
 
 #[cfg(test)]
@@ -93,59 +100,6 @@ mod tests {
     assert_eq!(port.read(), 0);
     port.write(0x12);
     assert_eq!(port.read(), 0);
-  }
-}
-
-/// A port and its associated registers on the MOS 6522 VIA or MOS 6526 CIA.
-pub struct PortRegisters {
-  /// The Port implementation that this instance delegates to.
-  port: Box<dyn Port>,
-
-  /// Stores the current value written to the port.
-  writes: u8,
-
-  /// Data Direction Register. Each bit controls whether the line is an input (0) or output (1).
-  ddr: u8,
-
-  /// Latch enable: Present on the MOS 6522 VIA.
-  latch_enabled: bool,
-}
-
-impl PortRegisters {
-  pub fn new(port: Box<dyn Port>) -> Self {
-    Self {
-      port,
-      writes: 0,
-      ddr: 0,
-      latch_enabled: false,
-    }
-  }
-
-  /// Read from the port, respecting the DDR.
-  pub fn read(&mut self) -> u8 {
-    (self.port.read() & !self.ddr) | (self.writes & self.ddr)
-  }
-
-  /// Write to the port, respecting the DDR.
-  pub fn write(&mut self, value: u8) {
-    self.writes = value;
-    self.port.write(value & self.ddr);
-  }
-
-  /// Poll the underlying port for interrupts.
-  pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
-    let interrupts = self.port.poll(cycles, info);
-
-    // TODO: process C1 and C2
-
-    false
-  }
-
-  /// Reset the port to its initial state.
-  pub fn reset(&mut self) {
-    self.ddr = 0;
-
-    self.port.reset();
   }
 }
 

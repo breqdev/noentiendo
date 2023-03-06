@@ -1,7 +1,47 @@
 use crate::memory::{
-  mos::{InterruptRegister, Port, PortRegisters, ShiftRegister, Timer},
+  mos::{InterruptRegister, Port, ShiftRegister, Timer},
   ActiveInterrupt, Memory, SystemInfo,
 };
+
+/// A port and its associated registers on the MOS 6526 CIA.
+pub struct PortRegisters {
+  /// The Port implementation that this instance delegates to.
+  port: Box<dyn Port>,
+
+  /// Stores the current value written to the port.
+  writes: u8,
+
+  /// Data Direction Register. Each bit controls whether the line is an input (0) or output (1).
+  ddr: u8,
+}
+
+impl PortRegisters {
+  pub fn new(port: Box<dyn Port>) -> Self {
+    Self {
+      port,
+      writes: 0,
+      ddr: 0,
+    }
+  }
+
+  /// Read from the port, respecting the DDR.
+  pub fn read(&mut self) -> u8 {
+    (self.port.read() & !self.ddr) | (self.writes & self.ddr)
+  }
+
+  /// Write to the port, respecting the DDR.
+  pub fn write(&mut self, value: u8) {
+    self.writes = value;
+    self.port.write(value & self.ddr);
+  }
+
+  /// Reset the port to its initial state.
+  pub fn reset(&mut self) {
+    self.ddr = 0;
+
+    self.port.reset();
+  }
+}
 
 struct TimeRegisters {
   tenth_seconds: u8,
@@ -221,9 +261,7 @@ impl Memory for Cia {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.a.poll(cycles, info) || self.b.poll(cycles, info) {
-      return ActiveInterrupt::IRQ;
-    }
+    // TODO: poll FLAG pin
 
     ActiveInterrupt::None
   }
