@@ -83,6 +83,14 @@ pub struct Via {
   sr: ShiftRegister,
   interrupts: InterruptRegister,
   pcr: u8, // peripheral control register
+
+  // Control line interrupt flags
+  ca_flags: ControlLines,
+  cb_flags: ControlLines,
+
+  // Previous state of control lines (to detect rising/falling edges)
+  ca_prev: ControlLines,
+  cb_prev: ControlLines,
 }
 
 #[allow(dead_code)]
@@ -97,6 +105,37 @@ pub mod interrupt_bits {
   pub const CA2_ENABLE: u8 = 0b00000001;
 }
 
+#[allow(dead_code)]
+pub mod pcr_bits {
+  /// Set the direction of the CB2 line.
+  pub const CB2_DIRECTION: u8 = 0b10000000; // 1 = output, 0 = input
+
+  /// The CB2 control pins have different functions in different modes.
+  pub const CB2_CONTROL: u8 = 0b01100000;
+
+  // Input mode flags:
+  pub const CB2_ACTIVE_TRANSITION: u8 = 0b01000000;
+
+  /// When set, reading or writing output register B does not clear the flag
+  pub const CB2_CLEAR_FLAG_ON_READ: u8 = 0b00100000;
+
+  pub const CB1_ACTIVE_TRANSITION: u8 = 0b00010000; // 0 = falling, 1 = rising
+
+  /// Set the direction of the CA2 line.
+  pub const CA2_DIRECTION: u8 = 0b00001000; // 1 = output, 0 = input
+
+  /// The CA2 control pins have different functions in different modes.
+  pub const CA2_CONTROL: u8 = 0b00000110;
+
+  // Input mode flags:
+  pub const CA2_ACTIVE_TRANSITION: u8 = 0b00000100;
+
+  /// When set, reading or writing output register A does not clear the flag
+  pub const CA2_CLEAR_FLAG_ON_READ: u8 = 0b00000010;
+
+  pub const CA1_ACTIVE_TRANSITION: u8 = 0b00000001; // 0 = falling, 1 = rising
+}
+
 impl Via {
   pub fn new(a: Box<dyn ControlLinesPort>, b: Box<dyn ControlLinesPort>) -> Self {
     Self {
@@ -107,6 +146,10 @@ impl Via {
       sr: ShiftRegister::new(),
       interrupts: InterruptRegister::new(),
       pcr: 0,
+      ca_flags: ControlLines::new(),
+      cb_flags: ControlLines::new(),
+      ca_prev: ControlLines::new(),
+      cb_prev: ControlLines::new(),
     }
   }
 }
@@ -114,8 +157,22 @@ impl Via {
 impl Memory for Via {
   fn read(&mut self, address: u16) -> u8 {
     match address % 0x10 {
-      0x00 => self.b.read(),
-      0x01 => self.a.read(), // TODO: controls handshake?
+      0x00 => {
+        self.cb_flags.c1 = false;
+        if self.pcr & pcr_bits::CB2_CLEAR_FLAG_ON_READ == 0 {
+          self.cb_flags.c2 = false;
+        }
+
+        self.b.read()
+      }
+      0x01 => {
+        self.ca_flags.c1 = false;
+        if self.pcr & pcr_bits::CA2_CLEAR_FLAG_ON_READ == 0 {
+          self.ca_flags.c2 = false;
+        }
+
+        self.a.read()
+      }
       0x02 => self.b.ddr,
       0x03 => self.a.ddr,
       0x04 => {
@@ -171,8 +228,22 @@ impl Memory for Via {
 
   fn write(&mut self, address: u16, value: u8) {
     match address % 0x10 {
-      0x00 => self.b.write(value),
-      0x01 => self.a.write(value), // TODO: controls handshake?
+      0x00 => {
+        self.cb_flags.c1 = false;
+        if self.pcr & pcr_bits::CB2_CLEAR_FLAG_ON_READ == 0 {
+          self.cb_flags.c2 = false;
+        }
+
+        self.b.write(value)
+      }
+      0x01 => {
+        self.ca_flags.c1 = false;
+        if self.pcr & pcr_bits::CA2_CLEAR_FLAG_ON_READ == 0 {
+          self.ca_flags.c2 = false;
+        }
+
+        self.a.write(value)
+      }
       0x02 => self.b.ddr = value,
       0x03 => self.a.ddr = value,
       0x04 => self.t1.latch = (self.t1.latch & 0xff00) | (value as u16),
@@ -241,7 +312,60 @@ impl Memory for Via {
       return ActiveInterrupt::IRQ;
     }
 
-    // TODO: handle control lines
+    let ca = self.a.poll(cycles, info);
+    let cb = self.b.poll(cycles, info);
+
+    if ca.c1 != self.ca_prev.c1 {
+      // CA1 edge
+      if (ca.c1 && self.pcr & pcr_bits::CA1_ACTIVE_TRANSITION != 0)
+        || (!ca.c1 && self.pcr & pcr_bits::CA1_ACTIVE_TRANSITION == 0)
+      {
+        self.ca_flags.c1 = true;
+
+        if self.interrupts.is_enabled(interrupt_bits::CA1_ENABLE) {
+          return ActiveInterrupt::IRQ;
+        }
+      }
+    }
+
+    if ca.c2 != self.ca_prev.c2 && self.pcr & pcr_bits::CA2_DIRECTION == 0 {
+      // CA2 edge, input
+      if (ca.c2 && self.pcr & pcr_bits::CA2_ACTIVE_TRANSITION != 0)
+        || (!ca.c2 && self.pcr & pcr_bits::CA2_ACTIVE_TRANSITION == 0)
+      {
+        self.ca_flags.c2 = true;
+
+        if self.interrupts.is_enabled(interrupt_bits::CA2_ENABLE) {
+          return ActiveInterrupt::IRQ;
+        }
+      }
+    }
+
+    if cb.c1 != self.cb_prev.c1 {
+      // CB1 edge
+      if (cb.c1 && self.pcr & pcr_bits::CB1_ACTIVE_TRANSITION != 0)
+        || (!cb.c1 && self.pcr & pcr_bits::CB1_ACTIVE_TRANSITION == 0)
+      {
+        self.cb_flags.c1 = true;
+
+        if self.interrupts.is_enabled(interrupt_bits::CA1_ENABLE) {
+          return ActiveInterrupt::IRQ;
+        }
+      }
+    }
+
+    if cb.c2 != self.cb_prev.c2 && self.pcr & pcr_bits::CB2_DIRECTION == 0 {
+      // CB2 edge, input
+      if (cb.c2 && self.pcr & pcr_bits::CB2_ACTIVE_TRANSITION != 0)
+        || (!cb.c2 && self.pcr & pcr_bits::CB2_ACTIVE_TRANSITION == 0)
+      {
+        self.cb_flags.c2 = true;
+
+        if self.interrupts.is_enabled(interrupt_bits::CB2_ENABLE) {
+          return ActiveInterrupt::IRQ;
+        }
+      }
+    }
 
     ActiveInterrupt::None
   }

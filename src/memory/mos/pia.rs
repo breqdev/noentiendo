@@ -134,7 +134,7 @@ impl PiaPortRegisters {
 /// The meanings of each bit in the control register.
 pub mod pia_control_bits {
   /// Flags that are set when a signal edge is detected.
-  pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000; // 1 = 0->1, 0 = 1->0
+  pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000;
   pub const C2_ACTIVE_TRANSITION_FLAG: u8 = 0b01000000;
 
   /// Set the direction of the C2 line.
