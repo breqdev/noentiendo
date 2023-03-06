@@ -3,6 +3,61 @@ use crate::memory::{
   ActiveInterrupt, Memory, SystemInfo,
 };
 
+pub struct ControlLineInterrupts {
+  /// The previous state of the control lines.
+  previous: ControlLines,
+
+  /// The interrupt flags corresponding to the control lines.
+  flags: ControlLines,
+}
+
+impl ControlLineInterrupts {
+  pub fn new() -> Self {
+    Self {
+      previous: ControlLines::new(),
+      flags: ControlLines::new(),
+    }
+  }
+
+  pub fn poll(&mut self, pcr: u8, control: ControlLines) -> ControlLines {
+    let mut interrupt = ControlLines::new();
+
+    if control.c1 != self.previous.c1 {
+      // CB1 edge
+      if (control.c1 && pcr & pcr_bits::CA1_ACTIVE_TRANSITION != 0)
+        || (!control.c1 && pcr & pcr_bits::CA1_ACTIVE_TRANSITION == 0)
+      {
+        self.flags.c1 = true;
+
+        interrupt.c1 = true;
+      }
+    }
+
+    if control.c2 != self.previous.c2 && pcr & pcr_bits::CA2_DIRECTION == 0 {
+      // CB2 edge, input
+      if (control.c2 && pcr & pcr_bits::CA2_ACTIVE_TRANSITION != 0)
+        || (!control.c2 && pcr & pcr_bits::CB2_ACTIVE_TRANSITION == 0)
+      {
+        self.flags.c2 = true;
+
+        interrupt.c2 = true;
+      }
+    }
+
+    self.previous = control;
+
+    interrupt
+  }
+
+  pub fn clear_flags(&mut self, pcr: u8) {
+    self.flags.c1 = false;
+
+    if pcr & pcr_bits::CA2_CLEAR_FLAG_ON_READ == 0 {
+      self.flags.c2 = false;
+    }
+  }
+}
+
 /// A port and its associated registers on the MOS 6522 VIA.
 pub struct PortRegisters {
   /// The Port implementation that this instance delegates to.
@@ -63,13 +118,6 @@ pub mod sr_control_bits {
   pub const SHIFT_OUT_BY_T2: u8 = 0b101;
   pub const SHIFT_OUT_BY_SYSTEM_CLOCK: u8 = 0b110;
   pub const SHIFT_OUT_BY_EXTERNAL_CLOCK: u8 = 0b111; // PB6?
-
-  pub const C1_ACTIVE_TRANSITION_FLAG: u8 = 0b10000000; // 1 = 0->1, 0 = 1->0
-  pub const C2_ACTIVE_TRANSITION_FLAG: u8 = 0b01000000;
-  pub const C2_DIRECTION: u8 = 0b00100000; // 1 = output, 0 = input
-  pub const C2_CONTROL: u8 = 0b00011000; // ???
-  pub const DDR_SELECT: u8 = 0b00000100; // enable accessing DDR
-  pub const C1_CONTROL: u8 = 0b00000011; // interrupt status control
 }
 
 /// The MOS 6522 Versatile Interface Adapter (VIA). Contains two ports,
@@ -84,13 +132,9 @@ pub struct Via {
   interrupts: InterruptRegister,
   pcr: u8, // peripheral control register
 
-  // Control line interrupt flags
-  ca_flags: ControlLines,
-  cb_flags: ControlLines,
-
-  // Previous state of control lines (to detect rising/falling edges)
-  ca_prev: ControlLines,
-  cb_prev: ControlLines,
+  // Control lines
+  ca: ControlLineInterrupts,
+  cb: ControlLineInterrupts,
 }
 
 #[allow(dead_code)]
@@ -146,10 +190,8 @@ impl Via {
       sr: ShiftRegister::new(),
       interrupts: InterruptRegister::new(),
       pcr: 0,
-      ca_flags: ControlLines::new(),
-      cb_flags: ControlLines::new(),
-      ca_prev: ControlLines::new(),
-      cb_prev: ControlLines::new(),
+      ca: ControlLineInterrupts::new(),
+      cb: ControlLineInterrupts::new(),
     }
   }
 }
@@ -158,19 +200,11 @@ impl Memory for Via {
   fn read(&mut self, address: u16) -> u8 {
     match address % 0x10 {
       0x00 => {
-        self.cb_flags.c1 = false;
-        if self.pcr & pcr_bits::CB2_CLEAR_FLAG_ON_READ == 0 {
-          self.cb_flags.c2 = false;
-        }
-
+        self.cb.clear_flags(self.pcr >> 4);
         self.b.read()
       }
       0x01 => {
-        self.ca_flags.c1 = false;
-        if self.pcr & pcr_bits::CA2_CLEAR_FLAG_ON_READ == 0 {
-          self.ca_flags.c2 = false;
-        }
-
+        self.ca.clear_flags(self.pcr);
         self.a.read()
       }
       0x02 => self.b.ddr,
@@ -229,19 +263,11 @@ impl Memory for Via {
   fn write(&mut self, address: u16, value: u8) {
     match address % 0x10 {
       0x00 => {
-        self.cb_flags.c1 = false;
-        if self.pcr & pcr_bits::CB2_CLEAR_FLAG_ON_READ == 0 {
-          self.cb_flags.c2 = false;
-        }
-
+        self.cb.clear_flags(self.pcr >> 4);
         self.b.write(value)
       }
       0x01 => {
-        self.ca_flags.c1 = false;
-        if self.pcr & pcr_bits::CA2_CLEAR_FLAG_ON_READ == 0 {
-          self.ca_flags.c2 = false;
-        }
-
+        self.ca.clear_flags(self.pcr);
         self.a.write(value)
       }
       0x02 => self.b.ddr = value,
@@ -315,56 +341,23 @@ impl Memory for Via {
     let ca = self.a.poll(cycles, info);
     let cb = self.b.poll(cycles, info);
 
-    if ca.c1 != self.ca_prev.c1 {
-      // CA1 edge
-      if (ca.c1 && self.pcr & pcr_bits::CA1_ACTIVE_TRANSITION != 0)
-        || (!ca.c1 && self.pcr & pcr_bits::CA1_ACTIVE_TRANSITION == 0)
-      {
-        self.ca_flags.c1 = true;
+    let ca_interrupts = self.ca.poll(self.pcr, ca);
+    let cb_interrupts = self.cb.poll(self.pcr >> 4, cb);
 
-        if self.interrupts.is_enabled(interrupt_bits::CA1_ENABLE) {
-          return ActiveInterrupt::IRQ;
-        }
-      }
+    if ca_interrupts.c1 && self.interrupts.is_enabled(interrupt_bits::CA1_ENABLE) {
+      return ActiveInterrupt::IRQ;
     }
 
-    if ca.c2 != self.ca_prev.c2 && self.pcr & pcr_bits::CA2_DIRECTION == 0 {
-      // CA2 edge, input
-      if (ca.c2 && self.pcr & pcr_bits::CA2_ACTIVE_TRANSITION != 0)
-        || (!ca.c2 && self.pcr & pcr_bits::CA2_ACTIVE_TRANSITION == 0)
-      {
-        self.ca_flags.c2 = true;
-
-        if self.interrupts.is_enabled(interrupt_bits::CA2_ENABLE) {
-          return ActiveInterrupt::IRQ;
-        }
-      }
+    if cb_interrupts.c2 && self.interrupts.is_enabled(interrupt_bits::CB2_ENABLE) {
+      return ActiveInterrupt::IRQ;
     }
 
-    if cb.c1 != self.cb_prev.c1 {
-      // CB1 edge
-      if (cb.c1 && self.pcr & pcr_bits::CB1_ACTIVE_TRANSITION != 0)
-        || (!cb.c1 && self.pcr & pcr_bits::CB1_ACTIVE_TRANSITION == 0)
-      {
-        self.cb_flags.c1 = true;
-
-        if self.interrupts.is_enabled(interrupt_bits::CA1_ENABLE) {
-          return ActiveInterrupt::IRQ;
-        }
-      }
+    if ca_interrupts.c1 && self.interrupts.is_enabled(interrupt_bits::CA1_ENABLE) {
+      return ActiveInterrupt::IRQ;
     }
 
-    if cb.c2 != self.cb_prev.c2 && self.pcr & pcr_bits::CB2_DIRECTION == 0 {
-      // CB2 edge, input
-      if (cb.c2 && self.pcr & pcr_bits::CB2_ACTIVE_TRANSITION != 0)
-        || (!cb.c2 && self.pcr & pcr_bits::CB2_ACTIVE_TRANSITION == 0)
-      {
-        self.cb_flags.c2 = true;
-
-        if self.interrupts.is_enabled(interrupt_bits::CB2_ENABLE) {
-          return ActiveInterrupt::IRQ;
-        }
-      }
+    if cb_interrupts.c2 && self.interrupts.is_enabled(interrupt_bits::CB2_ENABLE) {
+      return ActiveInterrupt::IRQ;
     }
 
     ActiveInterrupt::None
