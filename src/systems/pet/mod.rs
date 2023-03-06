@@ -49,7 +49,8 @@ impl Port for PetPia1PortA {
     0b1000_0000 | self.keyboard_row.get()
     //^         diagnostic mode off
     // ^        IEEE488 (not implemented)
-    //  ^^      Cassette sense (not implemented)
+    //  ^       Cassette sense #2
+    //   ^      Cassette sense #1
     //     ^^^^ Keyboard row select
   }
 
@@ -64,6 +65,9 @@ impl Port for PetPia1PortA {
 
 impl ControlLinesPort for PetPia1PortA {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    // CA1: Cassette #1 Read
+    // CA2: blank screen (not implemented)
+
     ControlLines::new()
   }
 }
@@ -125,6 +129,9 @@ impl Port for PetPia1PortB {
 
 impl ControlLinesPort for PetPia1PortB {
   fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> ControlLines {
+    // CB1: Screen Interrupt (60Hz)
+    // CB2: Cassette #1 Motor (always output)
+
     // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
     let min_elapsed = 0; // TODO: fix
 
@@ -158,6 +165,74 @@ impl ControlLinesPort for PetPia1PortB {
   }
 }
 
+/// Port A on the VIA in a Commodore PET.
+/// Connects to the user port and sets the character set (uppercase/lowercase).
+pub struct PetViaPortA {
+  charset: Rc<Cell<bool>>,
+}
+
+impl PetViaPortA {
+  pub fn new(charset: Rc<Cell<bool>>) -> Self {
+    Self { charset }
+  }
+}
+
+impl Port for PetViaPortA {
+  fn read(&mut self) -> u8 {
+    // TODO: user port
+    0
+  }
+
+  fn write(&mut self, _value: u8) {
+    // TODO: user port
+  }
+
+  fn reset(&mut self) {
+    self.charset.set(false);
+  }
+}
+
+impl ControlLinesPort for PetViaPortA {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    // CA1: User port
+    // CA2: Screen graphics (always output)
+
+    ControlLines::new()
+  }
+}
+
+/// Port B on the VIA in a Commodore PET.
+/// Used for some IEEE488 control lines and the cassette #2 motor and data.
+pub struct PetViaPortB {}
+
+impl PetViaPortB {
+  pub fn new() -> Self {
+    Self {}
+  }
+}
+
+impl Port for PetViaPortB {
+  fn read(&mut self) -> u8 {
+    0
+  }
+
+  fn write(&mut self, value: u8) {
+    let _cassette_motor = value & 0b00010000 != 0;
+    let _cassette_data = value & 0b00001000 != 0;
+
+    // TODO: cassette
+  }
+
+  fn reset(&mut self) {}
+}
+
+impl ControlLinesPort for PetViaPortB {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
+    // TODO: User port
+    ControlLines::new()
+  }
+}
+
 /// Configuration for a Commodore PET system.
 pub struct PetSystemConfig {
   pub mapping: KeyMappingStrategy,
@@ -188,11 +263,17 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let editor_rom = BlockMemory::from_file(0x1000, roms.editor);
 
-    let port_a = PetPia1PortA::new();
-    let port_b = PetPia1PortB::new(port_a.get_keyboard_row(), config.mapping, platform);
-    let pia1 = Pia::new(Box::new(port_a), Box::new(port_b));
+    let pia1_port_a = PetPia1PortA::new();
+    let pia1_port_b = PetPia1PortB::new(pia1_port_a.get_keyboard_row(), config.mapping, platform);
+    let pia1 = Pia::new(Box::new(pia1_port_a), Box::new(pia1_port_b));
+
+    // Used exclusively for IEEE488 port, unimplemented
     let pia2 = Pia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
-    let via = Via::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
+
+    let charset = Rc::new(Cell::new(false)); // TODO: actually use
+    let via_port_a = PetViaPortA::new(charset.clone());
+    let via_port_b = PetViaPortB::new();
+    let via = Via::new(Box::new(via_port_a), Box::new(via_port_b));
 
     let kernel_rom = BlockMemory::from_file(0x1000, roms.kernal);
 
