@@ -14,6 +14,7 @@ use crate::{
     mos::{Cia, Mos6510Port, NullPort, Port},
     BankedMemory, BlockMemory, BranchMemory, NullMemory,
   },
+  peripherals::Datasette,
   platform::{PlatformProvider, WindowConfig},
   systems::System,
 };
@@ -126,25 +127,34 @@ pub struct C64BankSwitching {
   loram: bool,
   charen: bool,
 
+  /// The datasette that piggybacks off of this port
+  datasette: Rc<RefCell<Datasette>>,
+
   /// Selectors to choose what is mapped in each memory region.
   selectors: [Rc<Cell<usize>>; 6],
 }
 
 impl C64BankSwitching {
-  pub fn new(mut selectors: [Rc<Cell<usize>>; 6]) -> Self {
+  pub fn new(mut selectors: [Rc<Cell<usize>>; 6], datasette: Rc<RefCell<Datasette>>) -> Self {
     selectors.iter_mut().for_each(|s| s.set(0));
     Self {
       hiram: true,
       loram: true,
       charen: true,
+
       selectors,
+
+      datasette,
     }
   }
 }
 
 impl Port for C64BankSwitching {
   fn read(&mut self) -> u8 {
-    (self.loram as u8) | (self.hiram as u8) << 1 | (self.charen as u8) << 2
+    (self.loram as u8)
+      | (self.hiram as u8) << 1
+      | (self.charen as u8) << 2
+      | (self.datasette.borrow_mut().sense() as u8) << 4
   }
 
   #[allow(clippy::bool_to_int_with_if)]
@@ -152,6 +162,14 @@ impl Port for C64BankSwitching {
     self.loram = (value & 0b001) != 0;
     self.hiram = (value & 0b010) != 0;
     self.charen = (value & 0b100) != 0;
+
+    self
+      .datasette
+      .borrow_mut()
+      .set_motor((value & 0b00100000) == 0);
+    self.datasette.borrow_mut().write((value & 0b00001000) != 0);
+
+    // Handle memory banking
 
     // TODO: EXROM, GAME signals
 
@@ -243,6 +261,8 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
     let vic_ii = Rc::new(RefCell::new(VicIIChip::new(Box::new(character_rom))));
     let vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: bank switching!
 
+    let datasette = Rc::new(RefCell::new(Datasette::new()));
+
     let port_a = C64Cia1PortA::new();
     let keyboard_col = port_a.get_keyboard_row();
     let cia_1 = Cia::new(
@@ -277,9 +297,12 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
       .bank(Box::new(BlockMemory::ram(0x2000)))
       .bank(Box::new(NullMemory::new())); // TODO: Cartidge Rom High
 
-    let bank_switching = C64BankSwitching::new([
-      selector2, selector3, selector4, selector5, selector6, selector7,
-    ]);
+    let bank_switching = C64BankSwitching::new(
+      [
+        selector2, selector3, selector4, selector5, selector6, selector7,
+      ],
+      datasette,
+    );
 
     let memory = BranchMemory::new()
       .map(0x0000, Box::new(Mos6510Port::new(Box::new(bank_switching))))
