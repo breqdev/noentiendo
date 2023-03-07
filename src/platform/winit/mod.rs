@@ -13,6 +13,7 @@ use pixels::{Pixels, SurfaceTexture};
 use rand;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
+use wgpu::TextureViewDescriptor;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -96,6 +97,15 @@ impl SyncPlatform for WinitPlatform {
     };
     let mut renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
     let mut textures = TexturesDelta::default();
+
+    let texture = pixels.texture();
+    let texture_view = texture.create_view(&TextureViewDescriptor::default());
+    let egui_texture = Renderer::register_native_texture(
+      &mut renderer,
+      pixels.device(),
+      &texture_view,
+      wgpu::FilterMode::Nearest,
+    );
 
     let mut input = WinitInputHelper::new();
     let key_state = self.key_state.clone();
@@ -200,6 +210,21 @@ impl SyncPlatform for WinitPlatform {
                   }
                 })
               });
+            });
+
+            let frame = egui::Frame {
+              fill: ctx.style().visuals.window_fill(),
+              ..egui::Frame::default()
+            };
+            egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+              ui.image(
+                egui_texture,
+                [inner_size.width as f32, inner_size.height as f32],
+              );
+            });
+
+            egui::TopBottomPanel::bottom("statusbar_container").show(ctx, |ui| {
+              ui.label("hello world");
             });
           });
 
