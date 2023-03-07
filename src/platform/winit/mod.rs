@@ -233,8 +233,6 @@ impl SyncPlatform for WinitPlatform {
           let paint_jobs = egui_ctx.tessellate(output.shapes);
 
           let render_result = pixels.render_with(|encoder, render_target, context| {
-            context.scaling_renderer.render(encoder, render_target);
-
             for (id, image_delta) in &textures.set {
               renderer.update_texture(&context.device, &context.queue, *id, image_delta);
             }
