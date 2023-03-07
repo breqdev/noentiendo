@@ -84,6 +84,8 @@ impl SyncPlatform for WinitPlatform {
     let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
 
     let egui_ctx = Context::default();
+    egui_ctx.set_visuals(egui::Visuals::light());
+
     let mut egui_state = egui_winit::State::new(&event_loop);
 
     egui_state.set_max_texture_side(max_texture_size);
@@ -188,8 +190,17 @@ impl SyncPlatform for WinitPlatform {
           system.render(pixels.get_frame_mut(), config.lock().unwrap().unwrap());
 
           let raw_input = egui_state.take_egui_input(&window);
-          let output = egui_ctx.run(raw_input, |egui_ctx| {
-            // TODO: draw
+          let output = egui_ctx.run(raw_input, |ctx| {
+            egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
+              egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                  if ui.button("About...").clicked() {
+                    println!("Menu option clicked");
+                    ui.close_menu();
+                  }
+                })
+              });
+            });
           });
 
           textures.append(output.textures_delta);
@@ -240,26 +251,34 @@ impl SyncPlatform for WinitPlatform {
           }
         }
 
-        Event::WindowEvent { event, .. } => match event {
-          WindowEvent::KeyboardInput {
-            input:
-              winit::event::KeyboardInput {
-                virtual_keycode: Some(key),
-                state,
-                ..
-              },
-            ..
-          } => match state {
-            ElementState::Pressed => {
-              key_state.lock().unwrap().press(key);
-            }
-            ElementState::Released => {
-              key_state.lock().unwrap().release(key);
-            }
-          },
-          WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-          _ => (),
-        },
+        Event::WindowEvent { event, .. } => {
+          let response = egui_state.on_event(&egui_ctx, &event);
+
+          if response.consumed {
+            return;
+          }
+
+          match event {
+            WindowEvent::KeyboardInput {
+              input:
+                winit::event::KeyboardInput {
+                  virtual_keycode: Some(key),
+                  state,
+                  ..
+                },
+              ..
+            } => match state {
+              ElementState::Pressed => {
+                key_state.lock().unwrap().press(key);
+              }
+              ElementState::Released => {
+                key_state.lock().unwrap().release(key);
+              }
+            },
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            _ => (),
+          }
+        }
         _ => (),
       }
     });
