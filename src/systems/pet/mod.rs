@@ -310,6 +310,11 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
     let via_port_b = PetViaPortB::new(datasette_1, datasette_2);
     let via = Via::new(Box::new(via_port_a), Box::new(via_port_b));
 
+    let io = BranchMemory::new()
+      .map(0x10, Box::new(pia1))
+      .map(0x20, Box::new(pia2))
+      .map(0x40, Box::new(via));
+
     let kernel_rom = BlockMemory::from_file(0x1000, roms.kernal);
 
     let memory = BranchMemory::new()
@@ -320,9 +325,8 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
       .map(0xB000, Box::new(expansion_rom_b))
       .map(0xC000, Box::new(basic_rom))
       .map(0xE000, Box::new(editor_rom))
-      .map(0xE810, Box::new(pia1))
-      .map(0xE820, Box::new(pia2))
-      .map(0xE840, Box::new(via))
+      .map(0xE800, Box::new(io))
+      // .map(0xE800, Box::new(LoggingMemory::new(Box::new(io))))
       .map(0xF000, Box::new(kernel_rom));
 
     let cpu = Mos6502::new(Box::new(memory));

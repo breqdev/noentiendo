@@ -1,6 +1,7 @@
 mod banked;
 mod block;
 mod branch;
+mod logging;
 /// The various interface adapters (6520, 6522, 6526) for the MOS 6502 CPU.
 pub mod mos;
 mod null;
@@ -8,6 +9,7 @@ mod null;
 pub use banked::BankedMemory;
 pub use block::BlockMemory;
 pub use branch::BranchMemory;
+pub use logging::LoggingMemory;
 pub use null::NullMemory;
 
 /// Represents the state of the interrupts on the system.
