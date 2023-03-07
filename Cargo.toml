@@ -14,8 +14,11 @@ license = "AGPL-3.0-or-later"
 [dependencies]
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 async-trait = "0.1"
-pixels = "0.11"
 serde = { version = "1.0", features = ["derive"] }
+
+[dependencies.pixels]
+git = "https://github.com/parasyte/pixels"
+rev = "860559272a09b1bf2e2a021b627ea33453d7f029"
 
 # Dependencies used for the WebAssembly target
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -42,11 +45,15 @@ features = [
 
 # Dependencies used when building for desktop
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-winit = "0.27"
-winit_input_helper = "0.13"
+winit = "0.28"
+winit_input_helper = "0.14"
 rand = "0.8"
 clap = { version = "3.2", features = ["derive"]}
 gilrs = "0.10.1"
+egui = "0.21"
+egui-wgpu = "0.21"
+egui-winit = "0.21"
+wgpu = "0.15"
 
 [profile.release]
 debug = true

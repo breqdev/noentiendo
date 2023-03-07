@@ -3,6 +3,9 @@ mod keyboard;
 use crate::platform::{JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
 use crate::time::VariableTimeStep;
+use egui::{Context, TexturesDelta};
+use egui_wgpu::renderer::ScreenDescriptor;
+use egui_wgpu::Renderer;
 use gilrs::{Button, EventType, Gilrs};
 use instant::Duration;
 use keyboard::WinitAdapter;
@@ -71,11 +74,26 @@ impl SyncPlatform for WinitPlatform {
       .unwrap();
 
     let inner_size = window.inner_size();
+    let scale_factor = window.scale_factor() as f32;
 
     let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
     let mut pixels =
       Pixels::new(current_config.width, current_config.height, surface_texture).unwrap();
+
+    let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
+
+    let egui_ctx = Context::default();
+    let mut egui_state = egui_winit::State::new(&event_loop);
+
+    egui_state.set_max_texture_side(max_texture_size);
+    egui_state.set_pixels_per_point(scale_factor);
+    let mut screen_descriptor = ScreenDescriptor {
+      size_in_pixels: [inner_size.width, inner_size.height],
+      pixels_per_point: scale_factor,
+    };
+    let mut renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
+    let mut textures = TexturesDelta::default();
 
     let mut input = WinitInputHelper::new();
     let key_state = self.key_state.clone();
@@ -92,12 +110,20 @@ impl SyncPlatform for WinitPlatform {
       *control_flow = ControlFlow::Poll;
 
       if input.update(&event) {
-        if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+        if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() || input.destroyed()
+        {
           *control_flow = ControlFlow::Exit;
+        }
+
+        if let Some(scale_factor) = input.scale_factor() {
+          screen_descriptor.pixels_per_point = scale_factor as f32;
         }
 
         if let Some(size) = input.window_resized() {
           pixels.resize_surface(size.width, size.height).unwrap();
+          if inner_size.width > 0 && inner_size.height > 0 {
+            screen_descriptor.size_in_pixels = [inner_size.width, inner_size.height];
+          }
         }
       }
 
@@ -156,13 +182,64 @@ impl SyncPlatform for WinitPlatform {
           }
 
           window.request_redraw();
-
-          // TODO: vsync?
         }
+
         Event::RedrawRequested(_) => {
           system.render(pixels.get_frame_mut(), config.lock().unwrap().unwrap());
-          pixels.render().unwrap();
+
+          let raw_input = egui_state.take_egui_input(&window);
+          let output = egui_ctx.run(raw_input, |egui_ctx| {
+            // TODO: draw
+          });
+
+          textures.append(output.textures_delta);
+          egui_state.handle_platform_output(&window, &egui_ctx, output.platform_output);
+          let paint_jobs = egui_ctx.tessellate(output.shapes);
+
+          let render_result = pixels.render_with(|encoder, render_target, context| {
+            context.scaling_renderer.render(encoder, render_target);
+
+            for (id, image_delta) in &textures.set {
+              renderer.update_texture(&context.device, &context.queue, *id, image_delta);
+            }
+            renderer.update_buffers(
+              &context.device,
+              &context.queue,
+              encoder,
+              &paint_jobs,
+              &screen_descriptor,
+            );
+
+            {
+              let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("egui"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                  view: render_target,
+                  resolve_target: None,
+                  ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                  },
+                })],
+                depth_stencil_attachment: None,
+              });
+
+              renderer.render(&mut rpass, &paint_jobs, &screen_descriptor);
+            }
+
+            let textures = std::mem::take(&mut textures);
+            for id in &textures.free {
+              renderer.free_texture(id);
+            }
+
+            Ok(())
+          });
+
+          if let Err(e) = render_result {
+            eprintln!("Error rendering: {:?}", e);
+          }
         }
+
         Event::WindowEvent { event, .. } => match event {
           WindowEvent::KeyboardInput {
             input:
