@@ -69,7 +69,7 @@ impl SyncPlatform for WinitPlatform {
       .with_title("noentiendo")
       .with_inner_size(LogicalSize::new(
         current_config.width as f64 * current_config.scale,
-        current_config.height as f64 * current_config.scale,
+        current_config.height as f64 * current_config.scale + 50.0,
       ))
       .build(&event_loop)
       .unwrap();
@@ -133,8 +133,8 @@ impl SyncPlatform for WinitPlatform {
 
         if let Some(size) = input.window_resized() {
           pixels.resize_surface(size.width, size.height).unwrap();
-          if inner_size.width > 0 && inner_size.height > 0 {
-            screen_descriptor.size_in_pixels = [inner_size.width, inner_size.height];
+          if size.width > 0 && size.height > 0 {
+            screen_descriptor.size_in_pixels = [size.width, size.height];
           }
         }
       }
@@ -179,13 +179,6 @@ impl SyncPlatform for WinitPlatform {
             if new_config != current_config {
               current_config = new_config;
 
-              window.set_inner_size(LogicalSize::new(
-                new_config.width as f64 * new_config.scale,
-                new_config.height as f64 * new_config.scale,
-              ));
-
-              let inner_size = window.inner_size();
-
               let surface_texture =
                 SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
@@ -219,7 +212,10 @@ impl SyncPlatform for WinitPlatform {
             egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
               ui.image(
                 egui_texture,
-                [inner_size.width as f32, inner_size.height as f32],
+                [
+                  (current_config.width as f64 * current_config.scale) as f32,
+                  (current_config.height as f64 * current_config.scale) as f32,
+                ],
               );
             });
 
