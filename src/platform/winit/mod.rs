@@ -205,22 +205,27 @@ impl SyncPlatform for WinitPlatform {
               });
             });
 
+            egui::TopBottomPanel::bottom("statusbar_container").show(ctx, |ui| {
+              ui.label("hello world");
+            });
+
             let frame = egui::Frame {
               fill: ctx.style().visuals.window_fill(),
               ..egui::Frame::default()
             };
             egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
-              ui.image(
-                egui_texture,
-                [
-                  (current_config.width as f64 * current_config.scale) as f32,
-                  (current_config.height as f64 * current_config.scale) as f32,
-                ],
+              ui.with_layout(
+                egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                |ui| {
+                  ui.image(
+                    egui_texture,
+                    [
+                      (current_config.width as f64 * current_config.scale) as f32,
+                      (current_config.height as f64 * current_config.scale) as f32,
+                    ],
+                  );
+                },
               );
-            });
-
-            egui::TopBottomPanel::bottom("statusbar_container").show(ctx, |ui| {
-              ui.label("hello world");
             });
           });
 
