@@ -9,6 +9,7 @@ use crate::memory::{
   mos::{NullPort, Port},
   BlockMemory, BranchMemory, NullMemory, SystemInfo,
 };
+use crate::peripherals::Datasette;
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::System;
@@ -109,13 +110,15 @@ impl Vic20SystemRoms {
 pub struct VicVia1PortA {
   platform: Arc<dyn PlatformProvider>,
   joy_pin_3: Rc<Cell<bool>>,
+  datasette: Rc<RefCell<Datasette>>,
 }
 
 impl VicVia1PortA {
-  pub fn new(platform: Arc<dyn PlatformProvider>) -> Self {
+  pub fn new(platform: Arc<dyn PlatformProvider>, datasette: Rc<RefCell<Datasette>>) -> Self {
     Self {
       platform,
       joy_pin_3: Rc::new(Cell::new(true)),
+      datasette,
     }
   }
 
@@ -134,8 +137,13 @@ impl Port for VicVia1PortA {
     let pin_2 = !joystick.left;
     self.joy_pin_3.set(!joystick.right);
     let lightpen_fire = !joystick.fire;
+    let switch_sense = self.datasette.borrow_mut().sense();
 
-    (pin_0 as u8) << 2 | (pin_1 as u8) << 3 | (pin_2 as u8) << 4 | (lightpen_fire as u8) << 5
+    (pin_0 as u8) << 2
+      | (pin_1 as u8) << 3
+      | (pin_2 as u8) << 4
+      | (lightpen_fire as u8) << 5
+      | (switch_sense as u8) << 6
   }
 
   fn write(&mut self, _value: u8) {}
@@ -148,7 +156,9 @@ impl ControlLinesPort for VicVia1PortA {
     ControlLines::new()
   }
 
-  fn write_c2(&mut self, _value: bool) {}
+  fn write_c2(&mut self, value: bool) {
+    self.datasette.borrow_mut().set_motor(!value);
+  }
 }
 
 /// Port B on the second VIA chip.
@@ -157,13 +167,15 @@ impl ControlLinesPort for VicVia1PortA {
 pub struct VicVia2PortB {
   keyboard_col: Rc<Cell<u8>>,
   joy_pin_3: Rc<Cell<bool>>,
+  datasette: Rc<RefCell<Datasette>>,
 }
 
 impl VicVia2PortB {
-  pub fn new(joy_pin_3: Rc<Cell<bool>>) -> Self {
+  pub fn new(joy_pin_3: Rc<Cell<bool>>, datasette: Rc<RefCell<Datasette>>) -> Self {
     Self {
       keyboard_col: Rc::new(Cell::new(0)),
       joy_pin_3,
+      datasette,
     }
   }
 
@@ -180,6 +192,7 @@ impl Port for VicVia2PortB {
 
   fn write(&mut self, value: u8) {
     self.keyboard_col.set(value);
+    self.datasette.borrow_mut().write(value & 0b00001000 != 0);
   }
 
   fn reset(&mut self) {}
@@ -199,6 +212,7 @@ pub struct VicVia2PortA {
   keyboard_col: Rc<Cell<u8>>,
   mapping_strategy: KeyMappingStrategy,
   platform: Arc<dyn PlatformProvider>,
+  datasette: Rc<RefCell<Datasette>>,
 }
 
 impl VicVia2PortA {
@@ -208,11 +222,13 @@ impl VicVia2PortA {
     keyboard_col: Rc<Cell<u8>>,
     mapping_strategy: KeyMappingStrategy,
     platform: Arc<dyn PlatformProvider>,
+    datasette: Rc<RefCell<Datasette>>,
   ) -> Self {
     Self {
       keyboard_col,
       mapping_strategy,
       platform,
+      datasette,
     }
   }
 }
@@ -250,7 +266,9 @@ impl Port for VicVia2PortA {
 
 impl ControlLinesPort for VicVia2PortA {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
-    ControlLines::new()
+    let mut control = ControlLines::new();
+    control.c1 = self.datasette.borrow_mut().read();
+    control
   }
 
   fn write_c2(&mut self, _value: bool) {}
@@ -275,9 +293,11 @@ impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20Sys
 
     let vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
 
-    let v1a = VicVia1PortA::new(platform.clone());
-    let v2b = VicVia2PortB::new(v1a.get_joy_pin_3());
-    let v2a = VicVia2PortA::new(v2b.get_keyboard_col(), config.mapping, platform);
+    let datasette = Rc::new(RefCell::new(Datasette::new()));
+
+    let v1a = VicVia1PortA::new(platform.clone(), datasette.clone());
+    let v2b = VicVia2PortB::new(v1a.get_joy_pin_3(), datasette.clone());
+    let v2a = VicVia2PortA::new(v2b.get_keyboard_col(), config.mapping, platform, datasette);
 
     let via1 = Via::new(Box::new(v1a), Box::new(NullPort::new()));
     let via2 = Via::new(Box::new(v2a), Box::new(v2b));
