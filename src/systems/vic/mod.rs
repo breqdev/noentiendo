@@ -147,6 +147,8 @@ impl ControlLinesPort for VicVia1PortA {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
+
+  fn write_c2(&mut self, _value: bool) {}
 }
 
 /// Port B on the second VIA chip.
@@ -187,6 +189,8 @@ impl ControlLinesPort for VicVia2PortB {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
+
+  fn write_c2(&mut self, _value: bool) {}
 }
 
 /// Port A on the second VIA chip.
@@ -248,6 +252,8 @@ impl ControlLinesPort for VicVia2PortA {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
+
+  fn write_c2(&mut self, _value: bool) {}
 }
 
 /// Configuration for a VIC-20 system.

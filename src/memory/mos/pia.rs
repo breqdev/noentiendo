@@ -121,6 +121,22 @@ impl PiaPortRegisters {
     interrupt
   }
 
+  /// Write the C2 line.
+  pub fn write_control(&mut self, value: u8) {
+    self.control = value;
+
+    if value & pia_control_bits::C2_DIRECTION != 0 {
+      // CA2 is an output
+      if value & pia_control_bits::C2_MANUAL_OUTPUT == 0 {
+        todo!("Handshake and pulse modes not supported");
+      } else {
+        let output = value & pia_control_bits::C2_MANUAL_OUTPUT_VALUE != 0;
+        println!("Writing C2: {}", output);
+        self.port.write_c2(output);
+      }
+    }
+  }
+
   /// Reset the DDR, control register, and underlying port.
   pub fn reset(&mut self) {
     self.ddr = 0;
@@ -146,6 +162,11 @@ pub mod pia_control_bits {
 
   pub const C2_ACTIVE_TRANSITION: u8 = 0b00010000; // 0 = falling, 1 = rising
   pub const C2_ENABLE_INTERRUPT: u8 = 0b00001000; // 0 = disable IRQ, 1 = enable
+
+  pub const C2_MANUAL_OUTPUT: u8 = 0b00010000; // 0 = handshake/pulse, 1 = direct output
+
+  pub const C2_PULSE_OUTPUT: u8 = 0b00001000; // 0 = handshake on read, 1 = pulse on read
+  pub const C2_MANUAL_OUTPUT_VALUE: u8 = 0b00001000; // 0 = low, 1 = high
 
   pub const DDR_SELECT: u8 = 0b00000100; // enable accessing DDR
   pub const C1_ACTIVE_TRANSITION: u8 = 0b00000010; // 0 = falling, 1 = rising
@@ -183,9 +204,9 @@ impl Memory for Pia {
   fn write(&mut self, address: u16, value: u8) {
     match address % 0x04 {
       0x00 => self.a.write(value),
-      0x01 => self.a.control = value,
+      0x01 => self.a.write_control(value),
       0x02 => self.b.write(value),
-      0x03 => self.b.control = value,
+      0x03 => self.b.write_control(value),
       _ => unreachable!(),
     }
   }

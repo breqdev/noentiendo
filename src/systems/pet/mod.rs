@@ -5,10 +5,11 @@ use crate::memory::{
   mos::{NullPort, Port},
   BlockMemory, BranchMemory, NullMemory, SystemInfo,
 };
+use crate::peripherals::Datasette;
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::systems::{System, SystemBuilder};
 use instant::Instant;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
@@ -30,12 +31,16 @@ const VRAM_SIZE: usize = 1024; // 24 extra bytes to make mapping easier
 /// This is used for setting the active row of the keyboard matrix.
 pub struct PetPia1PortA {
   keyboard_row: Rc<Cell<u8>>,
+  datasette_1: Rc<RefCell<Datasette>>,
+  datasette_2: Rc<RefCell<Datasette>>,
 }
 
 impl PetPia1PortA {
-  pub fn new() -> Self {
+  pub fn new(datasette_1: Rc<RefCell<Datasette>>, datasette_2: Rc<RefCell<Datasette>>) -> Self {
     Self {
       keyboard_row: Rc::new(Cell::new(0)),
+      datasette_1,
+      datasette_2,
     }
   }
 
@@ -46,12 +51,11 @@ impl PetPia1PortA {
 
 impl Port for PetPia1PortA {
   fn read(&mut self) -> u8 {
-    0b1000_0000 | self.keyboard_row.get()
-    //^         diagnostic mode off
-    // ^        IEEE488 (not implemented)
-    //  ^       Cassette sense #2
-    //   ^      Cassette sense #1
-    //     ^^^^ Keyboard row select
+    (1 << 7) // diagnostic mode off
+      | (0 << 6) // IEEE488 (not implemented)
+      | ((self.datasette_2.borrow_mut().sense() as u8) << 5) // cassette sense #2
+      | ((self.datasette_1.borrow_mut().sense() as u8) << 4) // cassette sense #1
+      | self.keyboard_row.get() // keyboard row select
   }
 
   fn write(&mut self, value: u8) {
@@ -70,6 +74,8 @@ impl ControlLinesPort for PetPia1PortA {
 
     ControlLines::new()
   }
+
+  fn write_c2(&mut self, _value: bool) {}
 }
 
 /// Port B on the first PIA.
@@ -81,6 +87,7 @@ pub struct PetPia1PortB {
   platform: Arc<dyn PlatformProvider>,
   last_draw_instant: Option<Instant>,
   last_draw_cycle: u64,
+  datasette_1: Rc<RefCell<Datasette>>,
 }
 
 impl PetPia1PortB {
@@ -88,6 +95,7 @@ impl PetPia1PortB {
     keyboard_row: Rc<Cell<u8>>,
     mapping_strategy: KeyMappingStrategy,
     platform: Arc<dyn PlatformProvider>,
+    datasette_1: Rc<RefCell<Datasette>>,
   ) -> Self {
     Self {
       keyboard_row,
@@ -95,6 +103,7 @@ impl PetPia1PortB {
       platform,
       last_draw_instant: None,
       last_draw_cycle: 0,
+      datasette_1,
     }
   }
 }
@@ -163,6 +172,10 @@ impl ControlLinesPort for PetPia1PortB {
       }
     }
   }
+
+  fn write_c2(&mut self, value: bool) {
+    self.datasette_1.borrow_mut().set_motor(!value);
+  }
 }
 
 /// Port A on the VIA in a Commodore PET.
@@ -199,15 +212,25 @@ impl ControlLinesPort for PetViaPortA {
 
     ControlLines::new()
   }
+
+  fn write_c2(&mut self, value: bool) {
+    self.charset.set(value);
+  }
 }
 
 /// Port B on the VIA in a Commodore PET.
 /// Used for some IEEE488 control lines and the cassette #2 motor and data.
-pub struct PetViaPortB {}
+pub struct PetViaPortB {
+  datasette_1: Rc<RefCell<Datasette>>,
+  datasette_2: Rc<RefCell<Datasette>>,
+}
 
 impl PetViaPortB {
-  pub fn new() -> Self {
-    Self {}
+  pub fn new(datasette_1: Rc<RefCell<Datasette>>, datasette_2: Rc<RefCell<Datasette>>) -> Self {
+    Self {
+      datasette_1,
+      datasette_2,
+    }
   }
 }
 
@@ -217,10 +240,12 @@ impl Port for PetViaPortB {
   }
 
   fn write(&mut self, value: u8) {
-    let _cassette_motor = value & 0b00010000 != 0;
-    let _cassette_data = value & 0b00001000 != 0;
+    let cassette_motor = value & 0b00010000 == 0;
+    let cassette_write = value & 0b00001000 != 0;
 
-    // TODO: cassette
+    self.datasette_2.borrow_mut().set_motor(cassette_motor);
+    self.datasette_1.borrow_mut().write(cassette_write);
+    self.datasette_2.borrow_mut().write(cassette_write);
   }
 
   fn reset(&mut self) {}
@@ -231,6 +256,8 @@ impl ControlLinesPort for PetViaPortB {
     // TODO: User port
     ControlLines::new()
   }
+
+  fn write_c2(&mut self, _value: bool) {}
 }
 
 /// Configuration for a Commodore PET system.
@@ -263,16 +290,24 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let editor_rom = BlockMemory::from_file(0x1000, roms.editor);
 
-    let pia1_port_a = PetPia1PortA::new();
-    let pia1_port_b = PetPia1PortB::new(pia1_port_a.get_keyboard_row(), config.mapping, platform);
+    let datasette_1 = Rc::new(RefCell::new(Datasette::new()));
+    let datasette_2 = Rc::new(RefCell::new(Datasette::new()));
+
+    let pia1_port_a = PetPia1PortA::new(datasette_1.clone(), datasette_2.clone());
+    let pia1_port_b = PetPia1PortB::new(
+      pia1_port_a.get_keyboard_row(),
+      config.mapping,
+      platform,
+      datasette_1.clone(),
+    );
     let pia1 = Pia::new(Box::new(pia1_port_a), Box::new(pia1_port_b));
 
     // Used exclusively for IEEE488 port, unimplemented
     let pia2 = Pia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let charset = Rc::new(Cell::new(false)); // TODO: actually use
-    let via_port_a = PetViaPortA::new(charset.clone());
-    let via_port_b = PetViaPortB::new();
+    let via_port_a = PetViaPortA::new(charset);
+    let via_port_b = PetViaPortB::new(datasette_1, datasette_2);
     let via = Via::new(Box::new(via_port_a), Box::new(via_port_b));
 
     let kernel_rom = BlockMemory::from_file(0x1000, roms.kernal);

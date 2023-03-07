@@ -20,6 +20,9 @@ pub mod memory;
 /// - Mapping from [`keyboard::KeySymbol`] to system-specific scancodes, to preserve the symbols that the user pressed even if it requires rewriting the currently-pressed modifier keys
 pub mod keyboard;
 
+/// Peripheral devices are defined in the [`peripherals`] module. These include disk drives, tape drives, and other devices that may be connected to the system and shared across multiple emulated systems.
+pub mod peripherals;
+
 /// A [`platform::Platform`] consumes a system and runs it. Platforms provide access to the video output, keyboard input, system random number generator, and other details via a [`platform::PlatformProvider`]. Some platforms run synchronously (taking over the thread) while others run asynchronously with the help of an event loop (such as when compiling to WASM). Platforms are defined in the [`platform`] module.
 
 /// Currently, available platforms include `TextPlatform` for simple headless text-based operation, `WinitPlatform` for a graphical window on a desktop environment, and `CanvasPlatform` for drawing to a `<canvas>` element on the web. In the future, platforms for mobile apps are planned, in addition to a platform for running on a microcontroller (e.g. the RP2040).

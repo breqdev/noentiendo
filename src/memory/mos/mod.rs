@@ -45,6 +45,9 @@ pub trait Port {
 pub trait ControlLinesPort: Port {
   /// Poll the port for interrupts on its two control lines.
   fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ControlLines;
+
+  /// Write a value to control line 2.
+  fn write_c2(&mut self, value: bool);
 }
 
 /// A Port that does nothing.
@@ -88,6 +91,8 @@ impl ControlLinesPort for NullPort {
   fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ControlLines {
     ControlLines::new()
   }
+
+  fn write_c2(&mut self, _value: bool) {}
 }
 
 #[cfg(test)]
