@@ -10,6 +10,9 @@ mod symbols;
 /// Keys which can be pressed on a virtual / emulated keyboard.
 mod virtualkey;
 
+/// Adapters used for Winit-based platforms.
+pub mod winit;
+
 use std::ops::BitOr;
 
 pub use positions::KeyPosition;

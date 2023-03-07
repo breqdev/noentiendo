@@ -2,12 +2,16 @@ use crate::keyboard::{winit::WinitAdapter, KeyAdapter, KeyPosition, KeyState, Vi
 use crate::platform::{JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
 use crate::time::VariableTimeStep;
+use egui::{Context, TexturesDelta};
+use egui_wgpu::renderer::ScreenDescriptor;
+use egui_wgpu::Renderer;
 use gilrs::{Button, EventType, Gilrs};
 use instant::Duration;
 use pixels::{Pixels, SurfaceTexture};
 use rand;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
+use wgpu::TextureViewDescriptor;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -16,21 +20,21 @@ use winit_input_helper::WinitInputHelper;
 
 /// A platform implementation for desktop platforms using Winit and Pixels.
 /// This platform runs synchronously.
-pub struct WinitPlatform {
+pub struct EguiPlatform {
   config: Arc<Mutex<Option<WindowConfig>>>,
-  provider: Arc<WinitPlatformProvider>,
+  provider: Arc<EguiPlatformProvider>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
 }
 
-impl WinitPlatform {
+impl EguiPlatform {
   pub fn new() -> Self {
     let config = Arc::new(Mutex::new(None));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
     let joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
 
     Self {
-      provider: Arc::new(WinitPlatformProvider::new(
+      provider: Arc::new(EguiPlatformProvider::new(
         config.clone(),
         key_state.clone(),
         joystick_state.clone(),
@@ -47,13 +51,13 @@ impl WinitPlatform {
   }
 }
 
-impl Platform for WinitPlatform {
+impl Platform for EguiPlatform {
   fn provider(&self) -> Arc<dyn PlatformProvider> {
     self.provider.clone()
   }
 }
 
-impl SyncPlatform for WinitPlatform {
+impl SyncPlatform for EguiPlatform {
   fn run(&mut self, mut system: Box<dyn System>) {
     let event_loop = EventLoop::new();
 
@@ -63,17 +67,43 @@ impl SyncPlatform for WinitPlatform {
       .with_title("noentiendo")
       .with_inner_size(LogicalSize::new(
         current_config.width as f64 * current_config.scale,
-        current_config.height as f64 * current_config.scale,
+        current_config.height as f64 * current_config.scale + 50.0,
       ))
       .build(&event_loop)
       .unwrap();
 
     let inner_size = window.inner_size();
+    let scale_factor = window.scale_factor() as f32;
 
     let surface_texture = SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
     let mut pixels =
       Pixels::new(current_config.width, current_config.height, surface_texture).unwrap();
+
+    let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
+
+    let egui_ctx = Context::default();
+    egui_ctx.set_visuals(egui::Visuals::light());
+
+    let mut egui_state = egui_winit::State::new(&event_loop);
+
+    egui_state.set_max_texture_side(max_texture_size);
+    egui_state.set_pixels_per_point(scale_factor);
+    let mut screen_descriptor = ScreenDescriptor {
+      size_in_pixels: [inner_size.width, inner_size.height],
+      pixels_per_point: scale_factor,
+    };
+    let mut renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
+    let mut textures = TexturesDelta::default();
+
+    let texture = pixels.texture();
+    let texture_view = texture.create_view(&TextureViewDescriptor::default());
+    let egui_texture = Renderer::register_native_texture(
+      &mut renderer,
+      pixels.device(),
+      &texture_view,
+      wgpu::FilterMode::Nearest,
+    );
 
     let mut input = WinitInputHelper::new();
     let key_state = self.key_state.clone();
@@ -95,8 +125,15 @@ impl SyncPlatform for WinitPlatform {
           *control_flow = ControlFlow::Exit;
         }
 
+        if let Some(scale_factor) = input.scale_factor() {
+          screen_descriptor.pixels_per_point = scale_factor as f32;
+        }
+
         if let Some(size) = input.window_resized() {
           pixels.resize_surface(size.width, size.height).unwrap();
+          if size.width > 0 && size.height > 0 {
+            screen_descriptor.size_in_pixels = [size.width, size.height];
+          }
         }
       }
 
@@ -140,13 +177,6 @@ impl SyncPlatform for WinitPlatform {
             if new_config != current_config {
               current_config = new_config;
 
-              window.set_inner_size(LogicalSize::new(
-                new_config.width as f64 * new_config.scale,
-                new_config.height as f64 * new_config.scale,
-              ));
-
-              let inner_size = window.inner_size();
-
               let surface_texture =
                 SurfaceTexture::new(inner_size.width, inner_size.height, &window);
 
@@ -155,46 +185,135 @@ impl SyncPlatform for WinitPlatform {
           }
 
           window.request_redraw();
-
-          // TODO: vsync?
         }
+
         Event::RedrawRequested(_) => {
           system.render(pixels.get_frame_mut(), config.lock().unwrap().unwrap());
-          pixels.render().unwrap();
+
+          let raw_input = egui_state.take_egui_input(&window);
+          let output = egui_ctx.run(raw_input, |ctx| {
+            egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
+              egui::menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                  if ui.button("About...").clicked() {
+                    println!("Menu option clicked");
+                    ui.close_menu();
+                  }
+                })
+              });
+            });
+
+            egui::TopBottomPanel::bottom("statusbar_container").show(ctx, |ui| {
+              ui.label("hello world");
+            });
+
+            let frame = egui::Frame {
+              fill: ctx.style().visuals.window_fill(),
+              ..egui::Frame::default()
+            };
+            egui::CentralPanel::default().frame(frame).show(ctx, |ui| {
+              ui.with_layout(
+                egui::Layout::centered_and_justified(egui::Direction::TopDown),
+                |ui| {
+                  ui.image(
+                    egui_texture,
+                    [
+                      (current_config.width as f64 * current_config.scale) as f32,
+                      (current_config.height as f64 * current_config.scale) as f32,
+                    ],
+                  );
+                },
+              );
+            });
+          });
+
+          textures.append(output.textures_delta);
+          egui_state.handle_platform_output(&window, &egui_ctx, output.platform_output);
+          let paint_jobs = egui_ctx.tessellate(output.shapes);
+
+          let render_result = pixels.render_with(|encoder, render_target, context| {
+            for (id, image_delta) in &textures.set {
+              renderer.update_texture(&context.device, &context.queue, *id, image_delta);
+            }
+            renderer.update_buffers(
+              &context.device,
+              &context.queue,
+              encoder,
+              &paint_jobs,
+              &screen_descriptor,
+            );
+
+            {
+              let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("egui"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                  view: render_target,
+                  resolve_target: None,
+                  ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: true,
+                  },
+                })],
+                depth_stencil_attachment: None,
+              });
+
+              renderer.render(&mut rpass, &paint_jobs, &screen_descriptor);
+            }
+
+            let textures = std::mem::take(&mut textures);
+            for id in &textures.free {
+              renderer.free_texture(id);
+            }
+
+            Ok(())
+          });
+
+          if let Err(e) = render_result {
+            eprintln!("Error rendering: {:?}", e);
+          }
         }
-        Event::WindowEvent { event, .. } => match event {
-          WindowEvent::KeyboardInput {
-            input:
-              winit::event::KeyboardInput {
-                virtual_keycode: Some(key),
-                state,
-                ..
-              },
-            ..
-          } => match state {
-            ElementState::Pressed => {
-              key_state.lock().unwrap().press(key);
-            }
-            ElementState::Released => {
-              key_state.lock().unwrap().release(key);
-            }
-          },
-          WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-          _ => (),
-        },
+
+        Event::WindowEvent { event, .. } => {
+          let response = egui_state.on_event(&egui_ctx, &event);
+
+          if response.consumed {
+            return;
+          }
+
+          match event {
+            WindowEvent::KeyboardInput {
+              input:
+                winit::event::KeyboardInput {
+                  virtual_keycode: Some(key),
+                  state,
+                  ..
+                },
+              ..
+            } => match state {
+              ElementState::Pressed => {
+                key_state.lock().unwrap().press(key);
+              }
+              ElementState::Released => {
+                key_state.lock().unwrap().release(key);
+              }
+            },
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+            _ => (),
+          }
+        }
         _ => (),
       }
     });
   }
 }
 
-pub struct WinitPlatformProvider {
+pub struct EguiPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
 }
 
-impl WinitPlatformProvider {
+impl EguiPlatformProvider {
   pub fn new(
     config: Arc<Mutex<Option<WindowConfig>>>,
     key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
@@ -208,7 +327,7 @@ impl WinitPlatformProvider {
   }
 }
 
-impl PlatformProvider for WinitPlatformProvider {
+impl PlatformProvider for EguiPlatformProvider {
   fn request_window(&self, config: WindowConfig) {
     *self.config.lock().unwrap() = Some(config);
   }

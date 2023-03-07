@@ -12,8 +12,13 @@ mod text;
 #[cfg(not(target_arch = "wasm32"))]
 mod winit;
 
+#[cfg(not(target_arch = "wasm32"))]
+mod egui;
+
 #[cfg(target_arch = "wasm32")]
 pub use self::canvas::{CanvasPlatform, CanvasPlatformProvider};
+#[cfg(not(target_arch = "wasm32"))]
+pub use self::egui::{EguiPlatform, EguiPlatformProvider};
 #[cfg(not(target_arch = "wasm32"))]
 pub use self::text::{TextPlatform, TextPlatformProvider};
 #[cfg(not(target_arch = "wasm32"))]

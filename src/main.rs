@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use libnoentiendo::{
   keyboard::KeyMappingStrategy,
-  platform::{SyncPlatform, TextPlatform, WinitPlatform},
+  platform::{EguiPlatform, SyncPlatform, TextPlatform, WinitPlatform},
   roms::DiskLoadable,
   systems::{
     basic::BasicSystemBuilder, c64::C64SystemBuilder, c64::C64SystemConfig, c64::C64SystemRoms,
@@ -38,6 +38,7 @@ fn main() {
   let mut platform: Box<dyn SyncPlatform> = match args.platform.as_str() {
     "text" => Box::new(TextPlatform::new()),
     "winit" => Box::new(WinitPlatform::new()),
+    "egui" => Box::new(EguiPlatform::new()),
     _ => panic!("Unknown platform"),
   };
 
