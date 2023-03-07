@@ -90,12 +90,16 @@ impl Datasette {
   }
 
   pub fn set_motor(&mut self, motor: bool) {
-    println!("motor: {}", motor);
+    if self.motor != motor {
+      println!("motor: {}", motor);
+    }
     self.motor = motor;
   }
 
   pub fn write(&mut self, value: bool) {
-    println!("write: {}", value);
+    if self.motor {
+      println!("write: {}", value);
+    }
     self.write = value;
   }
 
@@ -105,7 +109,6 @@ impl Datasette {
   }
 
   pub fn sense(&mut self) -> bool {
-    println!("sense");
     // TODO: proper play/record/stop
 
     use std::fs;

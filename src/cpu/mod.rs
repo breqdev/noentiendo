@@ -6,7 +6,7 @@ use execute::Execute;
 use fetch::Fetch;
 use registers::{flags, Registers};
 
-const CLOCKS_PER_POLL: u32 = 100;
+const CLOCKS_PER_POLL: u32 = 1;
 
 /// The MOS 6502 CPU and its associated memory.
 pub struct Mos6502 {

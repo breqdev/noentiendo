@@ -131,7 +131,6 @@ impl PiaPortRegisters {
         todo!("Handshake and pulse modes not supported");
       } else {
         let output = value & pia_control_bits::C2_MANUAL_OUTPUT_VALUE != 0;
-        println!("Writing C2: {}", output);
         self.port.write_c2(output);
       }
     }
