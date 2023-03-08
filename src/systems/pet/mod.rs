@@ -290,8 +290,8 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
     let basic_rom = BlockMemory::from_file(0x2000, roms.basic);
     let editor_rom = BlockMemory::from_file(0x1000, roms.editor);
 
-    let datasette_1 = Rc::new(RefCell::new(Datasette::new()));
-    let datasette_2 = Rc::new(RefCell::new(Datasette::new()));
+    let datasette_1 = Rc::new(RefCell::new(Datasette::new(platform.clone())));
+    let datasette_2 = Rc::new(RefCell::new(Datasette::new(platform.clone())));
 
     let pia1_port_a = PetPia1PortA::new(datasette_1.clone(), datasette_2.clone());
     let pia1_port_b = PetPia1PortB::new(
@@ -307,7 +307,7 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
 
     let charset = Rc::new(Cell::new(false)); // TODO: actually use
     let via_port_a = PetViaPortA::new(charset);
-    let via_port_b = PetViaPortB::new(datasette_1, datasette_2);
+    let via_port_b = PetViaPortB::new(datasette_1.clone(), datasette_2.clone());
     let via = Via::new(Box::new(via_port_a), Box::new(via_port_b));
 
     let io = BranchMemory::new()
@@ -333,6 +333,8 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
 
     Box::new(PetSystem {
       cpu,
+      datasette_1,
+      datasette_2,
       characters: roms.character.get_data(),
     })
   }
@@ -341,11 +343,15 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
 /// The Commodore PET system.
 pub struct PetSystem {
   cpu: Mos6502,
+  datasette_1: Rc<RefCell<Datasette>>,
+  datasette_2: Rc<RefCell<Datasette>>,
   characters: Vec<u8>,
 }
 
 impl System for PetSystem {
   fn tick(&mut self) -> Duration {
+    self.datasette_1.borrow_mut().tick(1);
+    self.datasette_2.borrow_mut().tick(1);
     Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
   }
 

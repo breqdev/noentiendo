@@ -261,7 +261,7 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
     let vic_ii = Rc::new(RefCell::new(VicIIChip::new(Box::new(character_rom))));
     let vic_io = VicIIChipIO::new(vic_ii.clone()); // TODO: bank switching!
 
-    let datasette = Rc::new(RefCell::new(Datasette::new()));
+    let datasette = Rc::new(RefCell::new(Datasette::new(platform.clone())));
 
     let port_a = C64Cia1PortA::new();
     let keyboard_col = port_a.get_keyboard_row();

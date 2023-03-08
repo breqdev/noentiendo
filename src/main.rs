@@ -2,7 +2,7 @@
 use libnoentiendo::{
   keyboard::KeyMappingStrategy,
   platform::{EguiPlatform, SyncPlatform, TextPlatform, WinitPlatform},
-  roms::DiskLoadable,
+  roms::{DiskLoadable, RomFile},
   systems::{
     basic::BasicSystemBuilder, c64::C64SystemBuilder, c64::C64SystemConfig, c64::C64SystemRoms,
     easy::Easy6502SystemBuilder, klaus::KlausSystemBuilder, pet::PetSystemBuilder,
@@ -44,7 +44,7 @@ fn main() {
 
   let romfile = match args.rom_path.as_str() {
     "" => None,
-    _ => Some(libnoentiendo::roms::RomFile::from_file(&args.rom_path)),
+    _ => Some(RomFile::from_file(&args.rom_path)),
   };
 
   let mapping = match args.key_mapping.as_str() {

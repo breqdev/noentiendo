@@ -14,6 +14,8 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
+use super::TapeState;
+
 /// A platform implementation for desktop platforms using Winit and Pixels.
 /// This platform runs synchronously.
 pub struct WinitPlatform {
@@ -223,6 +225,10 @@ impl PlatformProvider for WinitPlatformProvider {
 
   fn get_joystick_state(&self) -> JoystickState {
     *self.joystick_state.lock().unwrap()
+  }
+
+  fn get_tape_state(&self) -> TapeState {
+    TapeState::empty()
   }
 
   fn print(&self, text: &str) {

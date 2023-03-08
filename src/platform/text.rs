@@ -7,7 +7,7 @@ use rand;
 use std::io::Write;
 use std::sync::Arc;
 
-use super::JoystickState;
+use super::{JoystickState, TapeState};
 
 /// Represents a platform which exclusively operates over text mode,
 /// without any visible graphical output. This reads from and writes to the
@@ -58,6 +58,10 @@ impl PlatformProvider for TextPlatformProvider {
 
   fn get_joystick_state(&self) -> JoystickState {
     JoystickState::empty()
+  }
+
+  fn get_tape_state(&self) -> TapeState {
+    TapeState::empty()
   }
 
   fn print(&self, text: &str) {

@@ -293,7 +293,7 @@ impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20Sys
 
     let vic_chip = Rc::new(RefCell::new(VicChip::new(platform.clone())));
 
-    let datasette = Rc::new(RefCell::new(Datasette::new()));
+    let datasette = Rc::new(RefCell::new(Datasette::new(platform.clone())));
 
     let v1a = VicVia1PortA::new(platform.clone(), datasette.clone());
     let v2b = VicVia2PortB::new(v1a.get_joy_pin_3(), datasette.clone());

@@ -18,6 +18,8 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
+use super::TapeState;
+
 /// A platform implementation for desktop platforms using Winit and Pixels.
 /// This platform runs synchronously.
 pub struct EguiPlatform {
@@ -25,6 +27,7 @@ pub struct EguiPlatform {
   provider: Arc<EguiPlatformProvider>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
+  tape_state: Arc<Mutex<TapeState>>,
 }
 
 impl EguiPlatform {
@@ -32,16 +35,19 @@ impl EguiPlatform {
     let config = Arc::new(Mutex::new(None));
     let key_state = Arc::new(Mutex::new(KeyState::new()));
     let joystick_state = Arc::new(Mutex::new(JoystickState::empty()));
+    let tape_state = Arc::new(Mutex::new(TapeState::empty()));
 
     Self {
       provider: Arc::new(EguiPlatformProvider::new(
         config.clone(),
         key_state.clone(),
         joystick_state.clone(),
+        tape_state.clone(),
       )),
       config,
       key_state,
       joystick_state,
+      tape_state,
     }
   }
 
@@ -115,6 +121,7 @@ impl SyncPlatform for EguiPlatform {
 
     let mut gilrs = Gilrs::new().unwrap();
     let joystick_state = self.joystick_state.clone();
+    let tape_state = self.tape_state.clone();
 
     event_loop.run(move |event, _, control_flow| {
       *control_flow = ControlFlow::Poll;
@@ -204,7 +211,38 @@ impl SyncPlatform for EguiPlatform {
             });
 
             egui::TopBottomPanel::bottom("statusbar_container").show(ctx, |ui| {
-              ui.label("hello world");
+              ui.with_layout(
+                egui::Layout::left_to_right(egui::Align::Center).with_cross_justify(true),
+                |ui| {
+                  let mut tape = tape_state.lock().unwrap();
+
+                  if ui.button("Record").clicked() {
+                    tape.record = !tape.record;
+                  }
+                  if ui.button("Play").clicked() {
+                    tape.play = !tape.play;
+                  }
+                  if ui.button("Rewind").clicked() {
+                    tape.rewind = !tape.rewind;
+                  }
+                  if ui.button("Fast Forward").clicked() {
+                    tape.fast_forward = !tape.fast_forward;
+                  }
+                  if ui.button("Stop").clicked() {
+                    tape.stop = !tape.stop;
+                  }
+                  if ui.button("Eject").clicked() {
+                    tape.eject = !tape.eject;
+                  }
+
+                  ui.label(format!("Recording: {}", tape.record));
+                  ui.label(format!("Playing: {}", tape.play));
+                  ui.label(format!("Rewinding: {}", tape.rewind));
+                  ui.label(format!("Fast Forwarding: {}", tape.fast_forward));
+                  ui.label(format!("Stopped: {}", tape.stop));
+                  ui.label(format!("Ejected: {}", tape.eject));
+                },
+              );
             });
 
             let frame = egui::Frame {
@@ -311,6 +349,7 @@ pub struct EguiPlatformProvider {
   config: Arc<Mutex<Option<WindowConfig>>>,
   key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
   joystick_state: Arc<Mutex<JoystickState>>,
+  tape_state: Arc<Mutex<TapeState>>,
 }
 
 impl EguiPlatformProvider {
@@ -318,11 +357,13 @@ impl EguiPlatformProvider {
     config: Arc<Mutex<Option<WindowConfig>>>,
     key_state: Arc<Mutex<KeyState<VirtualKeyCode>>>,
     joystick_state: Arc<Mutex<JoystickState>>,
+    tape_state: Arc<Mutex<TapeState>>,
   ) -> Self {
     Self {
       config,
       key_state,
       joystick_state,
+      tape_state,
     }
   }
 }
@@ -342,6 +383,10 @@ impl PlatformProvider for EguiPlatformProvider {
 
   fn get_joystick_state(&self) -> JoystickState {
     *self.joystick_state.lock().unwrap()
+  }
+
+  fn get_tape_state(&self) -> TapeState {
+    *self.tape_state.lock().unwrap()
   }
 
   fn print(&self, text: &str) {

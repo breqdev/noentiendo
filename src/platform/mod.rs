@@ -93,6 +93,31 @@ impl JoystickState {
   }
 }
 
+/// Represents the state of cassette tape controls.
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct TapeState {
+  pub play: bool,
+  pub record: bool,
+  pub rewind: bool,
+  pub fast_forward: bool,
+  pub stop: bool,
+  pub eject: bool,
+}
+
+impl TapeState {
+  /// Create a new TapeState with all buttons released.
+  pub fn empty() -> Self {
+    Self {
+      play: false,
+      record: false,
+      rewind: false,
+      fast_forward: false,
+      stop: false,
+      eject: false,
+    }
+  }
+}
+
 /// Represents the configuration of a GUI window that the system can request
 /// from the platform.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -128,6 +153,10 @@ pub trait PlatformProvider {
   /// Get the current state of the connected joystick.
   /// If no joystick is connected, this should return a default state.
   fn get_joystick_state(&self) -> JoystickState;
+
+  /// Get the current state of the cassette tape controls.
+  /// If no tape is connected, this should return a default state.
+  fn get_tape_state(&self) -> TapeState;
 
   /// Display the given string to the user, "out-of-band" from any other
   /// graphics. This is used for text-mode systems. Implementations may choose
