@@ -1,4 +1,4 @@
-use crate::keyboard::{KeyPosition, KeyState};
+use crate::keyboard::{KeyPosition, KeyState, VirtualKey};
 use crate::platform::{Platform, PlatformProvider, SyncPlatform, WindowConfig};
 use crate::systems::System;
 use crate::time::FixedTimeStep;
@@ -52,12 +52,16 @@ impl PlatformProvider for TextPlatformProvider {
     KeyState::new()
   }
 
+  fn get_virtual_key_state(&self) -> KeyState<VirtualKey> {
+    KeyState::new()
+  }
+
   fn get_joystick_state(&self) -> JoystickState {
     JoystickState::empty()
   }
 
   fn print(&self, text: &str) {
-    print!("{}", text);
+    print!("{text}");
   }
 
   fn input(&self) -> String {

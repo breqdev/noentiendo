@@ -1,4 +1,5 @@
 use crate::cpu::Mos6502;
+use crate::keyboard::commodore::C64VirtualAdapter;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -84,14 +85,18 @@ impl Vic20SystemRoms {
       .unwrap();
     let cartridge = Reflect::get(value, &JsValue::from_str("cartridge"))
       .unwrap()
-      .dyn_into::<Uint8Array>()
-      .unwrap();
+      .dyn_into::<Uint8Array>();
+
+    let cartridge = match cartridge {
+      Ok(v) => Some(RomFile::from_uint8array(&v)),
+      Err(_) => None,
+    };
 
     Self {
       character: RomFile::from_uint8array(&character),
       basic: RomFile::from_uint8array(&basic),
       kernal: RomFile::from_uint8array(&kernal),
-      cartridge: Some(RomFile::from_uint8array(&cartridge)),
+      cartridge,
     }
   }
 }
@@ -213,6 +218,8 @@ impl Port for VicVia2PortA {
         C64SymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()))
       }
     };
+
+    let state = state | C64VirtualAdapter::map(&self.platform.get_virtual_key_state());
 
     for (y, row) in KEYBOARD_MAPPING.iter().enumerate() {
       for (x, key) in row.iter().enumerate() {

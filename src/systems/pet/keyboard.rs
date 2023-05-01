@@ -1,8 +1,10 @@
-use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
+use serde::{Deserialize, Serialize};
+
+use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol, VirtualKey};
 
 /// The keys found on the PET's "Graphics" keyboard.
 /// Source: <https://commons.wikimedia.org/wiki/File:PET_Keyboard.svg>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PetKeys {
   Exclamation,
   DoubleQuote,
@@ -313,7 +315,7 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
         Char(' ') => PetKeys::Space,
         Char('<') => PetKeys::LessThan,
         Char('>') => PetKeys::GreaterThan,
-        // TODO: Run Stop
+        Interrupt => PetKeys::RunStop,
         RAlt => PetKeys::RShift,
 
         Char('0') => PetKeys::Num0,
@@ -323,6 +325,22 @@ impl KeyAdapter<KeySymbol, PetKeys> for PetSymbolAdapter {
 
         _ => continue,
       })
+    }
+
+    mapped
+  }
+}
+
+pub struct PetVirtualAdapter;
+
+impl KeyAdapter<VirtualKey, PetKeys> for PetVirtualAdapter {
+  fn map(state: &KeyState<VirtualKey>) -> KeyState<PetKeys> {
+    let mut mapped = KeyState::new();
+
+    for symbol in state.pressed() {
+      if let VirtualKey::CommodorePet(symbol) = symbol {
+        mapped.press(*symbol);
+      }
     }
 
     mapped

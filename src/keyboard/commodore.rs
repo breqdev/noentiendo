@@ -1,7 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
 
+use super::VirtualKey;
+
 /// Keys found on a VIC-20 or Commodore 64 keyboard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum C64Keys {
   LeftArrow,
   Digit1,
@@ -34,6 +38,7 @@ pub enum C64Keys {
   At,
   Asterisk,
   UpArrow,
+  Restore,
 
   RunStop,
   ShiftLock,
@@ -135,7 +140,7 @@ impl KeyAdapter<KeyPosition, C64Keys> for C64KeyboardAdapter {
         Equals => C64Keys::Equals,
         Enter => C64Keys::Return,
 
-        LAlt => C64Keys::Commodore,
+        LSuper | RSuper => C64Keys::Commodore,
         LShift => C64Keys::LShift,
         Z => C64Keys::Z,
         X => C64Keys::X,
@@ -208,8 +213,7 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
         Char('*') => C64Keys::Asterisk,
         // TODO: UpArrow
         // TODO: Restore
-
-        // TODO: RunStop
+        Interrupt => C64Keys::RunStop,
         CapsLock => C64Keys::ShiftLock,
         Char('a') | Char('A') => C64Keys::A,
         Char('s') | Char('S') => C64Keys::S,
@@ -225,7 +229,7 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
         Char('=') => C64Keys::Equals,
         Return => C64Keys::Return,
 
-        LAlt => C64Keys::Commodore,
+        LSuper | RSuper => C64Keys::Commodore,
         LShift => continue, // Handled separately
         Char('z') | Char('Z') => C64Keys::Z,
         Char('x') | Char('X') => C64Keys::X,
@@ -284,6 +288,22 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
       // If we added keys, make sure shift is pressed
       if !mapped.pressed().is_empty() {
         mapped.press(C64Keys::LShift);
+      }
+    }
+
+    mapped
+  }
+}
+
+pub struct C64VirtualAdapter;
+
+impl KeyAdapter<VirtualKey, C64Keys> for C64VirtualAdapter {
+  fn map(state: &KeyState<VirtualKey>) -> KeyState<C64Keys> {
+    let mut mapped = KeyState::new();
+
+    for symbol in state.pressed() {
+      if let VirtualKey::Commodore(symbol) = symbol {
+        mapped.press(*symbol);
       }
     }
 

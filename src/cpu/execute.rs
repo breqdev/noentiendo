@@ -427,7 +427,7 @@ impl Execute for Mos6502 {
       }
 
       _ => {
-        println!("Unimplemented opcode: {:02X}", opcode);
+        println!("Unimplemented opcode: {opcode:02X}");
         Err(())
       }
     }
