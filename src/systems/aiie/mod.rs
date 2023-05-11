@@ -1,10 +1,12 @@
-use std::sync::Arc;
+use std::{io::Write, sync::Arc};
 
 use crate::{
-  cpu::Mos6502,
+  cpu::{MemoryIO, Mos6502},
   keyboard::KeyMappingStrategy,
-  memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, SystemInfo},
-  platform::{PlatformProvider, WindowConfig},
+  memory::{
+    ActiveInterrupt, BlockMemory, BranchMemory, LoggingMemory, Memory, NullMemory, SystemInfo,
+  },
+  platform::{Color, PlatformProvider, WindowConfig},
   systems::System,
 };
 
@@ -19,6 +21,11 @@ pub use roms::AiieSystemRoms;
 use instant::Duration;
 
 use super::SystemBuilder;
+
+const WIDTH: u32 = 40;
+const HEIGHT: u32 = 24;
+const CHAR_HEIGHT: u32 = 8;
+const CHAR_WIDTH: u32 = 7;
 
 struct AiieSoftSwitches {
   pub eighty_col_memory: bool,
@@ -35,6 +42,7 @@ struct AiieSoftSwitches {
   pub hi_res: bool,
   pub annunciator: (bool, bool, bool, bool),
 }
+
 impl AiieSoftSwitches {
   fn new() -> Self {
     Self {
@@ -57,6 +65,8 @@ impl AiieSoftSwitches {
   /// Set or clear a softswitch value.
   fn softswitch(&mut self, address: u16) {
     let value = address & 1 != 0;
+
+    println!("softswitch {:02X} <- {}", address & !1, value);
 
     match (address & !1) % 0x100 {
       0x00 => self.eighty_col_memory = value,
@@ -117,15 +127,18 @@ impl Memory for AiieSoftSwitches {
     match address % 0x100 {
       0x00 => {
         // println!("KEYBOARD: read data");
-        1
+        0
       }
       0x01..=0x0F | 0x50..=0x5F => {
         self.softswitch(address);
         0
       }
-      0x10..=0x1F => self.read_flag(address),
+      0x10 => 0,
+      0x11..=0x1F => self.read_flag(address),
       0x30 => {
-        println!("SPEAKER : toggle speaker diaphragm");
+        // println!("SPEAKER : toggle speaker diaphragm");
+        print!("🔈");
+        std::io::stdout().flush().unwrap();
         0
       }
       0x61 => todo!("OPNAPPLE: open apple (command) key data"),
@@ -184,11 +197,11 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
     config: AiieSystemConfig,
     platform: Arc<dyn PlatformProvider>,
   ) -> Box<dyn System> {
-    // platform.request_window(WindowConfig::new(
-    //   FULL_WIDTH,
-    //   FULL_HEIGHT,
-    //   2.0,
-    // ));
+    platform.request_window(WindowConfig::new(
+      WIDTH * CHAR_WIDTH,
+      HEIGHT * CHAR_HEIGHT,
+      2.0,
+    ));
 
     let ram = BlockMemory::ram(0xC000);
     let io = AiieSoftSwitches::new();
@@ -205,13 +218,17 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
 
     let cpu = Mos6502::new(Box::new(memory));
 
-    Box::new(AiieSystem { cpu })
+    Box::new(AiieSystem {
+      cpu,
+      characters: roms.character.get_data(),
+    })
   }
 }
 
 /// The Apple IIe system.
 pub struct AiieSystem {
   cpu: Mos6502,
+  characters: Vec<u8>,
 }
 
 impl System for AiieSystem {
@@ -224,6 +241,33 @@ impl System for AiieSystem {
   }
 
   fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
-    // TODO
+    for y in 0..HEIGHT {
+      for x in 0..WIDTH {
+        let block = y / 3; // unused section of 8 bytes after every 3 lines
+        let index = (y * WIDTH + x + (block * 8)) as u16;
+        let value = self.cpu.read(0x0400 + index) & 0b0011_1111;
+
+        let character_index = (value as usize) * 8;
+
+        let character = self.characters[character_index..(character_index + 8)].to_vec();
+
+        for line in 0..CHAR_HEIGHT {
+          let line_data = character[line as usize];
+          for pixel in 0..CHAR_WIDTH {
+            let color = if line_data & (1 << pixel) != 0 {
+              Color::new(0, 255, 0)
+            } else {
+              Color::new(0, 0, 0)
+            };
+
+            let x = x * CHAR_WIDTH + pixel;
+            let y = y * CHAR_HEIGHT + line;
+            let index = ((y * config.width + x) * 4) as usize;
+            let pixel = &mut framebuffer[index..(index + 4)];
+            pixel.copy_from_slice(&color.to_rgba());
+          }
+        }
+      }
+    }
   }
 }

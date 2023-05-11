@@ -32,7 +32,7 @@ enum SystemArg {
   Pet,
   Vic,
   C64,
-  AIIe,
+  Aiie,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -105,7 +105,7 @@ fn main() {
       C64SystemConfig { mapping },
       platform.provider(),
     ),
-    SystemArg::AIIe => AiieSystemBuilder::build(
+    SystemArg::Aiie => AiieSystemBuilder::build(
       AiieSystemRoms::from_disk(),
       AiieSystemConfig { mapping },
       platform.provider(),
