@@ -32,6 +32,7 @@ enum SystemArg {
   Pet,
   Vic,
   C64,
+  AIIe,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -104,12 +105,11 @@ fn main() {
       C64SystemConfig { mapping },
       platform.provider(),
     ),
-    "aiie" => AiieSystemBuilder::build(
+    SystemArg::AIIe => AiieSystemBuilder::build(
       AiieSystemRoms::from_disk(),
       AiieSystemConfig { mapping },
       platform.provider(),
     ),
-    _ => panic!("Unknown system"),
   };
 
   platform.run(system);
