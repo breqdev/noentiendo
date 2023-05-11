@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["C64BankSwitching","Bank switching implementation performed using the 6510’s I/O port. Source: https://www.c64-wiki.com/wiki/Bank_Switching"],["C64System","The Commodore 64 system."],["C64SystemBuilder","A factory for creating a Commodore 64 system."],["C64SystemConfig","Configuration for a Commodore 64 system."],["C64SystemRoms","The set of ROM files required to run a Commodore 64 system."]]};
+window.SIDEBAR_ITEMS = {"struct":["C64BankSwitching","C64System","C64SystemBuilder","C64SystemConfig","C64SystemRoms"]};

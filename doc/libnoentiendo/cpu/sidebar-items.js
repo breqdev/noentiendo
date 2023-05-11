@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Mos6502","The MOS 6502 CPU and its associated memory."]],"trait":[["InterruptHandler","Handle interrupts by setting the applicable flags, pushing the program counter onto the stack, and loading the interrupt vector into the program counter."],["MemoryIO","Read and write from the system’s memory."],["Stack","Push and pop values from the stack."]]};
+window.SIDEBAR_ITEMS = {"struct":["Mos6502"],"trait":["InterruptHandler","MemoryIO","Stack"]};
