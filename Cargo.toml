@@ -15,6 +15,7 @@ license = "AGPL-3.0-or-later"
 instant = { version = "0.1", features = [ "wasm-bindgen" ] }
 async-trait = "0.1"
 pixels = "0.11"
+serde = { version = "1.0", features = ["derive"] }
 
 # Dependencies used for the WebAssembly target
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -22,6 +23,7 @@ console_error_panic_hook = "0.1"
 js-sys = "0.3"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
+serde-wasm-bindgen = "0.4"
 
 [dependencies.web-sys]
 version = "0.3"
@@ -35,6 +37,7 @@ features = [
   'Attr',
   'Gamepad',
   'GamepadButton',
+  'console',
 ]
 
 # Dependencies used when building for desktop

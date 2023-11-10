@@ -7,7 +7,7 @@ use std::{
 use crate::{
   cpu::Mos6502,
   keyboard::{
-    commodore::{C64KeyboardAdapter, C64SymbolAdapter},
+    commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
   },
   memory::{
@@ -59,7 +59,7 @@ impl Port for C64Cia1PortA {
     self.keyboard_row.set(value);
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -102,6 +102,8 @@ impl Port for C64Cia1PortB {
       }
     };
 
+    let state = state | C64VirtualAdapter::map(&self.platform.get_virtual_key_state());
+
     for (y, row) in KEYBOARD_MAPPING.iter().enumerate() {
       for (x, key) in row.iter().enumerate() {
         if ((!row_mask & (1 << y)) != 0) && state.is_pressed(*key) {
@@ -117,7 +119,7 @@ impl Port for C64Cia1PortB {
     panic!("Tried to write to keyboard row");
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -186,7 +188,7 @@ impl Port for C64BankSwitching {
     self.selectors[5].set(if !self.hiram { 1 } else { 0 });
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 

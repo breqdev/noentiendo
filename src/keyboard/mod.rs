@@ -7,12 +7,18 @@ mod positions;
 /// Keys used for symbolic keyboard mapping.
 mod symbols;
 
+/// Keys which can be pressed on a virtual / emulated keyboard.
+mod virtualkey;
+
+use std::ops::BitOr;
+
 pub use positions::KeyPosition;
 pub use symbols::{KeySymbol, SymbolAdapter};
+pub use virtualkey::VirtualKey;
 
 /// A set of keys that are currently pressed.
 /// Parameter `T` is the type of the key symbols.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct KeyState<T: PartialEq> {
   pressed: Vec<T>,
 }
@@ -43,6 +49,20 @@ impl<T: PartialEq> KeyState<T> {
   /// Returns true if the given key is currently pressed.
   pub fn is_pressed(&self, symbol: T) -> bool {
     self.pressed.contains(&symbol)
+  }
+}
+
+impl<T: PartialEq> BitOr<KeyState<T>> for KeyState<T> {
+  type Output = KeyState<T>;
+
+  fn bitor(self, rhs: Self) -> Self::Output {
+    let mut pressed = self.pressed;
+    for key in rhs.pressed {
+      if !pressed.contains(&key) {
+        pressed.push(key);
+      }
+    }
+    KeyState { pressed }
   }
 }
 

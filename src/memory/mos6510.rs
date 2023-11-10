@@ -50,8 +50,8 @@ impl Memory for Mos6510Port {
     self.port.reset();
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    match self.port.poll(info) {
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
+    match self.port.poll(cycles, info) {
       true => ActiveInterrupt::IRQ,
       false => ActiveInterrupt::None,
     }

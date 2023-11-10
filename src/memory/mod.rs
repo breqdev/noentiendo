@@ -50,5 +50,5 @@ pub trait Memory {
   /// Poll this memory to see if an interrupt has been triggered.
   /// Implementations may trigger an NMI or IRQ for any
   /// implementation-dependent reason.
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt;
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt;
 }

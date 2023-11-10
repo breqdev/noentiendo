@@ -8,6 +8,7 @@ pub struct BlockMemory {
   size: usize,
   data: Vec<u8>,
   persistent: bool,
+  writeable: bool,
 }
 
 impl BlockMemory {
@@ -18,6 +19,7 @@ impl BlockMemory {
       size,
       data: vec![0; size],
       persistent: false,
+      writeable: true,
     }
   }
 
@@ -28,6 +30,7 @@ impl BlockMemory {
       size,
       data: vec![0; size],
       persistent: true,
+      writeable: false,
     }
   }
 
@@ -51,6 +54,7 @@ impl BlockMemory {
       size,
       data,
       persistent: true,
+      writeable: false,
     }
   }
 }
@@ -61,7 +65,9 @@ impl Memory for BlockMemory {
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    self.data[(address as usize) % self.size] = value;
+    if self.writeable {
+      self.data[(address as usize) % self.size] = value;
+    }
   }
 
   fn reset(&mut self) {
@@ -72,7 +78,7 @@ impl Memory for BlockMemory {
     }
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
@@ -102,13 +108,11 @@ mod tests {
     let mut mem = BlockMemory::rom(0x1000);
     assert_eq!(0x00, mem.read(0x123));
 
+    // persistent memory should not be writeable
     mem.write(0x123, 0x45);
-    assert_eq!(0x45, mem.read(0x123));
-    assert_eq!(0x00, mem.read(0x124));
+    assert_eq!(0x00, mem.read(0x123));
 
     mem.reset();
-    // persistent memory should not be reset
-    assert_eq!(0x45, mem.read(0x123));
   }
 
   #[test]

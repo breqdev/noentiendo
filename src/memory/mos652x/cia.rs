@@ -140,12 +140,12 @@ impl Memory for Cia {
       0x04 => self.timer_a.latch = (self.timer_a.latch & 0xFF00) | value as u16,
       0x05 => {
         self.timer_a.latch = (self.timer_a.latch & 0x00FF) | ((value as u16) << 8);
-        self.timer_a.counter = self.timer_a.latch;
+        self.timer_a.counter = self.timer_a.latch as i32;
       }
       0x06 => self.timer_b.latch = (self.timer_b.latch & 0xFF00) | value as u16,
       0x07 => {
         self.timer_b.latch = (self.timer_b.latch & 0x00FF) | ((value as u16) << 8);
-        self.timer_b.counter = self.timer_b.latch;
+        self.timer_b.counter = self.timer_b.latch as i32;
       }
       0x08 => match self.time_clock.write_action {
         false => self.time_clock.time.tenth_seconds = value,
@@ -208,18 +208,20 @@ impl Memory for Cia {
     self.interrupts.reset();
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
-    if self.timer_a.poll(info) && (self.interrupts.interrupt_enable & interrupt_bits::TIMER_A) != 0
+  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
+    if self.timer_a.poll(cycles, info)
+      && (self.interrupts.interrupt_enable & interrupt_bits::TIMER_A) != 0
     {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.timer_b.poll(info) && (self.interrupts.interrupt_enable & interrupt_bits::TIMER_B) != 0
+    if self.timer_b.poll(cycles, info)
+      && (self.interrupts.interrupt_enable & interrupt_bits::TIMER_B) != 0
     {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.a.poll(info) || self.b.poll(info) {
+    if self.a.poll(cycles, info) || self.b.poll(cycles, info) {
       return ActiveInterrupt::IRQ;
     }
 
@@ -274,14 +276,14 @@ mod tests {
     cia.write(0x0E, 0b0000_1001);
 
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, cia.poll(1, &SystemInfo::default()));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(1, &SystemInfo::default()));
 
     // polling again shouldn't do anything
     for _ in 0..0x20 {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, cia.poll(1, &SystemInfo::default()));
     }
   }
 
@@ -300,10 +302,10 @@ mod tests {
     cia.write(0x0F, 0b0000_1001);
 
     for _ in 0..0x1233 {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, cia.poll(1, &SystemInfo::default()));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(1, &SystemInfo::default()));
   }
 
   #[test]
@@ -320,17 +322,19 @@ mod tests {
     // start the timer, and enable continuous operation
     cia.write(0x0E, 0b0000_0001);
 
-    for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
-    }
+    assert_eq!(
+      ActiveInterrupt::None,
+      cia.poll(0x0F, &SystemInfo::default())
+    );
 
-    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(1, &SystemInfo::default()));
 
-    for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
-    }
+    assert_eq!(
+      ActiveInterrupt::None,
+      cia.poll(0x0F, &SystemInfo::default())
+    );
 
-    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(1, &SystemInfo::default()));
   }
 
   #[test]
@@ -354,10 +358,10 @@ mod tests {
 
     // timer 1 should interrupt first
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, cia.poll(1, &SystemInfo::default()));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(1, &SystemInfo::default()));
   }
 
   #[test]
@@ -380,7 +384,7 @@ mod tests {
 
     // timer 2 shouldn't trigger an interrupt
     for _ in 0..0x08 {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, cia.poll(1, &SystemInfo::default()));
     }
 
     // ...but the flag register should be set
@@ -391,9 +395,9 @@ mod tests {
 
     // timer 1 should then trigger an interrupt
     for _ in 0..0x07 {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, cia.poll(1, &SystemInfo::default()));
     }
-    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(1, &SystemInfo::default()));
 
     // ...and set the corresponding flag, plus the master bit
     assert_eq!(
@@ -406,8 +410,8 @@ mod tests {
 
     // if we let timer 1 run again, it should set the flag again
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, cia.poll(&SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, cia.poll(1, &SystemInfo::default()));
     }
-    assert_eq!(ActiveInterrupt::IRQ, cia.poll(&SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, cia.poll(1, &SystemInfo::default()));
   }
 }

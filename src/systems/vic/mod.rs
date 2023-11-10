@@ -1,4 +1,5 @@
 use crate::cpu::Mos6502;
+use crate::keyboard::commodore::C64VirtualAdapter;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -84,14 +85,18 @@ impl Vic20SystemRoms {
       .unwrap();
     let cartridge = Reflect::get(value, &JsValue::from_str("cartridge"))
       .unwrap()
-      .dyn_into::<Uint8Array>()
-      .unwrap();
+      .dyn_into::<Uint8Array>();
+
+    let cartridge = match cartridge {
+      Ok(v) => Some(RomFile::from_uint8array(&v)),
+      Err(_) => None,
+    };
 
     Self {
       character: RomFile::from_uint8array(&character),
       basic: RomFile::from_uint8array(&basic),
       kernal: RomFile::from_uint8array(&kernal),
-      cartridge: Some(RomFile::from_uint8array(&cartridge)),
+      cartridge,
     }
   }
 }
@@ -132,7 +137,7 @@ impl Port for VicVia1PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -163,14 +168,14 @@ impl VicVia2PortB {
 
 impl Port for VicVia2PortB {
   fn read(&mut self) -> u8 {
-    self.keyboard_col.get() & 0x7F | (self.joy_pin_3.get() as u8) << 7
+    self.keyboard_col.get() | (self.joy_pin_3.get() as u8) << 7
   }
 
   fn write(&mut self, value: u8) {
-    self.keyboard_col.set(value & 0x7F);
+    self.keyboard_col.set(value);
   }
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 
@@ -214,6 +219,8 @@ impl Port for VicVia2PortA {
       }
     };
 
+    let state = state | C64VirtualAdapter::map(&self.platform.get_virtual_key_state());
+
     for (y, row) in KEYBOARD_MAPPING.iter().enumerate() {
       for (x, key) in row.iter().enumerate() {
         if ((!col_mask & (1 << x)) != 0) && state.is_pressed(*key) {
@@ -227,7 +234,7 @@ impl Port for VicVia2PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 

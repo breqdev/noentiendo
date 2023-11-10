@@ -12,7 +12,10 @@ use std::time::Duration;
 mod roms;
 pub use roms::PetSystemRoms;
 mod keyboard;
+pub use keyboard::PetKeys;
 use keyboard::{PetKeyboardAdapter, PetSymbolAdapter, KEYBOARD_MAPPING};
+
+use self::keyboard::PetVirtualAdapter;
 
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 25;
@@ -57,7 +60,7 @@ impl Port for PetPia1PortA {
     self.keyboard_row.set(value & 0b1111);
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> bool {
     // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
     let min_elapsed = 0; // TODO: fix
 
@@ -121,6 +124,8 @@ impl Port for PetPia1PortB {
       }
     };
 
+    let state = state | PetVirtualAdapter::map(&self.platform.get_virtual_key_state());
+
     for (i, key) in row.iter().enumerate() {
       if state.is_pressed(*key) {
         value &= !(1 << i);
@@ -131,7 +136,7 @@ impl Port for PetPia1PortB {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
     false
   }
 

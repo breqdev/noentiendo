@@ -450,7 +450,7 @@ impl Memory for VicIIChipIO {
     self.chip.borrow_mut().reset();
   }
 
-  fn poll(&mut self, info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
     self.chip.borrow_mut().raster_counter = ((info.cycle_count / 83) % 312) as u16;
 
     ActiveInterrupt::None
