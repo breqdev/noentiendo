@@ -1,3 +1,5 @@
 /target
 /bin
 /flamegraph.svg
+/.idea
+.DS_Store

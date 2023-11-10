@@ -45,6 +45,7 @@ impl Fetch for Mos6502 {
     }
   }
 
+  #[allow(clippy::manual_range_patterns)]
   fn fetch_operand_address(&mut self, opcode: u8) -> (u16, u8) {
     match opcode & 0x1F {
       0x00 | 0x02 | 0x09 | 0x0B => panic!("Immediate operand has no address"),

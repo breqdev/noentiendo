@@ -426,9 +426,291 @@ impl Execute for Mos6502 {
         Ok(2)
       }
 
-      _ => {
-        println!("Unimplemented opcode: {opcode:02X}");
+      // === ILLEGAL OPCODES ===
+      // TODO: Verify cycle counts
+      0x04 | 0x0C | 0x14 | 0x1A | 0x1C | 0x34 | 0x3A | 0x3C | 0x44 | 0x54 | 0x5A | 0x5C | 0x64
+      | 0x74 | 0x7A | 0x7C | 0x80 | 0x82 | 0x89 | 0xC2 | 0xD4 | 0xDA | 0xDC | 0xE2 | 0xF4
+      | 0xFA | 0xFC => {
+        // NOP
+        match opcode {
+          0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => {
+            // No address
+            Ok(2)
+          }
+          _ => {
+            // Address
+            let (_value, cycles) = self.fetch_operand_value(opcode);
+            Ok(cycles)
+          }
+        }
+      }
+
+      0x02 | 0x12 | 0x22 | 0x32 | 0x42 | 0x52 | 0x62 | 0x72 | 0x92 | 0xB2 | 0xD2 | 0xF2 => {
+        // STP or KIL or JAM or HLT depending on who you ask
+        println!("Execution stopped");
         Err(())
+      }
+
+      0x03 | 0x07 | 0x0F | 0x13 | 0x17 | 0x1B | 0x1F => {
+        // SLO: ASL -> ORA
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
+
+        let result = value << 1;
+        self.write(address, result);
+
+        self.registers.a |= result;
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(cycles + 2)
+      }
+
+      0x23 | 0x27 | 0x2F | 0x33 | 0x37 | 0x3B | 0x3F => {
+        // RLA: ROL -> AND
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+
+        let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
+        self.registers.sr.write(flags::CARRY, result & 0x80 != 0);
+        self.write(address, result);
+
+        self.registers.a &= result;
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(cycles + 2)
+      }
+
+      0x43 | 0x47 | 0x4F | 0x53 | 0x57 | 0x5B | 0x5F => {
+        // SRE: LSR -> EOR
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value >> 1;
+
+        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
+        self.write(address, result);
+
+        self.registers.a ^= result;
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(cycles + 2)
+      }
+
+      0x63 | 0x67 | 0x6F | 0x73 | 0x77 | 0x7B | 0x7F => {
+        // RRA: ROR -> ADC
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value >> 1 | (self.registers.sr.read(flags::CARRY) as u8) << 7;
+
+        self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        self.registers.alu_add(result);
+
+        Ok(cycles)
+      }
+
+      0x83 | 0x87 | 0x8F | 0x97 => {
+        // SAX: AND -> STA
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.registers.x & self.registers.a;
+        self.registers.sr.set_nz(value);
+        self.write(address, value);
+
+        Ok(cycles)
+      }
+
+      0xA3 | 0xA7 | 0xAF | 0xB3 | 0xB7 | 0xBF => {
+        // LAX: LDA & LDX
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        self.registers.a = value;
+        self.registers.x = value;
+        self.registers.sr.set_nz(value);
+
+        Ok(cycles)
+      }
+
+      0xC3 | 0xC7 | 0xCF | 0xD3 | 0xD7 | 0xDB | 0xDF => {
+        // DCP: DEC + SEC
+        self.registers.sr.set(flags::CARRY);
+
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value.wrapping_sub(1);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        Ok(cycles + 2)
+      }
+
+      0xE3 | 0xE7 | 0xEF | 0xF3 | 0xF7 | 0xFB | 0xFF => {
+        // ISC: INC => SBC
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = self.read(address);
+        let result = value.wrapping_add(1);
+        self.registers.alu_subtract(value);
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        Ok(cycles + 2)
+      }
+
+      0x0B | 0x2B => {
+        // ANC: AND byte with accumulator. If result is negative then carry is set.
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let new_val = self.registers.a & value;
+        self.registers.sr.write(flags::CARRY, new_val & 0x80 != 0);
+
+        Ok(cycles)
+      }
+
+      0x4B => {
+        // ALR: AND + LSR
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let new_val = (self.registers.a & value) >> 1;
+
+        self.registers.sr.write(flags::CARRY, new_val & 0x01 != 0);
+        self.registers.sr.set_nz(new_val);
+
+        Ok(cycles)
+      }
+
+      0x6B => {
+        // ARR: AND + ROR
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let new_val = self.registers.a & value;
+
+        let new_val = (new_val >> 1) | (self.registers.sr.read(flags::CARRY) as u8) << 7;
+
+        self.registers.sr.write(flags::CARRY, new_val & 0x40 != 0);
+        self
+          .registers
+          .sr
+          .write(flags::OVERFLOW, new_val & 0x20 != 0);
+        self.registers.sr.set_nz(new_val);
+
+        Ok(cycles)
+      }
+
+      0x8B => {
+        // XAA: AND X + AND immediate
+        // Oooo she's highly unstable xx "Do not use" or whatever
+
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let magic: u8;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+          magic = rand::random::<u8>();
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+          magic = 0xFF;
+        }
+        self.registers.a |= magic;
+        self.registers.a &= self.registers.x & value;
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(cycles)
+      }
+
+      0xCB => {
+        // AXS: AND -> DEX -> STX
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        self.registers.x &= self.registers.a;
+
+        self.registers.alu_compare(self.registers.x, value);
+        self.registers.x = self.registers.x.wrapping_sub(value);
+
+        Ok(cycles)
+      }
+
+      0xEB => {
+        // SBC (same as official sbc)
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        self.registers.alu_subtract(value);
+        Ok(cycles)
+      }
+
+      0x9C => {
+        // SHY: (Y & (high(addr) + 1)) -> addr
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = (address >> 8) as u8;
+        let result = self.registers.y & (value.wrapping_add(1));
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        Ok(cycles + 2)
+      }
+
+      0x9E => {
+        // SHX: (X & (high(addr) + 1)) -> addr
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = (address >> 8) as u8;
+        let result = self.registers.x & (value.wrapping_add(1));
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        Ok(cycles + 2)
+      }
+
+      0x93 | 0x9F => {
+        // AHX: (A & X & (high(addr) + 1)) -> addr
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = (address >> 8) as u8;
+        let result = self.registers.a & self.registers.x & (value.wrapping_add(1));
+        self.registers.sr.set_nz(result);
+        self.write(address, result);
+
+        Ok(cycles + 2)
+      }
+
+      0x9B => {
+        // TAS: TSX with accumulator and AHX
+        // A AND X -> SP
+        // A AND X AND (H+1) -> M
+        self.registers.sp.set(self.registers.a & self.registers.x);
+
+        let (address, cycles) = self.fetch_operand_address(opcode);
+        let value = (address >> 8) as u8;
+        let result = self.registers.a & self.registers.x & (value.wrapping_add(1));
+        self.write(address, result);
+
+        Ok(cycles + 2)
+      }
+
+      0xBB => {
+        // LAS: LDA + TSX unholy matrimony
+        // M AND SP -> A, X, SP
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let result = value & self.registers.sp.get();
+
+        self.registers.a = result;
+        self.registers.x = result;
+        self.registers.sp.set(result);
+        self.registers.sr.set_nz(result);
+
+        Ok(cycles)
+      }
+
+      0xAB => {
+        // ATX or LXA: XAA but instead of and X we store in X
+        let (value, cycles) = self.fetch_operand_value(opcode);
+        let magic: u8;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+          magic = rand::random::<u8>();
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+          magic = 0xFF;
+        }
+        self.registers.a |= magic;
+        self.registers.a &= value;
+        self.registers.x = self.registers.a;
+        self.registers.sr.set_nz(self.registers.a);
+
+        Ok(cycles)
       }
     }
   }
