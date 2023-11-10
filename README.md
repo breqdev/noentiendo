@@ -47,7 +47,7 @@ _A modular framework for emulating retro computers._
 
 | <img src="https://github.com/breqdev.png" width="150" /> | <img src="https://github.com/dillydally414.png" width="150" /> | <img src="https://github.com/nkizz.png" width="150" /> | <img src="https://github.com/ava-silver.png" width="150" /> |
 | :------------------------------------------------------: | :------------------------------------------------------------: | :----------------------------------------------------: | :---------------------------------------------------------: |
-|           [Brooke Chalmers](https://breq.dev/)           |        [Dillon Scott](https://dillydally414.github.io)         |          [Nathan Kiesman](https://nkizz.com/)          |            [Ava Silver](https://avasilver.dev/)             |
+|           [Brooke Chalmers](https://breq.dev/)           |        [Dillon Scott](https://dillydally414.github.io)         |           [Mia Kiesman](https://nkizz.com/)            |            [Ava Silver](https://avasilver.dev/)             |
 
 </div>
 </center>
