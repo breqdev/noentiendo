@@ -97,7 +97,10 @@ impl SyncPlatform for WinitPlatform {
         }
 
         if let Some(size) = input.window_resized() {
-          pixels.resize_surface(size.width, size.height).unwrap();
+          // Winit bug, sometimes we get window_resized with -1
+          if size.width != u32::MAX && size.height != u32::MAX {
+            pixels.resize_surface(size.width, size.height).unwrap()
+          }
         }
       }
 
