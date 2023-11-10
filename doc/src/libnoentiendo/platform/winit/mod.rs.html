@@ -244,6 +244,9 @@
 <a href="#244" id="244">244</a>
 <a href="#245" id="245">245</a>
 <a href="#246" id="246">246</a>
+<a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState, VirtualKey};
 <span class="kw">mod </span>keyboard;
 <span class="kw">use </span><span class="kw">crate</span>::platform::{JoystickState, Platform, PlatformProvider, SyncPlatform, WindowConfig};
@@ -343,7 +346,10 @@
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(size) = input.window_resized() {
-          pixels.resize_surface(size.width, size.height).unwrap();
+          <span class="comment">// Winit bug, sometimes we get window_resized with -1
+          </span><span class="kw">if </span>size.width != u32::MAX &amp;&amp; size.height != u32::MAX {
+            pixels.resize_surface(size.width, size.height).unwrap()
+          }
         }
       }
 
