@@ -2,10 +2,11 @@ use std::{io::Write, sync::Arc};
 
 use crate::{
   cpu::{MemoryIO, Mos6502},
-  keyboard::KeyMappingStrategy,
-  memory::{
-    ActiveInterrupt, BlockMemory, BranchMemory, LoggingMemory, Memory, NullMemory, SystemInfo,
+  keyboard::{
+    apple::{AppleKeyboardAdapter, AppleKeys},
+    KeyAdapter, KeyState, KeySymbol, SymbolAdapter,
   },
+  memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, NullMemory, SystemInfo},
   platform::{Color, PlatformProvider, WindowConfig},
   systems::System,
 };
@@ -28,6 +29,10 @@ const CHAR_HEIGHT: u32 = 8;
 const CHAR_WIDTH: u32 = 7;
 
 struct AiieSoftSwitches {
+  platform: Arc<dyn PlatformProvider>,
+  previous_state: KeyState<KeySymbol>,
+
+  pub keypress_waiting: bool,
   pub eighty_col_memory: bool,
   pub read_aux_48k: bool,
   pub write_aux_48k: bool,
@@ -44,8 +49,11 @@ struct AiieSoftSwitches {
 }
 
 impl AiieSoftSwitches {
-  fn new() -> Self {
+  fn new(platform: Arc<dyn PlatformProvider>) -> Self {
     Self {
+      platform,
+      previous_state: KeyState::new(),
+      keypress_waiting: false,
       eighty_col_memory: false,
       read_aux_48k: false,
       write_aux_48k: false,
@@ -126,17 +134,41 @@ impl Memory for AiieSoftSwitches {
   fn read(&mut self, address: u16) -> u8 {
     match address % 0x100 {
       0x00 => {
-        // println!("KEYBOARD: read data");
-        0
+        use KeySymbol::*;
+
+        let state = SymbolAdapter::map(&self.platform.get_key_state());
+
+        if state != self.previous_state {
+          self.keypress_waiting = true;
+        }
+        self.previous_state = state.clone();
+
+        (self.keypress_waiting as u8) << 7
+          | state
+            .pressed()
+            .into_iter()
+            .find_map(|key| {
+              match key {
+                &Char(c) => Some(c as u8),
+                Return => Some(0x0D), // Carriage Return
+                Backspace => Some(0x08),
+                Escape => Some(0x1B),
+                _ => None,
+              }
+            })
+            .unwrap_or(0)
       }
       0x01..=0x0F | 0x50..=0x5F => {
         self.softswitch(address);
         0
       }
-      0x10 => 0,
+      0x10 => {
+        self.keypress_waiting = false;
+
+        0
+      }
       0x11..=0x1F => self.read_flag(address),
       0x30 => {
-        // println!("SPEAKER : toggle speaker diaphragm");
         print!("🔈");
         std::io::stdout().flush().unwrap();
         0
@@ -148,7 +180,7 @@ impl Memory for AiieSoftSwitches {
       _ => unimplemented!(),
     }
   }
-  fn write(&mut self, address: u16, value: u8) {
+  fn write(&mut self, address: u16, _value: u8) {
     match address % 0x100 {
       0x00..=0x0F | 0x50..=0x5F => self.softswitch(address),
       0x10..=0x1F => (),
@@ -184,9 +216,7 @@ impl Memory for AiieSoftSwitches {
 }
 
 /// Configuration for a Apple IIe system.
-pub struct AiieSystemConfig {
-  pub mapping: KeyMappingStrategy,
-}
+pub struct AiieSystemConfig {}
 
 /// A factory for creating a Commodore 64 system.
 pub struct AiieSystemBuilder;
@@ -194,7 +224,7 @@ pub struct AiieSystemBuilder;
 impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemBuilder {
   fn build(
     roms: AiieSystemRoms,
-    config: AiieSystemConfig,
+    _config: AiieSystemConfig,
     platform: Arc<dyn PlatformProvider>,
   ) -> Box<dyn System> {
     platform.request_window(WindowConfig::new(
@@ -204,7 +234,7 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
     ));
 
     let ram = BlockMemory::ram(0xC000);
-    let io = AiieSoftSwitches::new();
+    let io = AiieSoftSwitches::new(platform);
     let peripheral_card = NullMemory::new();
     let applesoft_interpreter = BlockMemory::from_file(0x2800, roms.applesoft);
     let monitor = BlockMemory::from_file(0x800, roms.monitor);

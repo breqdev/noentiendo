@@ -107,7 +107,7 @@ fn main() {
     ),
     SystemArg::Aiie => AiieSystemBuilder::build(
       AiieSystemRoms::from_disk(),
-      AiieSystemConfig { mapping },
+      AiieSystemConfig {},
       platform.provider(),
     ),
   };

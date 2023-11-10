@@ -1,31 +1,55 @@
-use crate::keyboard::commodore::C64Keys;
+use crate::keyboard::apple::AppleKeys;
 
 /// The keyboard matrix found on a Commodore 64.
 /// Source: <https://www.c64-wiki.com/wiki/Keyboard>.
-pub const KEYBOARD_MAPPING: [[C64Keys; 8]; 8] = {
-  use C64Keys::*;
+pub const KEYBOARD_MAPPING: [[AppleKeys; 10]; 8] = {
+  use AppleKeys::*;
 
   [
     [
-      InsertDelete,
+      Esc, Digit1, Digit2, Digit3, Digit4, Digit6, Digit5, Digit7, Digit8, Digit9,
+    ],
+    [Tab, Q, W, E, R, Y, T, U, I, O],
+    [A, D, S, H, F, G, J, K, Semicolon, L],
+    [Z, X, C, V, B, N, M, Comma, Period, Backslash],
+    [
+      NumDivide, NumLeft, Num0, Num1, Num2, Num3, Slash, Equals, Digit0, Minus,
+    ],
+    [
+      NumRightParen,
+      NumEsc,
+      Num4,
+      Num5,
+      Num6,
+      Num7,
+      Grave,
+      P,
+      LeftBracket,
+      RightBracket,
+    ],
+    [
+      NumMultiply,
+      NumRight,
+      Digit8,
+      Digit9,
+      NumPeriod,
+      NumPlus,
       Return,
-      CursorLeftRight,
-      F7,
-      F1,
-      F3,
-      F5,
-      CursorUpDown,
-    ],
-    [Digit3, W, A, Digit4, Z, S, E, LShift],
-    [Digit5, R, D, Digit6, C, F, T, X],
-    [Digit7, Y, G, Digit8, B, H, U, V],
-    [Digit9, I, J, Digit0, M, K, O, N],
-    [Plus, P, L, Minus, Period, Colon, At, Comma],
-    [
-      Pound, Asterisk, Semicolon, ClrHome, RShift, Equals, UpArrow, Slash,
+      UpArrow,
+      Space,
+      Apostrophe,
     ],
     [
-      Digit1, LeftArrow, Control, Digit2, Space, Commodore, Q, RunStop,
+      NumPrint,
+      NumSpace,
+      NumLeftParen,
+      NumMinus,
+      NumReturn,
+      NumComma,
+      Del,
+      DownArrow,
+      LeftArrow,
+      RightArrow,
     ],
   ]
 };

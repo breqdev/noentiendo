@@ -1,3 +1,6 @@
+/// Keys and adapters for the Apple ][e and other early Apple machines.
+pub mod apple;
+
 /// Keys and adapters for the Commodore 64, VIC-20, and other Commodore machines.
 pub mod commodore;
 
