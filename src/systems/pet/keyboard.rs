@@ -363,13 +363,13 @@ mod tests {
     let mapped = PetKeyboardAdapter::map(&state);
 
     assert_eq!(
-      &vec![
-        PetKeys::A,
-        PetKeys::Apostrophe,
-        PetKeys::Num9,
-        PetKeys::Semicolon,
+      vec![
+        &PetKeys::A,
+        &PetKeys::Apostrophe,
+        &PetKeys::Num9,
+        &PetKeys::Semicolon,
       ],
-      mapped.pressed()
+      mapped.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -384,8 +384,8 @@ mod tests {
     let mapped = PetSymbolAdapter::map(&state);
 
     assert_eq!(
-      &vec![PetKeys::A, PetKeys::Apostrophe, PetKeys::Num9,],
-      mapped.pressed()
+      vec![&PetKeys::A, &PetKeys::Apostrophe, &PetKeys::Num9,],
+      mapped.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -397,7 +397,10 @@ mod tests {
 
     let mapped = PetSymbolAdapter::map(&state);
 
-    assert_eq!(&vec![PetKeys::DoubleQuote], mapped.pressed());
+    assert_eq!(
+      vec![&PetKeys::DoubleQuote],
+      mapped.pressed().collect::<Vec<_>>()
+    );
   }
 
   #[test]
@@ -408,13 +411,19 @@ mod tests {
     state.press(KeySymbol::Char('a'));
 
     let mapped = PetSymbolAdapter::map(&state);
-    assert_eq!(&vec![PetKeys::LShift, PetKeys::A], mapped.pressed());
+    assert_eq!(
+      vec![&PetKeys::LShift, &PetKeys::A],
+      mapped.pressed().collect::<Vec<_>>()
+    );
 
     state.release(KeySymbol::LAlt);
     state.press(KeySymbol::RAlt);
 
     let mapped = PetSymbolAdapter::map(&state);
-    assert_eq!(&vec![PetKeys::A, PetKeys::RShift], mapped.pressed());
+    assert_eq!(
+      vec![&PetKeys::A, &PetKeys::RShift],
+      mapped.pressed().collect::<Vec<_>>()
+    );
   }
 
   #[test]
@@ -423,36 +432,36 @@ mod tests {
 
     state.press(KeySymbol::DownArrow);
     assert_eq!(
-      &vec![PetKeys::CursorUpDown],
-      PetSymbolAdapter::map(&state).pressed()
+      vec![&PetKeys::CursorUpDown],
+      PetSymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
 
     state.release(KeySymbol::DownArrow);
     state.press(KeySymbol::UpArrow);
     assert_eq!(
-      &vec![PetKeys::LShift, PetKeys::CursorUpDown],
-      PetSymbolAdapter::map(&state).pressed()
+      vec![&PetKeys::LShift, &PetKeys::CursorUpDown],
+      PetSymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
 
     state.press(KeySymbol::LeftArrow);
     assert_eq!(
-      &vec![
-        PetKeys::LShift,
-        PetKeys::CursorUpDown,
-        PetKeys::CursorLeftRight,
+      vec![
+        &PetKeys::LShift,
+        &PetKeys::CursorUpDown,
+        &PetKeys::CursorLeftRight,
       ],
-      PetSymbolAdapter::map(&state).pressed()
+      PetSymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
 
     // map the up and left arrow, but give up on the right
     state.press(KeySymbol::RightArrow);
     assert_eq!(
-      &vec![
-        PetKeys::LShift,
-        PetKeys::CursorUpDown,
-        PetKeys::CursorLeftRight
+      vec![
+        &PetKeys::LShift,
+        &PetKeys::CursorUpDown,
+        &PetKeys::CursorLeftRight
       ],
-      PetSymbolAdapter::map(&state).pressed()
+      PetSymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
   }
 }
