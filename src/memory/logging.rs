@@ -24,7 +24,7 @@ impl Memory for LoggingMemory {
       self.message,
       address + self.offset,
       value
-    }
+    );
     value
   }
 
