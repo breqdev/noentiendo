@@ -255,7 +255,7 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
       })
     }
 
-    if mapped.pressed().is_empty() {
+    if mapped.is_empty() {
       // If no non-shifted keys were pressed, check for shifted keys.
       for symbol in state.pressed() {
         use KeySymbol::*;
@@ -286,7 +286,7 @@ impl KeyAdapter<KeySymbol, C64Keys> for C64SymbolAdapter {
       }
 
       // If we added keys, make sure shift is pressed
-      if !mapped.pressed().is_empty() {
+      if !mapped.is_empty() {
         mapped.press(C64Keys::LShift);
       }
     }
@@ -327,8 +327,13 @@ mod tests {
     let mapped = C64KeyboardAdapter::map(&positions);
 
     assert_eq!(
-      &vec![C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::Return],
-      mapped.pressed()
+      vec![
+        &C64Keys::Q,
+        &C64Keys::Digit2,
+        &C64Keys::Comma,
+        &C64Keys::Return
+      ],
+      mapped.pressed().collect::<Vec<_>>()
     );
 
     positions.press(KeyPosition::LShift);
@@ -337,8 +342,13 @@ mod tests {
     let mapped = C64KeyboardAdapter::map(&positions);
 
     assert_eq!(
-      &vec![C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::LShift],
-      mapped.pressed()
+      vec![
+        &C64Keys::Q,
+        &C64Keys::Digit2,
+        &C64Keys::Comma,
+        &C64Keys::LShift
+      ],
+      mapped.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -354,8 +364,13 @@ mod tests {
     let mapped = C64SymbolAdapter::map(&symbols);
 
     assert_eq!(
-      &vec![C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::Return],
-      mapped.pressed()
+      vec![
+        &C64Keys::Q,
+        &C64Keys::Digit2,
+        &C64Keys::Comma,
+        &C64Keys::Return
+      ],
+      mapped.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -370,13 +385,13 @@ mod tests {
     let mapped = C64SymbolAdapter::map(&symbols);
 
     assert_eq!(
-      &vec![
-        C64Keys::Digit1,
-        C64Keys::Comma,
-        C64Keys::Period,
-        C64Keys::LShift
+      vec![
+        &C64Keys::Digit1,
+        &C64Keys::Comma,
+        &C64Keys::Period,
+        &C64Keys::LShift
       ],
-      mapped.pressed()
+      mapped.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -392,7 +407,10 @@ mod tests {
     let mapped = C64SymbolAdapter::map(&symbols);
 
     // Do a "best effort" mapping, dropping the shifted keys
-    assert_eq!(&vec![C64Keys::Digit1, C64Keys::Return], mapped.pressed());
+    assert_eq!(
+      vec![&C64Keys::Digit1, &C64Keys::Return],
+      mapped.pressed().collect::<Vec<_>>()
+    );
   }
 
   #[test]
@@ -401,32 +419,32 @@ mod tests {
 
     state.press(KeySymbol::DownArrow);
     assert_eq!(
-      &vec![C64Keys::CursorUpDown],
-      C64SymbolAdapter::map(&state).pressed()
+      vec![&C64Keys::CursorUpDown],
+      C64SymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
 
     state.release(KeySymbol::DownArrow);
     state.press(KeySymbol::UpArrow);
     assert_eq!(
-      &vec![C64Keys::CursorUpDown, C64Keys::LShift],
-      C64SymbolAdapter::map(&state).pressed()
+      vec![&C64Keys::CursorUpDown, &C64Keys::LShift],
+      C64SymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
 
     state.press(KeySymbol::LeftArrow);
     assert_eq!(
-      &vec![
-        C64Keys::CursorUpDown,
-        C64Keys::CursorLeftRight,
-        C64Keys::LShift
+      vec![
+        &C64Keys::CursorUpDown,
+        &C64Keys::CursorLeftRight,
+        &C64Keys::LShift
       ],
-      C64SymbolAdapter::map(&state).pressed()
+      C64SymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
 
     // map the right arrow, but give up on the rest
     state.press(KeySymbol::RightArrow);
     assert_eq!(
-      &vec![C64Keys::CursorLeftRight],
-      C64SymbolAdapter::map(&state).pressed()
+      vec![&C64Keys::CursorLeftRight],
+      C64SymbolAdapter::map(&state).pressed().collect::<Vec<_>>()
     );
   }
 }
