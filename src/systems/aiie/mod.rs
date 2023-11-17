@@ -236,7 +236,8 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
       .map(0x1000, Box::new(NullMemory::new()))
       .map(
         0xC000,
-        Box::new(LoggingMemory::new(Box::new(io), "I/O", 0xC000)),
+        Box::new(io),
+        // Box::new(LoggingMemory::new(Box::new(io), "I/O", 0xC000)),
       )
       .map(0xC100, Box::new(peripheral_card))
       .map(0xD000, Box::new(applesoft_interpreter))
@@ -260,7 +261,8 @@ pub struct AiieSystem {
 impl System for AiieSystem {
   fn tick(&mut self) -> Duration {
     if self.cpu.registers.pc.address() < 0xF800 {
-      println!("{:#04x}", self.cpu.registers.pc.address());
+      // println!("{:#04x}", self.cpu.registers.pc.address());
+      // println!("{}", self.cpu.memory.read(32768));
     }
     Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
   }
@@ -272,11 +274,20 @@ impl System for AiieSystem {
   fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
     let flash_state = ((self.cpu.get_info().cycle_count / 500_000) & 0b1) == 0;
 
-    for y in 0..HEIGHT {
-      for x in 0..WIDTH {
-        let block = y / 3; // unused section of 8 bytes after every 3 lines
-        let index = (y * WIDTH + x + (block * 8)) as u16;
-        let value = self.cpu.read(0x0400 + index);
+    // https://retrocomputing.stackexchange.com/a/2541
+    for index in 0x000..=0x3FF {
+      let position = match index & 0x7F {
+        0x00..=0x27 => Some((0, (index & 0x7F) - 0x00)),
+        0x28..=0x4F => Some((1, (index & 0x7F) - 0x28)),
+        0x50..=0x77 => Some((2, (index & 0x7F) - 0x50)),
+        _ => None,
+      };
+
+      if let Some((third, x)) = position {
+        let y = (third * 8) + (index >> 7);
+        // println!("{} -> {}, {}", index, x, y);
+
+        let value = self.cpu.read((0x0400 + index) as u16);
 
         let character_index = ((value & 0b0011_1111) as usize) * 8;
         let mode = (value & 0b1100_0000) >> 6;
