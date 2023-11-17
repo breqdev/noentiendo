@@ -139,7 +139,7 @@ impl Memory for AiieSoftSwitches {
         if key != self.previous_key {
           self.keypress_waiting = true;
         }
-        self.previous_key = key.clone();
+        self.previous_key = key;
 
         (self.keypress_waiting as u8) << 7 | key.unwrap_or(0)
       }
@@ -271,6 +271,7 @@ impl System for AiieSystem {
     self.cpu.reset();
   }
 
+  #[allow(clippy::identity_op)]
   fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
     let flash_state = ((self.cpu.get_info().cycle_count / 500_000) & 0b1) == 0;
 
