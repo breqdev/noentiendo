@@ -133,6 +133,7 @@ impl Execute for Mos6502 {
         // ASL
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+        self.write(address, value); // QUIRK
         let result = value << 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
@@ -154,6 +155,7 @@ impl Execute for Mos6502 {
         // LSR
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+        self.write(address, value); // QUIRK
         let result = value >> 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
@@ -176,6 +178,7 @@ impl Execute for Mos6502 {
         // ROL
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+        self.write(address, value); // QUIRK
         let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
@@ -198,6 +201,7 @@ impl Execute for Mos6502 {
         // ROR
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+        self.write(address, value); // QUIRK
         let result = value >> 1 | (self.registers.sr.read(flags::CARRY) as u8) << 7;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
@@ -341,7 +345,16 @@ impl Execute for Mos6502 {
           0x4C => (self.fetch_word(), 3),
           0x6C => {
             let indirect = self.fetch_word();
-            (self.read_word(indirect), 5)
+
+            // QUIRK
+            if indirect & 0xFF == 0xFF {
+              let lo = self.read(indirect);
+              let hi = self.read(indirect & 0xFF00);
+              ((hi as u16) << 8 | lo as u16, 5)
+            } else {
+              // normal behavior
+              (self.read_word(indirect), 5)
+            }
           }
           _ => unreachable!(),
         };
