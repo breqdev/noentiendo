@@ -72,12 +72,12 @@ impl SystemBuilder<Easy6502System, RomFile, ()> for Easy6502SystemBuilder {
     let rom = BlockMemory::from_file(0x8000, rom);
 
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(zero_page))
-      .map(0x00fe, Box::new(io))
-      .map(0x0100, Box::new(stack_ram))
-      .map(0x0200, Box::new(vram))
-      .map(0x0600, Box::new(high_ram))
-      .map(0x8000, Box::new(rom));
+      .map(0x0000, zero_page)
+      .map(0x00fe, io)
+      .map(0x0100, stack_ram)
+      .map(0x0200, vram)
+      .map(0x0600, high_ram)
+      .map(0x8000, rom);
 
     let cpu = Mos6502::new(Box::new(memory));
 

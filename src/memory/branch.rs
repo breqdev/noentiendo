@@ -19,8 +19,8 @@ impl BranchMemory {
 
   /// Map a new Memory object to the given starting address in this mapping.
   /// Returns this BranchMemory for chaining.
-  pub fn map(mut self, address: usize, memory: Box<dyn Memory>) -> Self {
-    self.mapping.push((address, memory));
+  pub fn map(mut self, address: usize, memory: impl Memory + 'static) -> Self {
+    self.mapping.push((address, Box::new(memory)));
 
     self
   }
@@ -108,7 +108,7 @@ mod tests {
     block.write(0x00, 0x12);
     block.write(0x34, 0x56);
 
-    let mut memory = BranchMemory::new().map(0, Box::new(block));
+    let mut memory = BranchMemory::new().map(0, block);
 
     assert_eq!(0x12, memory.read(0));
     assert_eq!(0x56, memory.read(0x34));
@@ -126,7 +126,7 @@ mod tests {
     block.write(0x00, 0x12);
     block.write(0x34, 0x56);
 
-    let mut memory = BranchMemory::new().map(0x100, Box::new(block));
+    let mut memory = BranchMemory::new().map(0x100, block);
 
     assert_eq!(0, memory.read(0));
     assert_eq!(0, memory.read(0x34));
@@ -158,9 +158,7 @@ mod tests {
     block2.write(0x00, 0x78);
     block2.write(0x34, 0x9A);
 
-    let mut memory = BranchMemory::new()
-      .map(0x0000, Box::new(block1))
-      .map(0x1000, Box::new(block2));
+    let mut memory = BranchMemory::new().map(0x0000, block1).map(0x1000, block2);
 
     // test reads
     assert_eq!(0x00, memory.read(0x0000));
@@ -197,9 +195,7 @@ mod tests {
     block2.write(0x000, 0x78);
     block2.write(0x134, 0x9A);
 
-    let mut memory = BranchMemory::new()
-      .map(0x0000, Box::new(block1))
-      .map(0x0100, Box::new(block2));
+    let mut memory = BranchMemory::new().map(0x0000, block1).map(0x0100, block2);
 
     // test reads
     assert_eq!(0x12, memory.read(0x0000));
