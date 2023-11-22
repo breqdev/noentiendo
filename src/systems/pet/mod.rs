@@ -182,17 +182,17 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
     let kernel_rom = BlockMemory::from_file(0x1000, roms.kernal);
 
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(ram))
-      .map(0x8000, Box::new(vram))
-      .map(0x9000, Box::new(expansion_rom_9))
-      .map(0xA000, Box::new(expansion_rom_a))
-      .map(0xB000, Box::new(expansion_rom_b))
-      .map(0xC000, Box::new(basic_rom))
-      .map(0xE000, Box::new(editor_rom))
-      .map(0xE810, Box::new(pia1))
-      .map(0xE820, Box::new(pia2))
-      .map(0xE840, Box::new(via))
-      .map(0xF000, Box::new(kernel_rom));
+      .map(0x0000, ram)
+      .map(0x8000, vram)
+      .map(0x9000, expansion_rom_9)
+      .map(0xA000, expansion_rom_a)
+      .map(0xB000, expansion_rom_b)
+      .map(0xC000, basic_rom)
+      .map(0xE000, editor_rom)
+      .map(0xE810, pia1)
+      .map(0xE820, pia2)
+      .map(0xE840, via)
+      .map(0xF000, kernel_rom);
 
     let cpu = Mos6502::new(Box::new(memory));
 

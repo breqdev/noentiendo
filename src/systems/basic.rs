@@ -75,9 +75,9 @@ impl SystemBuilder<BasicSystem, RomFile, ()> for BasicSystemBuilder {
     let rom = BlockMemory::from_file(0x8000, rom);
 
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(ram))
-      .map(0x4000, Box::new(io))
-      .map(0x8000, Box::new(rom));
+      .map(0x0000, ram)
+      .map(0x4000, io)
+      .map(0x8000, rom);
 
     let cpu = Mos6502::new(Box::new(memory));
 
