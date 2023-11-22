@@ -6,11 +6,7 @@ pub struct AiieSystemRoms {
   /// Character ROM. Used to generate the 7x8 character bitmaps.
   pub character: RomFile,
 
-  /// Applesoft ROM. Contains the Applesoft BASIC interpreter.
-  pub applesoft: RomFile,
-
-  /// Monitor ROM. Contains the operating system.
-  pub monitor: RomFile,
+  pub rom: RomFile,
 }
 
 impl AiieSystemRoms {
@@ -19,13 +15,13 @@ impl AiieSystemRoms {
     use crate::roms::DiskLoadable;
 
     // let character = RomFile::from_file("aiie/char.bin");
-    let applesoft = RomFile::from_file("aiie/applesoft.bin");
-    let monitor = RomFile::from_file("aiie/monitor.bin");
+    //let applesoft = RomFile::from_file("aiie/applesoft.bin");
+    //let monitor = RomFile::from_file("aiie/monitor.bin");
+    let rom = RomFile::from_file("aiie/appleiie.bin");
     let character = RomFile::from_file("aiie/char.bin");
     Self {
       character,
-      applesoft,
-      monitor,
+      rom
     }
   }
 }

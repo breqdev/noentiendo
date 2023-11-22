@@ -71,7 +71,7 @@ impl AiieSoftSwitches {
 
   /// Set or clear a softswitch value.
   fn softswitch(&mut self, address: u16) {
-    let value = address & 1 != 0;
+    let value = (address & 1) == 1;
 
     println!("softswitch {:02X} <- {}", address & !1, value);
 
@@ -161,8 +161,8 @@ impl Memory for AiieSoftSwitches {
         std::io::stdout().flush().unwrap();
         0
       }
-      0x61 => todo!("OPNAPPLE: open apple (command) key data"),
-      0x62 => todo!("CLSAPPLE: closed apple (option) key data"),
+      0x61 => 0, //todo!("OPNAPPLE: open apple (command) key data"),
+      0x62 => 0, //todo!("CLSAPPLE: closed apple (option) key data"),
       0x70 => todo!("PDLTRIG : trigger paddles"),
 
       _ => unimplemented!(),
@@ -228,8 +228,9 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
     let io = AiieSoftSwitches::new(platform);
     let peripheral_card =
       LoggingMemory::new(Box::new(NullMemory::new()), "Peripheral Card", 0xC100);
-    let applesoft_interpreter = BlockMemory::from_file(0x2800, roms.applesoft);
-    let monitor = BlockMemory::from_file(0x800, roms.monitor);
+    //let applesoft_interpreter = BlockMemory::from_file(0x2800, roms.applesoft);
+    //let monitor = BlockMemory::from_file(0x4000, roms.monitor);
+    let rom = BlockMemory::from_file(16128, roms.rom);
 
     let memory = BranchMemory::new()
       .map(0x0000, Box::new(ram))
@@ -239,9 +240,9 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
         Box::new(io),
         // Box::new(LoggingMemory::new(Box::new(io), "I/O", 0xC000)),
       )
-      .map(0xC100, Box::new(peripheral_card))
-      .map(0xD000, Box::new(applesoft_interpreter))
-      .map(0xF800, Box::new(monitor));
+      .map(0xC100, Box::new(rom));
+      //.map(0xD000, Box::new(applesoft_interpreter))
+      //.map(0xF800, Box::new(monitor));
 
     let cpu = Mos6502::new(Box::new(memory));
 
@@ -290,15 +291,16 @@ impl System for AiieSystem {
 
         let value = self.cpu.read((0x0400 + index) as u16);
 
-        let character_index = ((value & 0b0011_1111) as usize) * 8;
-        let mode = (value & 0b1100_0000) >> 6;
+        let character_index = ((value & 0b0111_1111) as usize) * 8;
+        let inverted = (value & 0b1000_0000) == 0;
+        /*let mode = (value & 0b1100_0000) >> 6;
 
         let inverted = match mode {
           0b00 => true,
           0b01 => flash_state,
           0b10 | 0b11 => false,
           _ => unreachable!(),
-        };
+        };*/
 
         let character = self.characters[character_index..(character_index + 8)].to_vec();
 
