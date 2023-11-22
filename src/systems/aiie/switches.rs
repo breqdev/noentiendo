@@ -133,8 +133,8 @@ impl AiieSoftSwitches {
   /// Read one of the "RD" locations.
   fn read_flag(&mut self, address: u16) -> u8 {
     let value = match address {
-      0x11 => todo!("RDLCBNK2: reading from LC 0x $Dx 2"),
-      0x12 => todo!("RDLCRAM : reading from LC RAM"),
+      0x11 => self.bank_ram_select,
+      0x12 => self.bank_read_ram,
       0x13 => self.read_aux_48k,
       0x14 => self.write_aux_48k,
       0x15 => self.ext_slot_rom,
@@ -186,7 +186,7 @@ impl Memory for AiieSoftSwitches {
 
         (self.keypress_waiting as u8) << 7 | key.unwrap_or(0)
       }
-      0x11..=0x1F => self.read_flag(address),
+      0x11..=0x1F => self.read_flag(address) << 7,
       0x30 => {
         print!("🔈");
         std::io::stdout().flush().unwrap();
@@ -199,9 +199,9 @@ impl Memory for AiieSoftSwitches {
       // These softswitches are used for the upper section of ROM/RAM (past 0xD000).
       0x80..=0x8F => {
         self.bank_write_ram = (address & 0b0001) != 0;
-        self.bank_ram_select = (address & 0b0100) == 0;
+        self.bank_ram_select = (address & 0b1000) == 0;
 
-        self.bank_read_ram = match address % 0b11 {
+        self.bank_read_ram = match address & 0b11 {
           0b00 => true,
           0b01 => false,
           0b10 => false,
@@ -354,7 +354,6 @@ mod tests {
   fn fig4_left() {
     for hires in 0..=1 {
       let platform = Arc::new(TextPlatform::new());
-
       let selectors = AiieBankSelectors::new();
       let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
 
@@ -390,7 +389,6 @@ mod tests {
   fn fig4_right() {
     for hires in 0..=1 {
       let platform = Arc::new(TextPlatform::new());
-
       let selectors = AiieBankSelectors::new();
       let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
 
@@ -425,7 +423,6 @@ mod tests {
   #[test]
   fn fig5_left() {
     let platform = Arc::new(TextPlatform::new());
-
     let selectors = AiieBankSelectors::new();
     let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
 
@@ -446,7 +443,6 @@ mod tests {
   #[test]
   fn fig5_right() {
     let platform = Arc::new(TextPlatform::new());
-
     let selectors = AiieBankSelectors::new();
     let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
 
@@ -467,7 +463,6 @@ mod tests {
   #[test]
   fn fig6_left() {
     let platform = Arc::new(TextPlatform::new());
-
     let selectors = AiieBankSelectors::new();
     let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
 
@@ -488,7 +483,6 @@ mod tests {
   #[test]
   fn fig6_right() {
     let platform = Arc::new(TextPlatform::new());
-
     let selectors = AiieBankSelectors::new();
     let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
 
@@ -504,5 +498,97 @@ mod tests {
     assert_eq!(selectors.text_page_2.get(), (1, 1));
     assert_eq!(selectors.hires_page_1.get(), (0, 0));
     assert_eq!(selectors.hires_page_2.get(), (1, 1));
+  }
+
+  // http://www.applelogic.org/files/AIIETECHREF2.pdf
+  #[test]
+  fn test_c08x() {
+    let platform = Arc::new(TextPlatform::new());
+    let selectors = AiieBankSelectors::new();
+    let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
+
+    switches.read(0x80);
+    assert_eq!(selectors.rom_ram_select.get(), (1, 0));
+    assert_eq!(selectors.ram_bank_select.get(), (1, 1));
+
+    switches.read(0x81);
+    assert_eq!(selectors.rom_ram_select.get(), (0, 1));
+    assert_eq!(selectors.ram_bank_select.get(), (1, 1));
+
+    switches.read(0x82);
+    assert_eq!(selectors.rom_ram_select.get(), (0, 0));
+    assert_eq!(selectors.ram_bank_select.get(), (1, 1));
+
+    switches.read(0x83);
+    assert_eq!(selectors.rom_ram_select.get(), (1, 1));
+    assert_eq!(selectors.ram_bank_select.get(), (1, 1));
+
+    switches.read(0x88);
+    assert_eq!(selectors.rom_ram_select.get(), (1, 0));
+    assert_eq!(selectors.ram_bank_select.get(), (0, 0));
+
+    switches.read(0x89);
+    assert_eq!(selectors.rom_ram_select.get(), (0, 1));
+    assert_eq!(selectors.ram_bank_select.get(), (0, 0));
+
+    switches.read(0x8A);
+    assert_eq!(selectors.rom_ram_select.get(), (0, 0));
+    assert_eq!(selectors.ram_bank_select.get(), (0, 0));
+
+    switches.read(0x8B);
+    assert_eq!(selectors.rom_ram_select.get(), (1, 1));
+    assert_eq!(selectors.ram_bank_select.get(), (0, 0));
+  }
+
+  #[test]
+  fn test_rdbnk2() {
+    let platform = Arc::new(TextPlatform::new());
+    let selectors = AiieBankSelectors::new();
+    let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
+
+    switches.read(0x80);
+    assert_eq!(switches.read(0x11) & 0x80, 0x80);
+    switches.read(0x88);
+    assert_eq!(switches.read(0x11) & 0x80, 0x00);
+  }
+
+  #[test]
+  fn test_rdlcram() {
+    let platform = Arc::new(TextPlatform::new());
+    let selectors = AiieBankSelectors::new();
+    let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
+
+    switches.read(0x80);
+    assert_eq!(switches.read(0x12) & 0x80, 0x80);
+    switches.read(0x81);
+    assert_eq!(switches.read(0x12) & 0x80, 0x00);
+  }
+
+  #[test]
+  fn test_altzp() {
+    let platform = Arc::new(TextPlatform::new());
+    let selectors = AiieBankSelectors::new();
+    let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
+
+    switches.softswitch(0x08);
+    assert_eq!(selectors.zp_stack.get(), (0, 0));
+    assert_eq!(selectors.upper_ram.get(), (0, 0));
+
+    switches.softswitch(0x09);
+    assert_eq!(selectors.zp_stack.get(), (1, 1));
+    assert_eq!(selectors.upper_ram.get(), (1, 1));
+  }
+
+  #[test]
+  fn test_rdaltzp() {
+    let platform = Arc::new(TextPlatform::new());
+    let selectors = AiieBankSelectors::new();
+    let mut switches = AiieSoftSwitches::new(platform.provider(), selectors.clone());
+
+    switches.softswitch(0x08);
+    assert_eq!(switches.read(0x16) & 0x80, 0x00);
+
+    switches.softswitch(0x09);
+    assert_eq!(switches.read(0x16) & 0x80, 0x80);
   }
 }
