@@ -1,10 +1,11 @@
-use std::{io::Write, sync::Arc};
+use std::{cell::Cell, io::Write, rc::Rc, sync::Arc};
 
 use crate::{
   cpu::{MemoryIO, Mos6502},
   keyboard::{KeyAdapter, SymbolAdapter},
   memory::{
-    ActiveInterrupt, BlockMemory, BranchMemory, LoggingMemory, Memory, NullMemory, SystemInfo,
+    ActiveInterrupt, BankedMemory, BlockMemory, BranchMemory, LoggingMemory, Memory, NullMemory,
+    SystemInfo,
   },
   platform::{Color, PlatformProvider, WindowConfig},
   systems::{aiie::keyboard::AppleIISymbolAdapter, System},
@@ -29,6 +30,7 @@ const CHAR_WIDTH: u32 = 7;
 
 struct AiieSoftSwitches {
   platform: Arc<dyn PlatformProvider>,
+  selectors: AiieBankSelectors,
   previous_key: Option<u8>,
 
   pub keypress_waiting: bool,
@@ -48,9 +50,10 @@ struct AiieSoftSwitches {
 }
 
 impl AiieSoftSwitches {
-  fn new(platform: Arc<dyn PlatformProvider>) -> Self {
+  fn new(platform: Arc<dyn PlatformProvider>, selectors: AiieBankSelectors) -> Self {
     Self {
       platform,
+      selectors,
       previous_key: None,
       keypress_waiting: false,
       eighty_col_memory: false,
@@ -97,6 +100,14 @@ impl AiieSoftSwitches {
 
       _ => todo!("unimplemented softswitch"),
     };
+
+    self.selectors.set(
+      self.eighty_col_memory,
+      self.read_aux_48k,
+      self.write_aux_48k,
+      self.text_page2,
+      self.hi_res,
+    );
   }
 
   /// Read one of the "RD" locations.
@@ -209,6 +220,66 @@ impl Memory for AiieSoftSwitches {
 /// Configuration for a Apple IIe system.
 pub struct AiieSystemConfig {}
 
+struct AiieBankSelectors {
+  zp_stack: Rc<Cell<(usize, usize)>>,
+  low_segment: Rc<Cell<(usize, usize)>>,
+  text_page_1: Rc<Cell<(usize, usize)>>,
+  text_page_2: Rc<Cell<(usize, usize)>>,
+  hires_page_1: Rc<Cell<(usize, usize)>>,
+  hires_page_2: Rc<Cell<(usize, usize)>>,
+}
+
+impl AiieBankSelectors {
+  fn new() -> AiieBankSelectors {
+    AiieBankSelectors {
+      zp_stack: Rc::new(Cell::new((0, 0))),
+      low_segment: Rc::new(Cell::new((0, 0))),
+      text_page_1: Rc::new(Cell::new((0, 0))),
+      text_page_2: Rc::new(Cell::new((0, 0))),
+      hires_page_1: Rc::new(Cell::new((0, 0))),
+      hires_page_2: Rc::new(Cell::new((0, 0))),
+    }
+  }
+
+  fn set(
+    &mut self,
+    eighty_col_memory: bool,
+    read_aux_48k: bool,
+    write_aux_48k: bool,
+    text_page2: bool,
+    hi_res: bool,
+  ) {
+    if !eighty_col_memory {
+      self.zp_stack.set((0, 0));
+
+      let selector_value = (read_aux_48k as usize, write_aux_48k as usize);
+      self.low_segment.set(selector_value);
+      self.text_page_1.set(selector_value);
+      self.text_page_2.set(selector_value);
+      self.hires_page_1.set(selector_value);
+      self.hires_page_2.set(selector_value);
+    } else {
+      self.zp_stack.set((0, 0));
+
+      if text_page2 {
+        self.text_page_1.set((1, 1));
+      } else {
+        self.text_page_1.set((0, 0));
+      }
+
+      self.text_page_2.set((0, 0));
+
+      if hi_res && text_page2 {
+        self.hires_page_1.set((1, 1));
+      } else {
+        self.hires_page_1.set((0, 0));
+      }
+
+      self.hires_page_2.set((0, 0));
+    }
+  }
+}
+
 /// A factory for creating a Commodore 64 system.
 pub struct AiieSystemBuilder;
 
@@ -224,8 +295,8 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
       2.0,
     ));
 
-    let ram = BlockMemory::ram(0xC000);
-    let io = AiieSoftSwitches::new(platform);
+    let selectors = AiieBankSelectors::new();
+
     let peripheral_card =
       LoggingMemory::new(Box::new(NullMemory::new()), "Peripheral Card", 0xC100);
     //let applesoft_interpreter = BlockMemory::from_file(0x2800, roms.applesoft);
@@ -233,8 +304,58 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
     let rom = BlockMemory::from_file(16128, roms.rom);
 
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(ram))
-      .map(0x1000, Box::new(NullMemory::new()))
+      .map(
+        0x0000,
+        Box::new(
+          BankedMemory::new(selectors.zp_stack.clone())
+            .bank(Box::new(BlockMemory::ram(0x0200))) // Main memory
+            .bank(Box::new(BlockMemory::ram(0x0200))), // Aux memory
+        ),
+      )
+      .map(
+        0x0200,
+        Box::new(
+          BankedMemory::new(selectors.low_segment.clone())
+            .bank(Box::new(BlockMemory::ram(0x0200))) // Main memory
+            .bank(Box::new(BlockMemory::ram(0x0200))), // Aux memory
+        ),
+      )
+      .map(
+        0x0400,
+        Box::new(
+          BankedMemory::new(selectors.text_page_1.clone())
+            .bank(Box::new(BlockMemory::ram(0x0400))) // Text Page 1
+            .bank(Box::new(BlockMemory::ram(0x0400))), // Text Page 1X
+        ),
+      )
+      .map(
+        0x0800,
+        Box::new(
+          BankedMemory::new(selectors.text_page_2.clone())
+            .bank(Box::new(BlockMemory::ram(0x1800))) // Text Page 2
+            .bank(Box::new(BlockMemory::ram(0x1800))), // Text Page 2X
+        ),
+      )
+      .map(
+        0x2000,
+        Box::new(
+          BankedMemory::new(selectors.hires_page_1.clone())
+            .bank(Box::new(BlockMemory::ram(0x2000))) // HiRes Page 1
+            .bank(Box::new(BlockMemory::ram(0x2000))), // HiRes Page 1X
+        ),
+      )
+      .map(
+        0x4000,
+        Box::new(
+          BankedMemory::new(selectors.hires_page_2.clone())
+            .bank(Box::new(BlockMemory::ram(0x8000))) // HiRes Page 1
+            .bank(Box::new(BlockMemory::ram(0x8000))), // HiRes Page 1X
+        ),
+      );
+
+    let io = AiieSoftSwitches::new(platform, selectors);
+
+    let memory = memory
       .map(
         0xC000,
         Box::new(io),
