@@ -299,9 +299,6 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
 
     let peripheral_card =
       LoggingMemory::new(Box::new(NullMemory::new()), "Peripheral Card", 0xC100);
-    //let applesoft_interpreter = BlockMemory::from_file(0x2800, roms.applesoft);
-    //let monitor = BlockMemory::from_file(0x4000, roms.monitor);
-    let rom = BlockMemory::from_file(16128, roms.rom);
 
     let memory = BranchMemory::new()
       .map(
@@ -361,9 +358,18 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
         Box::new(io),
         // Box::new(LoggingMemory::new(Box::new(io), "I/O", 0xC000)),
       )
-      .map(0xC100, Box::new(rom));
-    //.map(0xD000, Box::new(applesoft_interpreter))
-    //.map(0xF800, Box::new(monitor));
+      .map(
+        0xC100,
+        Box::new(BlockMemory::from_file(0x0F00, roms.firmware)),
+      )
+      .map(
+        0xD000,
+        Box::new(BlockMemory::from_file(0x2800, roms.applesoft)),
+      )
+      .map(
+        0xF800,
+        Box::new(BlockMemory::from_file(0x0800, roms.monitor)),
+      );
 
     let cpu = Mos6502::new(Box::new(memory));
 
