@@ -1,14 +1,10 @@
-use std::{cell::Cell, io::Write, rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
   cpu::{MemoryIO, Mos6502},
-  keyboard::{KeyAdapter, SymbolAdapter},
-  memory::{
-    ActiveInterrupt, BankedMemory, BlockMemory, BranchMemory, LoggingMemory, Memory, NullMemory,
-    SystemInfo,
-  },
+  memory::{BankedMemory, BlockMemory, BranchMemory, LoggingMemory, NullMemory},
   platform::{Color, PlatformProvider, WindowConfig},
-  systems::{aiie::keyboard::AppleIISymbolAdapter, System},
+  systems::System,
 };
 
 // https://mirrors.apple2.org.za/apple.cabi.net/Languages.Programming/MemoryMap.IIe.64K.128K.txt
@@ -16,10 +12,13 @@ use crate::{
 
 mod keyboard;
 mod roms;
+mod switches;
 
 pub use roms::AiieSystemRoms;
 
 use instant::Duration;
+
+use self::switches::{AiieBankSelectors, AiieSoftSwitches};
 
 use super::SystemBuilder;
 
@@ -28,257 +27,8 @@ const HEIGHT: u32 = 24;
 const CHAR_HEIGHT: u32 = 8;
 const CHAR_WIDTH: u32 = 7;
 
-struct AiieSoftSwitches {
-  platform: Arc<dyn PlatformProvider>,
-  selectors: AiieBankSelectors,
-  previous_key: Option<u8>,
-
-  pub keypress_waiting: bool,
-  pub eighty_col_memory: bool,
-  pub read_aux_48k: bool,
-  pub write_aux_48k: bool,
-  pub ext_slot_rom: bool,
-  pub aux_zeropage: bool,
-  pub ext_slot_c3_rom: bool,
-  pub eighty_col_display: bool,
-  pub alt_characters: bool,
-  pub text_mode: bool,
-  pub mixed_mode: bool,
-  pub text_page2: bool,
-  pub hi_res: bool,
-  pub annunciator: (bool, bool, bool, bool),
-}
-
-impl AiieSoftSwitches {
-  fn new(platform: Arc<dyn PlatformProvider>, selectors: AiieBankSelectors) -> Self {
-    Self {
-      platform,
-      selectors,
-      previous_key: None,
-      keypress_waiting: false,
-      eighty_col_memory: false,
-      read_aux_48k: false,
-      write_aux_48k: false,
-      ext_slot_rom: false,
-      aux_zeropage: false,
-      ext_slot_c3_rom: false,
-      eighty_col_display: false,
-      alt_characters: false,
-      text_mode: false,
-      mixed_mode: false,
-      text_page2: false,
-      hi_res: false,
-      annunciator: (false, false, false, false),
-    }
-  }
-
-  /// Set or clear a softswitch value.
-  fn softswitch(&mut self, address: u16) {
-    let value = (address & 1) == 1;
-
-    println!("softswitch {:02X} <- {}", address & !1, value);
-
-    match address & !1 {
-      0x00 => self.eighty_col_memory = value,
-      0x02 => self.read_aux_48k = value,
-      0x04 => self.write_aux_48k = value,
-      0x06 => self.ext_slot_rom = value,
-      0x08 => self.aux_zeropage = value,
-      0x0A => self.ext_slot_c3_rom = value,
-      0x0C => self.eighty_col_display = value,
-      0x0E => self.alt_characters = value,
-
-      0x50 => self.text_mode = value,
-      0x52 => self.mixed_mode = value,
-      0x54 => self.text_page2 = value,
-      0x56 => self.hi_res = value,
-
-      0x58 => self.annunciator.0 = value,
-      0x5A => self.annunciator.1 = value,
-      0x5C => self.annunciator.2 = value,
-      0x5E => self.annunciator.3 = value,
-
-      _ => todo!("unimplemented softswitch"),
-    };
-
-    self.selectors.set(
-      self.eighty_col_memory,
-      self.read_aux_48k,
-      self.write_aux_48k,
-      self.text_page2,
-      self.hi_res,
-    );
-  }
-
-  /// Read one of the "RD" locations.
-  fn read_flag(&mut self, address: u16) -> u8 {
-    let value = match address {
-      0x11 => todo!("RDLCBNK2: reading from LC 0x $Dx 2"),
-      0x12 => todo!("RDLCRAM : reading from LC RAM"),
-      0x13 => self.read_aux_48k,
-      0x14 => self.write_aux_48k,
-      0x15 => self.ext_slot_rom,
-      0x16 => self.aux_zeropage,
-      0x17 => self.ext_slot_c3_rom,
-      0x18 => self.eighty_col_memory,
-      0x19 => todo!("RDVBLBAR: not VBL (VBL signal low)"),
-      0x1A => self.text_mode,
-      0x1B => self.mixed_mode,
-      0x1C => self.text_page2,
-      0x1D => self.hi_res,
-      0x1E => self.alt_characters,
-      0x1F => self.eighty_col_display,
-
-      _ => todo!("unimplemented softswitch"),
-    };
-
-    if value {
-      1
-    } else {
-      0
-    }
-  }
-}
-
-impl Memory for AiieSoftSwitches {
-  fn read(&mut self, address: u16) -> u8 {
-    match address % 0x100 {
-      0x00 => {
-        let state = AppleIISymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()));
-        let key = state.get_one_key();
-
-        if key != self.previous_key {
-          self.keypress_waiting = true;
-        }
-        self.previous_key = key;
-
-        (self.keypress_waiting as u8) << 7 | key.unwrap_or(0)
-      }
-      0x01..=0x0F | 0x50..=0x5F => {
-        self.softswitch(address);
-        0
-      }
-      0x10 => {
-        self.keypress_waiting = false;
-
-        let state = AppleIISymbolAdapter::map(&SymbolAdapter::map(&self.platform.get_key_state()));
-        let key = state.get_one_key();
-
-        (self.keypress_waiting as u8) << 7 | key.unwrap_or(0)
-      }
-      0x11..=0x1F => self.read_flag(address),
-      0x30 => {
-        print!("🔈");
-        std::io::stdout().flush().unwrap();
-        0
-      }
-      0x61 => 0, //todo!("OPNAPPLE: open apple (command) key data"),
-      0x62 => 0, //todo!("CLSAPPLE: closed apple (option) key data"),
-      0x70 => todo!("PDLTRIG : trigger paddles"),
-
-      _ => unimplemented!(),
-    }
-  }
-  fn write(&mut self, address: u16, _value: u8) {
-    match address % 0x100 {
-      0x00..=0x0F | 0x50..=0x5F => self.softswitch(address),
-      0x10 => {
-        self.keypress_waiting = false;
-      }
-      0x11..=0x1F => (),
-      0x30 => println!("SPEAKER : toggle speaker diaphragm"),
-      0x61 => todo!("OPNAPPLE: open apple (command) key data"),
-      0x62 => todo!("CLSAPPLE: closed apple (option) key data"),
-      0x70 => todo!("PDLTRIG : trigger paddles"),
-
-      _ => unimplemented!(),
-    }
-  }
-
-  fn reset(&mut self) {
-    // set all the flags to false
-    self.eighty_col_memory = false;
-    self.read_aux_48k = false;
-    self.write_aux_48k = false;
-    self.ext_slot_rom = false;
-    self.aux_zeropage = false;
-    self.ext_slot_c3_rom = false;
-    self.eighty_col_display = false;
-    self.alt_characters = false;
-    self.text_mode = false;
-    self.mixed_mode = false;
-    self.text_page2 = false;
-    self.hi_res = false;
-    self.annunciator = (false, false, false, false);
-  }
-
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
-    ActiveInterrupt::None
-  }
-}
-
 /// Configuration for a Apple IIe system.
 pub struct AiieSystemConfig {}
-
-struct AiieBankSelectors {
-  zp_stack: Rc<Cell<(usize, usize)>>,
-  low_segment: Rc<Cell<(usize, usize)>>,
-  text_page_1: Rc<Cell<(usize, usize)>>,
-  text_page_2: Rc<Cell<(usize, usize)>>,
-  hires_page_1: Rc<Cell<(usize, usize)>>,
-  hires_page_2: Rc<Cell<(usize, usize)>>,
-}
-
-impl AiieBankSelectors {
-  fn new() -> AiieBankSelectors {
-    AiieBankSelectors {
-      zp_stack: Rc::new(Cell::new((0, 0))),
-      low_segment: Rc::new(Cell::new((0, 0))),
-      text_page_1: Rc::new(Cell::new((0, 0))),
-      text_page_2: Rc::new(Cell::new((0, 0))),
-      hires_page_1: Rc::new(Cell::new((0, 0))),
-      hires_page_2: Rc::new(Cell::new((0, 0))),
-    }
-  }
-
-  fn set(
-    &mut self,
-    eighty_col_memory: bool,
-    read_aux_48k: bool,
-    write_aux_48k: bool,
-    text_page2: bool,
-    hi_res: bool,
-  ) {
-    if !eighty_col_memory {
-      self.zp_stack.set((0, 0));
-
-      let selector_value = (read_aux_48k as usize, write_aux_48k as usize);
-      self.low_segment.set(selector_value);
-      self.text_page_1.set(selector_value);
-      self.text_page_2.set(selector_value);
-      self.hires_page_1.set(selector_value);
-      self.hires_page_2.set(selector_value);
-    } else {
-      self.zp_stack.set((0, 0));
-
-      if text_page2 {
-        self.text_page_1.set((1, 1));
-      } else {
-        self.text_page_1.set((0, 0));
-      }
-
-      self.text_page_2.set((0, 0));
-
-      if hi_res && text_page2 {
-        self.hires_page_1.set((1, 1));
-      } else {
-        self.hires_page_1.set((0, 0));
-      }
-
-      self.hires_page_2.set((0, 0));
-    }
-  }
-}
 
 /// A factory for creating a Commodore 64 system.
 pub struct AiieSystemBuilder;
@@ -296,9 +46,7 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
     ));
 
     let selectors = AiieBankSelectors::new();
-
-    let peripheral_card =
-      LoggingMemory::new(Box::new(NullMemory::new()), "Peripheral Card", 0xC100);
+    let io = AiieSoftSwitches::new(platform, selectors.clone());
 
     let memory = BranchMemory::new()
       .map(
@@ -348,11 +96,7 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
             .bank(Box::new(BlockMemory::ram(0x8000))) // HiRes Page 1
             .bank(Box::new(BlockMemory::ram(0x8000))), // HiRes Page 1X
         ),
-      );
-
-    let io = AiieSoftSwitches::new(platform, selectors);
-
-    let memory = memory
+      )
       .map(
         0xC000,
         Box::new(io),
@@ -360,16 +104,61 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
       )
       .map(
         0xC100,
-        Box::new(BlockMemory::from_file(0x0F00, roms.firmware)),
-      )
+        Box::new(
+          BankedMemory::new(selectors.ext_slot_rom.clone())
+            .bank(Box::new(LoggingMemory::new(
+              Box::new(NullMemory::new()),
+              "Peripheral Card",
+              0xC100,
+            )))
+            .bank(Box::new(BlockMemory::from_file(0x0F00, roms.firmware))),
+        ),
+      );
+
+    let upper_rom = BranchMemory::new()
       .map(
-        0xD000,
+        0x0000,
         Box::new(BlockMemory::from_file(0x2800, roms.applesoft)),
       )
       .map(
-        0xF800,
+        0x2800,
         Box::new(BlockMemory::from_file(0x0800, roms.monitor)),
       );
+
+    let upper_main_ram = BranchMemory::new()
+      .map(
+        0x0000,
+        Box::new(
+          BankedMemory::new(selectors.ram_bank_select.clone())
+            .bank(Box::new(BlockMemory::ram(0x1000)))
+            .bank(Box::new(BlockMemory::ram(0x1000))),
+        ),
+      )
+      .map(0x1000, Box::new(BlockMemory::ram(0x2000)));
+
+    let upper_aux_ram = BranchMemory::new()
+      .map(
+        0x0000,
+        Box::new(
+          BankedMemory::new(selectors.ram_bank_select)
+            .bank(Box::new(BlockMemory::ram(0x1000)))
+            .bank(Box::new(BlockMemory::ram(0x1000))),
+        ),
+      )
+      .map(0x1000, Box::new(BlockMemory::ram(0x2000)));
+
+    let memory = memory.map(
+      0xD000,
+      Box::new(
+        BankedMemory::new(selectors.rom_ram_select)
+          .bank(Box::new(upper_rom))
+          .bank(Box::new(
+            BankedMemory::new(selectors.upper_ram)
+              .bank(Box::new(upper_main_ram))
+              .bank(Box::new(upper_aux_ram)),
+          )),
+      ),
+    );
 
     let cpu = Mos6502::new(Box::new(memory));
 
