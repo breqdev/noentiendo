@@ -75,7 +75,7 @@ fn main() {
   let system = match args.system {
     SystemArg::Basic => BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Easy => Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
-    SystemArg::Klaus => KlausSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    SystemArg::Klaus => KlausSystemBuilder::build(romfile.unwrap(), None, platform.provider()),
     SystemArg::Pet => PetSystemBuilder::build(
       PetSystemRoms::from_disk(),
       PetSystemConfig { mapping },
