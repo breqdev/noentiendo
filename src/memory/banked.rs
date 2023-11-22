@@ -7,12 +7,12 @@ use super::{ActiveInterrupt, Memory, SystemInfo};
 /// address space. The active implementation is selected by external logic.
 pub struct BankedMemory {
   banks: Vec<Box<dyn Memory>>,
-  active: Rc<Cell<usize>>,
+  active: Rc<Cell<(usize, usize)>>,
 }
 
 impl BankedMemory {
   /// Create a new, empty banked memory.
-  pub fn new(active: Rc<Cell<usize>>) -> Self {
+  pub fn new(active: Rc<Cell<(usize, usize)>>) -> Self {
     Self {
       banks: Vec::new(),
       active,
@@ -29,16 +29,16 @@ impl BankedMemory {
 
 impl Memory for BankedMemory {
   fn read(&mut self, address: u16) -> u8 {
-    match self.banks.get_mut(self.active.get()) {
+    match self.banks.get_mut(self.active.get().0) {
       Some(memory) => memory.read(address),
-      None => panic!("Invalid bank {} selected", self.active.get()),
+      None => panic!("Invalid bank {} selected", self.active.get().0),
     }
   }
 
   fn write(&mut self, address: u16, value: u8) {
-    match self.banks.get_mut(self.active.get()) {
+    match self.banks.get_mut(self.active.get().1) {
       Some(memory) => memory.write(address, value),
-      None => panic!("Invalid bank {} selected", self.active.get()),
+      None => panic!("Invalid bank {} selected", self.active.get().1),
     }
   }
 

@@ -241,8 +241,8 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
         // Box::new(LoggingMemory::new(Box::new(io), "I/O", 0xC000)),
       )
       .map(0xC100, Box::new(rom));
-      //.map(0xD000, Box::new(applesoft_interpreter))
-      //.map(0xF800, Box::new(monitor));
+    //.map(0xD000, Box::new(applesoft_interpreter))
+    //.map(0xF800, Box::new(monitor));
 
     let cpu = Mos6502::new(Box::new(memory));
 
@@ -274,8 +274,6 @@ impl System for AiieSystem {
 
   #[allow(clippy::identity_op)]
   fn render(&mut self, framebuffer: &mut [u8], config: WindowConfig) {
-    let flash_state = ((self.cpu.get_info().cycle_count / 500_000) & 0b1) == 0;
-
     // https://retrocomputing.stackexchange.com/a/2541
     for index in 0x000..=0x3FF {
       let position = match index & 0x7F {
