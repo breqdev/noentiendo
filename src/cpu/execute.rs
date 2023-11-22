@@ -9,10 +9,6 @@ pub trait Execute {
 
 impl Execute for Mos6502 {
   fn execute(&mut self, opcode: u8) -> Result<u8, ()> {
-    if self.registers.a == 13{
-      println!("Return");
-    }
-    println!("{:04X} {:02X}",self.registers.pc.address()-1, opcode);
     match opcode {
       // === LOAD ===
       0xA1 | 0xA5 | 0xA9 | 0xAD | 0xB1 | 0xB5 | 0xB9 | 0xBD => {
