@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  cpu::Mos6502,
+  cpu::{Mos6502, Mos6502Variant},
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -303,7 +303,7 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
       .map(0xD000, region6)
       .map(0xE000, region7);
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(C64System { cpu, vic: vic_ii })
   }

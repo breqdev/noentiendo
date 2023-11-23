@@ -1,6 +1,6 @@
 use instant::Duration;
 
-use crate::cpu::Mos6502;
+use crate::cpu::{Mos6502, Mos6502Variant};
 use crate::memory::BlockMemory;
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
@@ -11,21 +11,29 @@ use std::sync::Arc;
 
 use super::SystemBuilder;
 
+pub struct KlausSystemConfig {
+  pub pc_report: Option<Rc<Cell<u16>>>,
+  pub variant: Mos6502Variant,
+}
+
 /// A factory for creating a system that runs Klaus Dormann's 6502 CPU test suite.
 pub struct KlausSystemBuilder;
 
-impl SystemBuilder<KlausSystem, RomFile, Option<Rc<Cell<u16>>>> for KlausSystemBuilder {
+impl SystemBuilder<KlausSystem, RomFile, KlausSystemConfig> for KlausSystemBuilder {
   fn build(
     rom: RomFile,
-    config: Option<Rc<Cell<u16>>>,
+    config: KlausSystemConfig,
     _platform: Arc<dyn PlatformProvider>,
   ) -> Box<dyn System> {
     let rom = BlockMemory::from_file(0x10000, rom).set_writeable(true);
-    let mut cpu = Mos6502::new(Box::new(rom));
+    let mut cpu = Mos6502::new(rom, config.variant);
 
     cpu.registers.pc.load(0x0400);
 
-    Box::new(KlausSystem { cpu, pc: config })
+    Box::new(KlausSystem {
+      cpu,
+      pc: config.pc_report,
+    })
   }
 }
 
@@ -61,16 +69,46 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_klaus() {
-    let roms = RomFile::from_file("bin/klaus.bin");
+  fn test_klaus_6502() {
+    let roms = RomFile::from_file("bin/klaus_6502.bin");
     let platform = TextPlatform::new();
     let pc = Rc::new(Cell::new(0));
-    let mut system = KlausSystemBuilder::build(roms, Some(pc.clone()), platform.provider());
+
+    let mut system = KlausSystemBuilder::build(
+      roms,
+      KlausSystemConfig {
+        pc_report: Some(pc.clone()),
+        variant: Mos6502Variant::NMOS,
+      },
+      platform.provider(),
+    );
 
     for _ in 0..=100000000 {
       system.tick();
     }
 
     assert_eq!(pc.get(), 0x3469);
+  }
+
+  #[test]
+  fn test_klaus_65c02() {
+    let roms = RomFile::from_file("bin/klaus_65C02.bin");
+    let platform = TextPlatform::new();
+    let pc = Rc::new(Cell::new(0));
+
+    let mut system = KlausSystemBuilder::build(
+      roms,
+      KlausSystemConfig {
+        pc_report: Some(pc.clone()),
+        variant: Mos6502Variant::CMOS,
+      },
+      platform.provider(),
+    );
+
+    for _ in 0..=100000000 {
+      system.tick();
+    }
+
+    assert_eq!(pc.get(), 0x24f1);
   }
 }

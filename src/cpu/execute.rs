@@ -2,6 +2,8 @@ use crate::cpu::fetch::Fetch;
 use crate::cpu::registers::{flags, Alu};
 use crate::cpu::{InterruptHandler, MemoryIO, Mos6502, Stack};
 
+use super::Mos6502Variant;
+
 pub trait Execute {
   /// Execute the given opcode, returning either the number of cycles used or an error.
   fn execute(&mut self, opcode: u8) -> Result<u8, ()>;
@@ -11,7 +13,7 @@ impl Execute for Mos6502 {
   fn execute(&mut self, opcode: u8) -> Result<u8, ()> {
     match opcode {
       // === LOAD ===
-      0xA1 | 0xA5 | 0xA9 | 0xAD | 0xB1 | 0xB5 | 0xB9 | 0xBD => {
+      0xA1 | 0xA5 | 0xA9 | 0xAD | 0xB1 | 0xB2 | 0xB5 | 0xB9 | 0xBD => {
         // LDA
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a = value;
@@ -36,7 +38,7 @@ impl Execute for Mos6502 {
       }
 
       // === STORE ===
-      0x81 | 0x85 | 0x8D | 0x91 | 0x95 | 0x99 | 0x9D => {
+      0x81 | 0x85 | 0x8D | 0x91 | 0x92 | 0x95 | 0x99 | 0x9D => {
         // STA
         let (address, cycles) = self.fetch_operand_address(opcode);
         self.write(address, self.registers.a);
@@ -133,6 +135,10 @@ impl Execute for Mos6502 {
         // ASL
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
         let result = value << 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
@@ -154,6 +160,11 @@ impl Execute for Mos6502 {
         // LSR
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
+
         let result = value >> 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
@@ -176,6 +187,11 @@ impl Execute for Mos6502 {
         // ROL
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
+
         let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
@@ -198,6 +214,11 @@ impl Execute for Mos6502 {
         // ROR
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
+
         let result = value >> 1 | (self.registers.sr.read(flags::CARRY) as u8) << 7;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
@@ -207,7 +228,7 @@ impl Execute for Mos6502 {
       }
 
       // === LOGIC ===
-      0x21 | 0x25 | 0x29 | 0x2D | 0x31 | 0x35 | 0x39 | 0x3D => {
+      0x21 | 0x25 | 0x29 | 0x2D | 0x31 | 0x32 | 0x35 | 0x39 | 0x3D => {
         // AND
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a &= value;
@@ -227,7 +248,7 @@ impl Execute for Mos6502 {
         Ok(cycles)
       }
 
-      0x41 | 0x45 | 0x49 | 0x4D | 0x51 | 0x55 | 0x59 | 0x5D => {
+      0x41 | 0x45 | 0x49 | 0x4D | 0x51 | 0x52 | 0x55 | 0x59 | 0x5D => {
         // EOR
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a ^= value;
@@ -235,7 +256,7 @@ impl Execute for Mos6502 {
         Ok(cycles)
       }
 
-      0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => {
+      0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x12 | 0x15 | 0x19 | 0x1D => {
         // ORA
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a |= value;
@@ -244,14 +265,14 @@ impl Execute for Mos6502 {
       }
 
       // === ARITHMETIC ===
-      0x61 | 0x65 | 0x69 | 0x6D | 0x71 | 0x75 | 0x79 | 0x7D => {
+      0x61 | 0x65 | 0x69 | 0x6D | 0x71 | 0x72 | 0x75 | 0x79 | 0x7D => {
         // ADC
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_add(value);
         Ok(cycles)
       }
 
-      0xC1 | 0xC5 | 0xC9 | 0xCD | 0xD1 | 0xD5 | 0xD9 | 0xDD => {
+      0xC1 | 0xC5 | 0xC9 | 0xCD | 0xD1 | 0xD2 | 0xD5 | 0xD9 | 0xDD => {
         // CMP
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_compare(self.registers.a, value);
@@ -272,7 +293,7 @@ impl Execute for Mos6502 {
         Ok(cycles)
       }
 
-      0xE1 | 0xE5 | 0xE9 | 0xED | 0xF1 | 0xF5 | 0xF9 | 0xFD => {
+      0xE1 | 0xE5 | 0xE9 | 0xED | 0xF1 | 0xF2 | 0xF5 | 0xF9 | 0xFD => {
         // SBC
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_subtract(value);
@@ -341,7 +362,15 @@ impl Execute for Mos6502 {
           0x4C => (self.fetch_word(), 3),
           0x6C => {
             let indirect = self.fetch_word();
-            (self.read_word(indirect), 5)
+
+            if self.variant == Mos6502Variant::NMOS && indirect & 0xFF == 0xFF {
+              let lo = self.read(indirect);
+              let hi = self.read(indirect & 0xFF00);
+              ((hi as u16) << 8 | lo as u16, 5)
+            } else {
+              // normal behavior
+              (self.read_word(indirect), 5)
+            }
           }
           _ => unreachable!(),
         };
@@ -426,26 +455,19 @@ impl Execute for Mos6502 {
         Ok(2)
       }
 
-      // === ILLEGAL OPCODES ===
-      // TODO: Verify cycle counts
-      0x04 | 0x0C | 0x14 | 0x1A | 0x1C | 0x34 | 0x3A | 0x3C | 0x44 | 0x54 | 0x5A | 0x5C | 0x64
-      | 0x74 | 0x7A | 0x7C | 0x80 | 0x82 | 0x89 | 0xC2 | 0xD4 | 0xDA | 0xDC | 0xE2 | 0xF4
-      | 0xFA | 0xFC => {
-        // NOP
-        match opcode {
-          0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => {
-            // No address
-            Ok(2)
-          }
-          _ => {
-            // Address
-            let (_value, cycles) = self.fetch_operand_value(opcode);
-            Ok(cycles)
-          }
-        }
-      }
+      _ => match self.variant {
+        Mos6502Variant::NMOS => self.execute_nmos_extensions(opcode),
+        Mos6502Variant::CMOS => self.execute_cmos_extensions(opcode),
+      },
+    }
+  }
+}
 
-      0x02 | 0x12 | 0x22 | 0x32 | 0x42 | 0x52 | 0x62 | 0x72 | 0x92 | 0xB2 | 0xD2 | 0xF2 => {
+impl Mos6502 {
+  fn execute_nmos_extensions(&mut self, opcode: u8) -> Result<u8, ()> {
+    match opcode {
+      // === ILLEGAL OPCODES ===
+      0x02 | 0x22 | 0x42 | 0x62 => {
         // STP or KIL or JAM or HLT depending on who you ask
         println!("Execution stopped");
         Err(())
@@ -711,6 +733,216 @@ impl Execute for Mos6502 {
         self.registers.sr.set_nz(self.registers.a);
 
         Ok(cycles)
+      }
+
+      // TODO: Verify cycle counts
+      _ => {
+        // NOP
+        match opcode {
+          0x1A | 0x3A | 0x5A | 0x7A | 0xDA | 0xFA => {
+            // No address
+            Ok(2)
+          }
+          _ => {
+            // Address
+            let (_value, cycles) = self.fetch_operand_value(opcode);
+            Ok(cycles)
+          }
+        }
+      }
+    }
+  }
+
+  fn execute_cmos_extensions(&mut self, opcode: u8) -> Result<u8, ()> {
+    match opcode {
+      0x89 | 0x34 | 0x3C => {
+        // BIT (3 extra addressing modes)
+        let (value, cycles) = self.fetch_operand_value(opcode);
+
+        if opcode != 0x89 {
+          // N, V flags not set for immediate
+          self.registers.sr.write(flags::NEGATIVE, value & 0x80 != 0);
+          self.registers.sr.write(flags::OVERFLOW, value & 0x40 != 0);
+        }
+
+        self
+          .registers
+          .sr
+          .write(flags::ZERO, value & self.registers.a == 0);
+        Ok(cycles)
+      }
+
+      0x3A => {
+        // DEC (like DEX/DEY but for accumulator)
+        self.registers.a = self.registers.a.wrapping_sub(1);
+        self.registers.sr.set_nz(self.registers.a);
+        Ok(2)
+      }
+
+      0x1A => {
+        // INC (like INX/INY but for accumulator)
+        self.registers.a = self.registers.a.wrapping_add(1);
+        self.registers.sr.set_nz(self.registers.a);
+        Ok(2)
+      }
+
+      0x7C => {
+        // JMP (abs,X)
+        let address = self.fetch_word();
+        let pointer = address + self.registers.x as u16;
+        let address = self.read_word(pointer);
+        self.registers.pc.load(address);
+        Ok(6)
+      }
+
+      0x80 => {
+        // BRA (branch Always)
+        let offset = self.fetch() as i8;
+        self.registers.pc.offset(offset);
+        Ok(3)
+      }
+
+      // New Stack Instructions
+      0xDA => {
+        // PHX (push X onto stack)
+        self.push(self.registers.x);
+        Ok(3)
+      }
+      0x5A => {
+        // PHY (push Y onto stack)
+        self.push(self.registers.y);
+        Ok(3)
+      }
+      0xFA => {
+        // PLX (pull X from stack)
+        let value = self.pop();
+        self.registers.x = value;
+        self.registers.sr.set_nz(value);
+        Ok(4)
+      }
+      0x7A => {
+        // PLY (pull Y from stack)
+        let value = self.pop();
+        self.registers.y = value;
+        self.registers.sr.set_nz(value);
+        Ok(4)
+      }
+
+      0x64 | 0x74 | 0x9C | 0x9E => {
+        // STZ (store zero)
+        // Note: 0x9C breaks the typical addressing mode pattern
+        let (address, cycles) = match opcode {
+          0x9C => (self.fetch_word(), 4),
+          0x9E => {
+            let base = self.fetch_word();
+            let indexed = base + self.registers.x as u16;
+            (indexed, 4)
+          }
+          _ => self.fetch_operand_address(opcode),
+        };
+
+        self.write(address, 0);
+        Ok(cycles)
+      }
+
+      0x14 | 0x1C => {
+        // TRB (test and reset bits)
+        let (address, cycles) = match opcode {
+          0x14 => (self.fetch() as u16, 3),
+          0x1C => (self.fetch_word(), 4),
+          _ => unreachable!(),
+        };
+        let value = self.read(address);
+
+        self
+          .registers
+          .sr
+          .write(flags::ZERO, value & self.registers.a == 0);
+
+        self.write(address, value & !self.registers.a);
+        Ok(cycles)
+      }
+
+      0x04 | 0x0C => {
+        // TSB (test and set bits)
+        let (address, cycles) = match opcode {
+          0x04 => (self.fetch() as u16, 3),
+          0x0C => (self.fetch_word(), 4),
+          _ => unreachable!(),
+        };
+        let value = self.read(address);
+
+        self
+          .registers
+          .sr
+          .write(flags::ZERO, value & self.registers.a == 0);
+
+        self.write(address, value | self.registers.a);
+        Ok(cycles)
+      }
+
+      0x0F | 0x1F | 0x2F | 0x3F | 0x4F | 0x5F | 0x6F | 0x7F | 0x8F | 0x9F | 0xAF | 0xBF | 0xCF
+      | 0xDF | 0xEF | 0xFF => {
+        // BBS and BBR
+        let address = self.fetch() as u16;
+        let value = self.read(address);
+        let offset = self.fetch() as i8;
+
+        let bit = (opcode >> 4) & 0b111;
+        let bit_value = ((1 << bit) & value) != 0;
+        let target_value = opcode & 0x80 != 0;
+
+        if target_value == bit_value {
+          self.registers.pc.offset(offset);
+          Ok(3)
+        } else {
+          Ok(2)
+        }
+      }
+
+      0x07 | 0x17 | 0x27 | 0x37 | 0x47 | 0x57 | 0x67 | 0x77 | 0x87 | 0x97 | 0xA7 | 0xB7 | 0xC7
+      | 0xD7 | 0xE7 | 0xF7 => {
+        // RMB and SMB
+        let address = self.fetch() as u16;
+        let value = self.read(address);
+
+        let bit = (opcode >> 4) & 0b111;
+
+        let value = if opcode & 0x80 == 0 {
+          value & !(1 << bit)
+        } else {
+          value | (1 << bit)
+        };
+        self.write(address, value);
+
+        Ok(2)
+      }
+
+      0x02 | 0x22 | 0x42 | 0x62 | 0x82 | 0xA2 | 0xC2 | 0xE2 => {
+        // NOP (2-byte)
+        self.fetch();
+        Ok(2)
+      }
+      0x44 => {
+        self.fetch();
+        Ok(3)
+      }
+      0x54 | 0xD4 | 0xF4 => {
+        self.fetch();
+        Ok(4)
+      }
+      0x5C => {
+        self.fetch_word();
+        Ok(8)
+      }
+      0xDC | 0xFC => {
+        self.fetch_word();
+        Ok(4)
+      }
+
+      _ => {
+        // NOP
+        Ok(1)
       }
     }
   }

@@ -1,5 +1,7 @@
 use crate::cpu::{MemoryIO, Mos6502};
 
+use super::Mos6502Variant;
+
 /// Fetch values or addresses from memory, optionally dependent on the current
 /// opcode.
 pub trait Fetch {
@@ -36,7 +38,6 @@ impl Fetch for Mos6502 {
     match opcode & 0x1F {
       0x00 | 0x02 | 0x09 | 0x0B => (self.fetch(), 2), // Immediate
       0x08 | 0x18 | 0x1A => panic!("Implied operand has no value"),
-      0x12 => panic!("Invalid opcode"),
       0x0A => (self.registers.a, 0),
       _ => {
         let (address, cycles) = self.fetch_operand_address(opcode);
@@ -65,7 +66,18 @@ impl Fetch for Mos6502 {
         let pointer = self.read_word(base as u16);
         (pointer + self.registers.y as u16, 5)
       }
-      0x12 => panic!("Invalid opcode"),
+      0x12 => match self.variant {
+        Mos6502Variant::NMOS => {
+          // These all halt the processor on an NMOS chip
+          panic!("Invalid opcode");
+        }
+        Mos6502Variant::CMOS => {
+          // (Indirect)
+          let base = self.fetch();
+          let pointer = self.read_word(base as u16);
+          (pointer, 5)
+        }
+      },
       0x14 | 0x15 => {
         // Zero page,X
         let base = self.fetch();
@@ -88,15 +100,29 @@ impl Fetch for Mos6502 {
       0x1C | 0x1D => {
         // Absolute,X
         let base = self.fetch_word();
-        (base + self.registers.x as u16, 4)
+        let indexed = base + self.registers.x as u16;
+
+        if self.variant == Mos6502Variant::NMOS && base & 0xFF00 != indexed & 0xFF00 {
+          self.read(base & 0xFF00 | indexed & 0x00FF);
+          (indexed, 5)
+        } else {
+          (indexed, 4)
+        }
       }
       0x1E | 0x1F => {
         // Absolute,X or Absolute,Y
         let base = self.fetch_word();
-        if opcode & 0xC0 == 0x80 {
-          (base + self.registers.y as u16, 4)
+        let indexed = if opcode & 0xC0 == 0x80 {
+          base + self.registers.y as u16
         } else {
-          (base + self.registers.x as u16, 4)
+          base + self.registers.x as u16
+        };
+
+        if self.variant == Mos6502Variant::NMOS && base & 0xFF00 != indexed & 0xFF00 {
+          self.read(base & 0xFF00 | indexed & 0x00FF);
+          (indexed, 5)
+        } else {
+          (indexed, 4)
         }
       }
       _ => unreachable!(),

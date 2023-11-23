@@ -1,4 +1,4 @@
-use crate::cpu::{MemoryIO, Mos6502};
+use crate::cpu::{MemoryIO, Mos6502, Mos6502Variant};
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
@@ -194,7 +194,7 @@ impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuild
       .map(0xE840, via)
       .map(0xF000, kernel_rom);
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(PetSystem {
       cpu,

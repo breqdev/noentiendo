@@ -1,6 +1,6 @@
 use instant::Duration;
 
-use crate::cpu::{MemoryIO, Mos6502};
+use crate::cpu::{MemoryIO, Mos6502, Mos6502Variant};
 use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
@@ -79,7 +79,7 @@ impl SystemBuilder<Easy6502System, RomFile, ()> for Easy6502SystemBuilder {
       .map(0x0600, high_ram)
       .map(0x8000, rom);
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(Easy6502System { cpu })
   }

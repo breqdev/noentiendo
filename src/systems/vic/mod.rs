@@ -1,4 +1,4 @@
-use crate::cpu::Mos6502;
+use crate::cpu::{Mos6502, Mos6502Variant};
 use crate::keyboard::commodore::C64VirtualAdapter;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
@@ -298,7 +298,7 @@ impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20Sys
       .map(0xC000, basic_rom)
       .map(0xE000, kernel_rom);
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(Vic20System { cpu, vic: vic_chip })
   }
