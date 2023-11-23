@@ -175,7 +175,7 @@
   <span class="kw">let </span>system = <span class="kw">match </span>args.system {
     SystemArg::Basic =&gt; BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Easy =&gt; Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
-    SystemArg::Klaus =&gt; KlausSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    SystemArg::Klaus =&gt; KlausSystemBuilder::build(romfile.unwrap(), <span class="prelude-val">None</span>, platform.provider()),
     SystemArg::Pet =&gt; PetSystemBuilder::build(
       PetSystemRoms::from_disk(),
       PetSystemConfig { mapping },
