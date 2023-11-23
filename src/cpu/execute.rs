@@ -13,7 +13,7 @@ impl Execute for Mos6502 {
   fn execute(&mut self, opcode: u8) -> Result<u8, ()> {
     match opcode {
       // === LOAD ===
-      0xA1 | 0xA5 | 0xA9 | 0xAD | 0xB1 | 0xB5 | 0xB9 | 0xBD => {
+      0xA1 | 0xA5 | 0xA9 | 0xAD | 0xB1 | 0xB2 | 0xB5 | 0xB9 | 0xBD => {
         // LDA
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a = value;
@@ -38,7 +38,7 @@ impl Execute for Mos6502 {
       }
 
       // === STORE ===
-      0x81 | 0x85 | 0x8D | 0x91 | 0x95 | 0x99 | 0x9D => {
+      0x81 | 0x85 | 0x8D | 0x91 | 0x92 | 0x95 | 0x99 | 0x9D => {
         // STA
         let (address, cycles) = self.fetch_operand_address(opcode);
         self.write(address, self.registers.a);
@@ -228,7 +228,7 @@ impl Execute for Mos6502 {
       }
 
       // === LOGIC ===
-      0x21 | 0x25 | 0x29 | 0x2D | 0x31 | 0x35 | 0x39 | 0x3D => {
+      0x21 | 0x25 | 0x29 | 0x2D | 0x31 | 0x32 | 0x35 | 0x39 | 0x3D => {
         // AND
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a &= value;
@@ -248,7 +248,7 @@ impl Execute for Mos6502 {
         Ok(cycles)
       }
 
-      0x41 | 0x45 | 0x49 | 0x4D | 0x51 | 0x55 | 0x59 | 0x5D => {
+      0x41 | 0x45 | 0x49 | 0x4D | 0x51 | 0x52 | 0x55 | 0x59 | 0x5D => {
         // EOR
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a ^= value;
@@ -256,7 +256,7 @@ impl Execute for Mos6502 {
         Ok(cycles)
       }
 
-      0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x15 | 0x19 | 0x1D => {
+      0x01 | 0x05 | 0x09 | 0x0D | 0x11 | 0x12 | 0x15 | 0x19 | 0x1D => {
         // ORA
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.a |= value;
@@ -265,14 +265,14 @@ impl Execute for Mos6502 {
       }
 
       // === ARITHMETIC ===
-      0x61 | 0x65 | 0x69 | 0x6D | 0x71 | 0x75 | 0x79 | 0x7D => {
+      0x61 | 0x65 | 0x69 | 0x6D | 0x71 | 0x72 | 0x75 | 0x79 | 0x7D => {
         // ADC
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_add(value);
         Ok(cycles)
       }
 
-      0xC1 | 0xC5 | 0xC9 | 0xCD | 0xD1 | 0xD5 | 0xD9 | 0xDD => {
+      0xC1 | 0xC5 | 0xC9 | 0xCD | 0xD1 | 0xD2 | 0xD5 | 0xD9 | 0xDD => {
         // CMP
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_compare(self.registers.a, value);
@@ -293,7 +293,7 @@ impl Execute for Mos6502 {
         Ok(cycles)
       }
 
-      0xE1 | 0xE5 | 0xE9 | 0xED | 0xF1 | 0xF5 | 0xF9 | 0xFD => {
+      0xE1 | 0xE5 | 0xE9 | 0xED | 0xF1 | 0xF2 | 0xF5 | 0xF9 | 0xFD => {
         // SBC
         let (value, cycles) = self.fetch_operand_value(opcode);
         self.registers.alu_subtract(value);
@@ -474,7 +474,7 @@ impl Execute for Mos6502 {
         }
       }
 
-      0x02 | 0x12 | 0x22 | 0x32 | 0x42 | 0x52 | 0x62 | 0x72 | 0x92 | 0xB2 | 0xD2 | 0xF2 => {
+      0x02 | 0x22 | 0x42 | 0x62 => {
         // STP or KIL or JAM or HLT depending on who you ask
         println!("Execution stopped");
         Err(())

@@ -38,7 +38,6 @@ impl Fetch for Mos6502 {
     match opcode & 0x1F {
       0x00 | 0x02 | 0x09 | 0x0B => (self.fetch(), 2), // Immediate
       0x08 | 0x18 | 0x1A => panic!("Implied operand has no value"),
-      0x12 => panic!("Invalid opcode"),
       0x0A => (self.registers.a, 0),
       _ => {
         let (address, cycles) = self.fetch_operand_address(opcode);
@@ -67,7 +66,18 @@ impl Fetch for Mos6502 {
         let pointer = self.read_word(base as u16);
         (pointer + self.registers.y as u16, 5)
       }
-      0x12 => panic!("Invalid opcode"),
+      0x12 => match self.variant {
+        Mos6502Variant::NMOS => {
+          // These all halt the processor on an NMOS chip
+          panic!("Invalid opcode");
+        }
+        Mos6502Variant::CMOS => {
+          // (Indirect)
+          let base = self.fetch();
+          let pointer = self.read_word(base as u16);
+          (pointer, 5)
+        }
+      },
       0x14 | 0x15 => {
         // Zero page,X
         let base = self.fetch();
