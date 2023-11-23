@@ -57,6 +57,13 @@ impl BlockMemory {
       writeable: false,
     }
   }
+
+  /// Change whether this BlockMemory is writable.
+  pub fn set_writeable(mut self, writeable: bool) -> Self {
+    self.writeable = writeable;
+
+    self
+  }
 }
 
 impl Memory for BlockMemory {
