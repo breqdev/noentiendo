@@ -1,6 +1,6 @@
 use instant::Duration;
 
-use crate::cpu::Mos6502;
+use crate::cpu::{Mos6502, Mos6502Variant};
 use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::{PlatformProvider, WindowConfig};
@@ -79,7 +79,7 @@ impl SystemBuilder<BasicSystem, RomFile, ()> for BasicSystemBuilder {
       .map(0x4000, io)
       .map(0x8000, rom);
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(BasicSystem { cpu })
   }

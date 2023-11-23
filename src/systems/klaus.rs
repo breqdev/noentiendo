@@ -1,6 +1,6 @@
 use instant::Duration;
 
-use crate::cpu::Mos6502;
+use crate::cpu::{Mos6502, Mos6502Variant};
 use crate::memory::BlockMemory;
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
@@ -21,7 +21,7 @@ impl SystemBuilder<KlausSystem, RomFile, Option<Rc<Cell<u16>>>> for KlausSystemB
     _platform: Arc<dyn PlatformProvider>,
   ) -> Box<dyn System> {
     let rom = BlockMemory::from_file(0x10000, rom).set_writeable(true);
-    let mut cpu = Mos6502::new(Box::new(rom));
+    let mut cpu = Mos6502::new(rom, Mos6502Variant::NMOS);
 
     cpu.registers.pc.load(0x0400);
 
