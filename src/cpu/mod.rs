@@ -8,7 +8,7 @@ use registers::{flags, Registers};
 
 const CLOCKS_PER_POLL: u32 = 100;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Mos6502Variant {
   /// 6502
   NMOS,

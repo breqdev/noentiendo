@@ -2,6 +2,8 @@ use crate::cpu::fetch::Fetch;
 use crate::cpu::registers::{flags, Alu};
 use crate::cpu::{InterruptHandler, MemoryIO, Mos6502, Stack};
 
+use super::Mos6502Variant;
+
 pub trait Execute {
   /// Execute the given opcode, returning either the number of cycles used or an error.
   fn execute(&mut self, opcode: u8) -> Result<u8, ()>;
@@ -133,6 +135,10 @@ impl Execute for Mos6502 {
         // ASL
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
         let result = value << 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
@@ -154,6 +160,11 @@ impl Execute for Mos6502 {
         // LSR
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
+
         let result = value >> 1;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
@@ -176,6 +187,11 @@ impl Execute for Mos6502 {
         // ROL
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
+
         let result = (value << 1) | (self.registers.sr.read(flags::CARRY) as u8);
 
         self.registers.sr.write(flags::CARRY, value & 0x80 != 0);
@@ -198,6 +214,11 @@ impl Execute for Mos6502 {
         // ROR
         let (address, cycles) = self.fetch_operand_address(opcode);
         let value = self.read(address);
+
+        if let Mos6502Variant::NMOS = self.variant {
+          self.write(address, value);
+        }
+
         let result = value >> 1 | (self.registers.sr.read(flags::CARRY) as u8) << 7;
 
         self.registers.sr.write(flags::CARRY, value & 0x01 != 0);
@@ -341,7 +362,15 @@ impl Execute for Mos6502 {
           0x4C => (self.fetch_word(), 3),
           0x6C => {
             let indirect = self.fetch_word();
-            (self.read_word(indirect), 5)
+
+            if self.variant == Mos6502Variant::NMOS && indirect & 0xFF == 0xFF {
+              let lo = self.read(indirect);
+              let hi = self.read(indirect & 0xFF00);
+              ((hi as u16) << 8 | lo as u16, 5)
+            } else {
+              // normal behavior
+              (self.read_word(indirect), 5)
+            }
           }
           _ => unreachable!(),
         };
