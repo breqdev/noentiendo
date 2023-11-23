@@ -103,7 +103,35 @@
 <a href="#103" id="103">103</a>
 <a href="#104" id="104">104</a>
 <a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::{MemoryIO, Mos6502};
+
+<span class="kw">use </span><span class="kw">super</span>::Mos6502Variant;
 
 <span class="doccomment">/// Fetch values or addresses from memory, optionally dependent on the current
 /// opcode.
@@ -141,7 +169,6 @@
     <span class="kw">match </span>opcode &amp; <span class="number">0x1F </span>{
       <span class="number">0x00 </span>| <span class="number">0x02 </span>| <span class="number">0x09 </span>| <span class="number">0x0B </span>=&gt; (<span class="self">self</span>.fetch(), <span class="number">2</span>), <span class="comment">// Immediate
       </span><span class="number">0x08 </span>| <span class="number">0x18 </span>| <span class="number">0x1A </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Implied operand has no value&quot;</span>),
-      <span class="number">0x12 </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Invalid opcode&quot;</span>),
       <span class="number">0x0A </span>=&gt; (<span class="self">self</span>.registers.a, <span class="number">0</span>),
       <span class="kw">_ </span>=&gt; {
         <span class="kw">let </span>(address, cycles) = <span class="self">self</span>.fetch_operand_address(opcode);
@@ -170,7 +197,18 @@
         <span class="kw">let </span>pointer = <span class="self">self</span>.read_word(base <span class="kw">as </span>u16);
         (pointer + <span class="self">self</span>.registers.y <span class="kw">as </span>u16, <span class="number">5</span>)
       }
-      <span class="number">0x12 </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Invalid opcode&quot;</span>),
+      <span class="number">0x12 </span>=&gt; <span class="kw">match </span><span class="self">self</span>.variant {
+        Mos6502Variant::NMOS =&gt; {
+          <span class="comment">// These all halt the processor on an NMOS chip
+          </span><span class="macro">panic!</span>(<span class="string">&quot;Invalid opcode&quot;</span>);
+        }
+        Mos6502Variant::CMOS =&gt; {
+          <span class="comment">// (Indirect)
+          </span><span class="kw">let </span>base = <span class="self">self</span>.fetch();
+          <span class="kw">let </span>pointer = <span class="self">self</span>.read_word(base <span class="kw">as </span>u16);
+          (pointer, <span class="number">5</span>)
+        }
+      },
       <span class="number">0x14 </span>| <span class="number">0x15 </span>=&gt; {
         <span class="comment">// Zero page,X
         </span><span class="kw">let </span>base = <span class="self">self</span>.fetch();
@@ -193,15 +231,29 @@
       <span class="number">0x1C </span>| <span class="number">0x1D </span>=&gt; {
         <span class="comment">// Absolute,X
         </span><span class="kw">let </span>base = <span class="self">self</span>.fetch_word();
-        (base + <span class="self">self</span>.registers.x <span class="kw">as </span>u16, <span class="number">4</span>)
+        <span class="kw">let </span>indexed = base + <span class="self">self</span>.registers.x <span class="kw">as </span>u16;
+
+        <span class="kw">if </span><span class="self">self</span>.variant == Mos6502Variant::NMOS &amp;&amp; base &amp; <span class="number">0xFF00 </span>!= indexed &amp; <span class="number">0xFF00 </span>{
+          <span class="self">self</span>.read(base &amp; <span class="number">0xFF00 </span>| indexed &amp; <span class="number">0x00FF</span>);
+          (indexed, <span class="number">5</span>)
+        } <span class="kw">else </span>{
+          (indexed, <span class="number">4</span>)
+        }
       }
       <span class="number">0x1E </span>| <span class="number">0x1F </span>=&gt; {
         <span class="comment">// Absolute,X or Absolute,Y
         </span><span class="kw">let </span>base = <span class="self">self</span>.fetch_word();
-        <span class="kw">if </span>opcode &amp; <span class="number">0xC0 </span>== <span class="number">0x80 </span>{
-          (base + <span class="self">self</span>.registers.y <span class="kw">as </span>u16, <span class="number">4</span>)
+        <span class="kw">let </span>indexed = <span class="kw">if </span>opcode &amp; <span class="number">0xC0 </span>== <span class="number">0x80 </span>{
+          base + <span class="self">self</span>.registers.y <span class="kw">as </span>u16
         } <span class="kw">else </span>{
-          (base + <span class="self">self</span>.registers.x <span class="kw">as </span>u16, <span class="number">4</span>)
+          base + <span class="self">self</span>.registers.x <span class="kw">as </span>u16
+        };
+
+        <span class="kw">if </span><span class="self">self</span>.variant == Mos6502Variant::NMOS &amp;&amp; base &amp; <span class="number">0xFF00 </span>!= indexed &amp; <span class="number">0xFF00 </span>{
+          <span class="self">self</span>.read(base &amp; <span class="number">0xFF00 </span>| indexed &amp; <span class="number">0x00FF</span>);
+          (indexed, <span class="number">5</span>)
+        } <span class="kw">else </span>{
+          (indexed, <span class="number">4</span>)
         }
       }
       <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),

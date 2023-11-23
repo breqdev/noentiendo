@@ -74,9 +74,47 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>instant::Duration;
 
-<span class="kw">use </span><span class="kw">crate</span>::cpu::Mos6502;
+<span class="kw">use </span><span class="kw">crate</span>::cpu::{Mos6502, Mos6502Variant};
 <span class="kw">use </span><span class="kw">crate</span>::memory::BlockMemory;
 <span class="kw">use </span><span class="kw">crate</span>::platform::{PlatformProvider, WindowConfig};
 <span class="kw">use </span><span class="kw">crate</span>::roms::RomFile;
@@ -87,21 +125,29 @@
 
 <span class="kw">use </span><span class="kw">super</span>::SystemBuilder;
 
+<span class="kw">pub struct </span>KlausSystemConfig {
+  <span class="kw">pub </span>pc_report: <span class="prelude-ty">Option</span>&lt;Rc&lt;Cell&lt;u16&gt;&gt;&gt;,
+  <span class="kw">pub </span>variant: Mos6502Variant,
+}
+
 <span class="doccomment">/// A factory for creating a system that runs Klaus Dormann&#39;s 6502 CPU test suite.
 </span><span class="kw">pub struct </span>KlausSystemBuilder;
 
-<span class="kw">impl </span>SystemBuilder&lt;KlausSystem, RomFile, <span class="prelude-ty">Option</span>&lt;Rc&lt;Cell&lt;u16&gt;&gt;&gt;&gt; <span class="kw">for </span>KlausSystemBuilder {
+<span class="kw">impl </span>SystemBuilder&lt;KlausSystem, RomFile, KlausSystemConfig&gt; <span class="kw">for </span>KlausSystemBuilder {
   <span class="kw">fn </span>build(
     rom: RomFile,
-    config: <span class="prelude-ty">Option</span>&lt;Rc&lt;Cell&lt;u16&gt;&gt;&gt;,
+    config: KlausSystemConfig,
     _platform: Arc&lt;<span class="kw">dyn </span>PlatformProvider&gt;,
   ) -&gt; Box&lt;<span class="kw">dyn </span>System&gt; {
     <span class="kw">let </span>rom = BlockMemory::from_file(<span class="number">0x10000</span>, rom).set_writeable(<span class="bool-val">true</span>);
-    <span class="kw">let </span><span class="kw-2">mut </span>cpu = Mos6502::new(Box::new(rom));
+    <span class="kw">let </span><span class="kw-2">mut </span>cpu = Mos6502::new(rom, config.variant);
 
     cpu.registers.pc.load(<span class="number">0x0400</span>);
 
-    Box::new(KlausSystem { cpu, pc: config })
+    Box::new(KlausSystem {
+      cpu,
+      pc: config.pc_report,
+    })
   }
 }
 
@@ -137,17 +183,47 @@
   <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
   <span class="attr">#[test]
-  </span><span class="kw">fn </span>test_klaus() {
-    <span class="kw">let </span>roms = RomFile::from_file(<span class="string">&quot;bin/klaus.bin&quot;</span>);
+  </span><span class="kw">fn </span>test_klaus_6502() {
+    <span class="kw">let </span>roms = RomFile::from_file(<span class="string">&quot;bin/klaus_6502.bin&quot;</span>);
     <span class="kw">let </span>platform = TextPlatform::new();
     <span class="kw">let </span>pc = Rc::new(Cell::new(<span class="number">0</span>));
-    <span class="kw">let </span><span class="kw-2">mut </span>system = KlausSystemBuilder::build(roms, <span class="prelude-val">Some</span>(pc.clone()), platform.provider());
+
+    <span class="kw">let </span><span class="kw-2">mut </span>system = KlausSystemBuilder::build(
+      roms,
+      KlausSystemConfig {
+        pc_report: <span class="prelude-val">Some</span>(pc.clone()),
+        variant: Mos6502Variant::NMOS,
+      },
+      platform.provider(),
+    );
 
     <span class="kw">for _ in </span><span class="number">0</span>..=<span class="number">100000000 </span>{
       system.tick();
     }
 
     <span class="macro">assert_eq!</span>(pc.get(), <span class="number">0x3469</span>);
+  }
+
+  <span class="attr">#[test]
+  </span><span class="kw">fn </span>test_klaus_65c02() {
+    <span class="kw">let </span>roms = RomFile::from_file(<span class="string">&quot;bin/klaus_65C02.bin&quot;</span>);
+    <span class="kw">let </span>platform = TextPlatform::new();
+    <span class="kw">let </span>pc = Rc::new(Cell::new(<span class="number">0</span>));
+
+    <span class="kw">let </span><span class="kw-2">mut </span>system = KlausSystemBuilder::build(
+      roms,
+      KlausSystemConfig {
+        pc_report: <span class="prelude-val">Some</span>(pc.clone()),
+        variant: Mos6502Variant::CMOS,
+      },
+      platform.provider(),
+    );
+
+    <span class="kw">for _ in </span><span class="number">0</span>..=<span class="number">100000000 </span>{
+      system.tick();
+    }
+
+    <span class="macro">assert_eq!</span>(pc.get(), <span class="number">0x24f1</span>);
   }
 }
 </code></pre></div></section></main></body></html>

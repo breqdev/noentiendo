@@ -338,7 +338,7 @@
 };
 
 <span class="kw">use crate</span>::{
-  cpu::Mos6502,
+  cpu::{Mos6502, Mos6502Variant},
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -636,7 +636,7 @@
       .map(<span class="number">0xD000</span>, region6)
       .map(<span class="number">0xE000</span>, region7);
 
-    <span class="kw">let </span>cpu = Mos6502::new(Box::new(memory));
+    <span class="kw">let </span>cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(C64System { cpu, vic: vic_ii })
   }

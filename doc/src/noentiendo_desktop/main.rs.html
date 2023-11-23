@@ -98,6 +98,15 @@
 <a href="#98" id="98">98</a>
 <a href="#99" id="99">99</a>
 <a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
 </pre></div><pre class="rust"><code><span class="attr">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">use </span>libnoentiendo::{
   keyboard::KeyMappingStrategy,
@@ -155,6 +164,8 @@
 
 <span class="attr">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">fn </span>main() {
+  <span class="kw">use </span>libnoentiendo::{cpu::Mos6502Variant, systems::klaus::KlausSystemConfig};
+
   <span class="kw">let </span>args = Args::parse();
 
   <span class="kw">let </span><span class="kw-2">mut </span>platform: Box&lt;<span class="kw">dyn </span>SyncPlatform&gt; = <span class="kw">match </span>args.platform {
@@ -175,7 +186,14 @@
   <span class="kw">let </span>system = <span class="kw">match </span>args.system {
     SystemArg::Basic =&gt; BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Easy =&gt; Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
-    SystemArg::Klaus =&gt; KlausSystemBuilder::build(romfile.unwrap(), <span class="prelude-val">None</span>, platform.provider()),
+    SystemArg::Klaus =&gt; KlausSystemBuilder::build(
+      romfile.unwrap(),
+      KlausSystemConfig {
+        pc_report: <span class="prelude-val">None</span>,
+        variant: Mos6502Variant::NMOS,
+      },
+      platform.provider(),
+    ),
     SystemArg::Pet =&gt; PetSystemBuilder::build(
       PetSystemRoms::from_disk(),
       PetSystemConfig { mapping },

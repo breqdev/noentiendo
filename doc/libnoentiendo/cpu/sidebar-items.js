@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Mos6502"],"trait":["InterruptHandler","MemoryIO","Stack"]};
+window.SIDEBAR_ITEMS = {"enum":["Mos6502Variant"],"struct":["Mos6502"],"trait":["InterruptHandler","MemoryIO","Stack"]};

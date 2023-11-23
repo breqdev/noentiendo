@@ -103,7 +103,7 @@
 <a href="#103" id="103">103</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>instant::Duration;
 
-<span class="kw">use </span><span class="kw">crate</span>::cpu::Mos6502;
+<span class="kw">use </span><span class="kw">crate</span>::cpu::{Mos6502, Mos6502Variant};
 <span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory, SystemInfo};
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory};
 <span class="kw">use </span><span class="kw">crate</span>::platform::{PlatformProvider, WindowConfig};
@@ -182,7 +182,7 @@
       .map(<span class="number">0x4000</span>, io)
       .map(<span class="number">0x8000</span>, rom);
 
-    <span class="kw">let </span>cpu = Mos6502::new(Box::new(memory));
+    <span class="kw">let </span>cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(BasicSystem { cpu })
   }

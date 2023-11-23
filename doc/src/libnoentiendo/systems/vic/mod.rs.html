@@ -326,7 +326,7 @@
 <a href="#326" id="326">326</a>
 <a href="#327" id="327">327</a>
 <a href="#328" id="328">328</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::Mos6502;
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::{Mos6502, Mos6502Variant};
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::commodore::C64VirtualAdapter;
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
@@ -626,7 +626,7 @@
       .map(<span class="number">0xC000</span>, basic_rom)
       .map(<span class="number">0xE000</span>, kernel_rom);
 
-    <span class="kw">let </span>cpu = Mos6502::new(Box::new(memory));
+    <span class="kw">let </span>cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(Vic20System { cpu, vic: vic_chip })
   }

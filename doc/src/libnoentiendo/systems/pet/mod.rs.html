@@ -252,7 +252,7 @@
 <a href="#252" id="252">252</a>
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::{MemoryIO, Mos6502};
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::cpu::{MemoryIO, Mos6502, Mos6502Variant};
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 <span class="kw">use </span><span class="kw">crate</span>::memory::mos652x::{Pia, Via};
 <span class="kw">use </span><span class="kw">crate</span>::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
@@ -448,7 +448,7 @@
       .map(<span class="number">0xE840</span>, via)
       .map(<span class="number">0xF000</span>, kernel_rom);
 
-    <span class="kw">let </span>cpu = Mos6502::new(Box::new(memory));
+    <span class="kw">let </span>cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(PetSystem {
       cpu,

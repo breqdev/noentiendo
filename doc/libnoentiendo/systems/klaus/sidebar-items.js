@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["KlausSystem","KlausSystemBuilder"]};
+window.SIDEBAR_ITEMS = {"struct":["KlausSystem","KlausSystemBuilder","KlausSystemConfig"]};
