@@ -52,9 +52,12 @@
 <a href="#52" id="52">52</a>
 <a href="#53" id="53">53</a>
 <a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>banked;
 <span class="kw">mod </span>block;
 <span class="kw">mod </span>branch;
+<span class="kw">mod </span>logging;
 <span class="kw">mod </span>mos6510;
 <span class="doccomment">/// The various interface adapters (6520, 6522, 6526) for the MOS 6502 CPU.
 </span><span class="kw">pub mod </span>mos652x;
@@ -64,6 +67,7 @@
 <span class="kw">pub use </span>banked::BankedMemory;
 <span class="kw">pub use </span>block::BlockMemory;
 <span class="kw">pub use </span>branch::BranchMemory;
+<span class="kw">pub use </span>logging::LoggingMemory;
 <span class="kw">pub use </span>mos6510::Mos6510Port;
 <span class="kw">pub use </span>null::NullMemory;
 <span class="kw">pub use </span>ports::{NullPort, Port};
