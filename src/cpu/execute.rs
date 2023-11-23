@@ -758,8 +758,13 @@ impl Mos6502 {
       0x89 | 0x34 | 0x3C => {
         // BIT (3 extra addressing modes)
         let (value, cycles) = self.fetch_operand_value(opcode);
-        self.registers.sr.write(flags::NEGATIVE, value & 0x80 != 0);
-        self.registers.sr.write(flags::OVERFLOW, value & 0x40 != 0);
+
+        if opcode != 0x89 {
+          // N, V flags not set for immediate
+          self.registers.sr.write(flags::NEGATIVE, value & 0x80 != 0);
+          self.registers.sr.write(flags::OVERFLOW, value & 0x40 != 0);
+        }
+
         self
           .registers
           .sr
@@ -828,6 +833,11 @@ impl Mos6502 {
         // Note: 0x9C breaks the typical addressing mode pattern
         let (address, cycles) = match opcode {
           0x9C => (self.fetch_word(), 4),
+          0x9E => {
+            let base = self.fetch_word();
+            let indexed = base + self.registers.x as u16;
+            (indexed, 4)
+          }
           _ => self.fetch_operand_address(opcode),
         };
 
@@ -871,8 +881,68 @@ impl Mos6502 {
         Ok(cycles)
       }
 
+      0x0F | 0x1F | 0x2F | 0x3F | 0x4F | 0x5F | 0x6F | 0x7F | 0x8F | 0x9F | 0xAF | 0xBF | 0xCF
+      | 0xDF | 0xEF | 0xFF => {
+        // BBS and BBR
+        let address = self.fetch() as u16;
+        let value = self.read(address);
+        let offset = self.fetch() as i8;
+
+        let bit = (opcode >> 4) & 0b111;
+        let bit_value = ((1 << bit) & value) != 0;
+        let target_value = opcode & 0x80 != 0;
+
+        if target_value == bit_value {
+          self.registers.pc.offset(offset);
+          Ok(3)
+        } else {
+          Ok(2)
+        }
+      }
+
+      0x07 | 0x17 | 0x27 | 0x37 | 0x47 | 0x57 | 0x67 | 0x77 | 0x87 | 0x97 | 0xA7 | 0xB7 | 0xC7
+      | 0xD7 | 0xE7 | 0xF7 => {
+        // RMB and SMB
+        let address = self.fetch() as u16;
+        let value = self.read(address);
+
+        let bit = (opcode >> 4) & 0b111;
+
+        let value = if opcode & 0x80 == 0 {
+          value & !(1 << bit)
+        } else {
+          value | (1 << bit)
+        };
+        self.write(address, value);
+
+        Ok(2)
+      }
+
+      0x02 | 0x22 | 0x42 | 0x62 | 0x82 | 0xA2 | 0xC2 | 0xE2 => {
+        // NOP (2-byte)
+        self.fetch();
+        Ok(2)
+      }
+      0x44 => {
+        self.fetch();
+        Ok(3)
+      }
+      0x54 | 0xD4 | 0xF4 => {
+        self.fetch();
+        Ok(4)
+      }
+      0x5C => {
+        self.fetch_word();
+        Ok(8)
+      }
+      0xDC | 0xFC => {
+        self.fetch_word();
+        Ok(4)
+      }
+
       _ => {
-        todo!();
+        // NOP
+        Ok(1)
       }
     }
   }

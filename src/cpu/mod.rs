@@ -119,6 +119,10 @@ impl InterruptHandler for Mos6502 {
       self.push(self.registers.sr.get() & !flags::BREAK);
     }
 
+    if let Mos6502Variant::CMOS = self.variant {
+      self.registers.sr.clear(flags::DECIMAL);
+    }
+
     self.registers.sr.set(flags::INTERRUPT);
 
     let dest = match maskable {
