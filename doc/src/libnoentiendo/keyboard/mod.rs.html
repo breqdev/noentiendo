@@ -89,6 +89,16 @@
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
 <a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
 </pre></div><pre class="rust"><code><span class="doccomment">/// Keys and adapters for the Commodore 64, VIC-20, and other Commodore machines.
 </span><span class="kw">pub mod </span>commodore;
 
@@ -110,11 +120,11 @@
 <span class="doccomment">/// A set of keys that are currently pressed.
 /// Parameter `T` is the type of the key symbols.
 </span><span class="attr">#[derive(Default, Debug, Clone, PartialEq)]
-</span><span class="kw">pub struct </span>KeyState&lt;T: PartialEq&gt; {
+</span><span class="kw">pub struct </span>KeyState&lt;T: PartialEq + Clone&gt; {
   pressed: Vec&lt;T&gt;,
 }
 
-<span class="kw">impl</span>&lt;T: PartialEq&gt; KeyState&lt;T&gt; {
+<span class="kw">impl</span>&lt;T: PartialEq + Clone&gt; KeyState&lt;T&gt; {
   <span class="doccomment">/// Creates a new, empty key state.
   </span><span class="kw">pub fn </span>new() -&gt; <span class="self">Self </span>{
     <span class="self">Self </span>{
@@ -133,17 +143,27 @@
   }
 
   <span class="doccomment">/// Return the set of pressed keys.
-  </span><span class="kw">pub fn </span>pressed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Vec&lt;T&gt; {
-    <span class="kw-2">&amp;</span><span class="self">self</span>.pressed
+  </span><span class="kw">pub fn </span>pressed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>T&gt; {
+    <span class="self">self</span>.pressed.iter()
   }
 
   <span class="doccomment">/// Returns true if the given key is currently pressed.
   </span><span class="kw">pub fn </span>is_pressed(<span class="kw-2">&amp;</span><span class="self">self</span>, symbol: T) -&gt; bool {
     <span class="self">self</span>.pressed.contains(<span class="kw-2">&amp;</span>symbol)
   }
+
+  <span class="doccomment">/// Returns true if the set of keys is empty.
+  </span><span class="kw">pub fn </span>is_empty(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+    <span class="self">self</span>.pressed.is_empty()
+  }
+
+  <span class="doccomment">/// Returns the most recent key pressed.
+  </span><span class="kw">pub fn </span>get_one_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;T&gt; {
+    <span class="self">self</span>.pressed.last().cloned()
+  }
 }
 
-<span class="kw">impl</span>&lt;T: PartialEq&gt; BitOr&lt;KeyState&lt;T&gt;&gt; <span class="kw">for </span>KeyState&lt;T&gt; {
+<span class="kw">impl</span>&lt;T: PartialEq + Clone&gt; BitOr&lt;KeyState&lt;T&gt;&gt; <span class="kw">for </span>KeyState&lt;T&gt; {
   <span class="kw">type </span>Output = KeyState&lt;T&gt;;
 
   <span class="kw">fn </span>bitor(<span class="self">self</span>, rhs: <span class="self">Self</span>) -&gt; <span class="self">Self</span>::Output {
@@ -161,7 +181,7 @@
 /// Mappings can be symbolic (preserve symbols across the mapping, and rewrite
 /// modifier keys as needed) or physical (maintain a one-to-one mapping from
 /// physical keys to physical keys).
-</span><span class="kw">pub trait </span>KeyAdapter&lt;F: PartialEq, T: PartialEq&gt; {
+</span><span class="kw">pub trait </span>KeyAdapter&lt;F: PartialEq + Clone, T: PartialEq + Clone&gt; {
   <span class="doccomment">/// Map the current state of the keyboard with symbols of type `F` to an
   /// equivalent keyboard state with symbols of type `T`.
   </span><span class="kw">fn </span>map(state: <span class="kw-2">&amp;</span>KeyState&lt;F&gt;) -&gt; KeyState&lt;T&gt;;

@@ -522,6 +522,9 @@
 <a href="#522" id="522">522</a>
 <a href="#523" id="523">523</a>
 <a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState};
 
 <span class="doccomment">/// A representation for a symbol on a modern keyboard.
@@ -862,13 +865,13 @@
 
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Char(<span class="string">&#39;b&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;m&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;c&#39;</span>),
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;b&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;m&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;c&#39;</span>),
       ],
-      symbols.pressed()
-    );
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+    )
   }
 
   <span class="attr">#[test]
@@ -881,12 +884,12 @@
 
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Char(<span class="string">&#39;B&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;M&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;C&#39;</span>),
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;B&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;M&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;C&#39;</span>),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -899,24 +902,24 @@
 
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Char(<span class="string">&#39;1&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;2&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;3&#39;</span>),
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;1&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;2&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;3&#39;</span>),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
 
     positions.press(KeyPosition::LShift);
 
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Char(<span class="string">&#39;!&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;@&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;#&#39;</span>),
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;!&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;@&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;#&#39;</span>),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -929,12 +932,12 @@
 
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Return,
-        KeySymbol::Backspace,
-        KeySymbol::Char(<span class="string">&#39; &#39;</span>),
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Return,
+        <span class="kw-2">&amp;</span>KeySymbol::Backspace,
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39; &#39;</span>),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -965,21 +968,21 @@
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
 
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Char(<span class="string">&#39;q&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;a&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;b&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;6&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;7&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;8&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;-&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;\\&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;;&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;,&#39;</span>),
-        KeySymbol::Return,
-        KeySymbol::LAlt,
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;q&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;a&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;b&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;6&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;7&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;8&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;-&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;\\&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;;&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;,&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Return,
+        <span class="kw-2">&amp;</span>KeySymbol::LAlt,
       ],
-      symbols.pressed()
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
 
     positions.press(KeyPosition::LShift);
@@ -987,21 +990,21 @@
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
 
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Char(<span class="string">&#39;Q&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;A&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;B&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;^&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;&amp;&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;*&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;_&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;|&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;:&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;&lt;&#39;</span>),
-        KeySymbol::Return,
-        KeySymbol::LAlt,
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;Q&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;A&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;B&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;^&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;&amp;&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;*&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;_&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;|&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;:&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;&lt;&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Return,
+        <span class="kw-2">&amp;</span>KeySymbol::LAlt,
       ],
-      symbols.pressed()
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -1025,12 +1028,12 @@
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
 
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        KeySymbol::Char(<span class="string">&#39;b&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;m&#39;</span>),
-        KeySymbol::Char(<span class="string">&#39;c&#39;</span>),
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;b&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;m&#39;</span>),
+        <span class="kw-2">&amp;</span>KeySymbol::Char(<span class="string">&#39;c&#39;</span>),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -1043,7 +1046,10 @@
 
     <span class="kw">let </span>symbols = SymbolAdapter::map(<span class="kw-2">&amp;</span>positions);
 
-    <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="macro">vec!</span>[KeySymbol::Interrupt], symbols.pressed());
+    <span class="macro">assert_eq!</span>(
+      <span class="macro">vec!</span>[<span class="kw-2">&amp;</span>KeySymbol::Interrupt],
+      symbols.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+    );
   }
 }
 </code></pre></div></section></main></body></html>

@@ -430,6 +430,24 @@
 <a href="#430" id="430">430</a>
 <a href="#431" id="431">431</a>
 <a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="kw">use </span><span class="kw">crate</span>::keyboard::{KeyAdapter, KeyPosition, KeyState, KeySymbol};
@@ -687,7 +705,7 @@
       })
     }
 
-    <span class="kw">if </span>mapped.pressed().is_empty() {
+    <span class="kw">if </span>mapped.is_empty() {
       <span class="comment">// If no non-shifted keys were pressed, check for shifted keys.
       </span><span class="kw">for </span>symbol <span class="kw">in </span>state.pressed() {
         <span class="kw">use </span>KeySymbol::<span class="kw-2">*</span>;
@@ -718,7 +736,7 @@
       }
 
       <span class="comment">// If we added keys, make sure shift is pressed
-      </span><span class="kw">if </span>!mapped.pressed().is_empty() {
+      </span><span class="kw">if </span>!mapped.is_empty() {
         mapped.press(C64Keys::LShift);
       }
     }
@@ -759,8 +777,13 @@
     <span class="kw">let </span>mapped = C64KeyboardAdapter::map(<span class="kw-2">&amp;</span>positions);
 
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::Return],
-      mapped.pressed()
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>C64Keys::Q,
+        <span class="kw-2">&amp;</span>C64Keys::Digit2,
+        <span class="kw-2">&amp;</span>C64Keys::Comma,
+        <span class="kw-2">&amp;</span>C64Keys::Return
+      ],
+      mapped.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
 
     positions.press(KeyPosition::LShift);
@@ -769,8 +792,13 @@
     <span class="kw">let </span>mapped = C64KeyboardAdapter::map(<span class="kw-2">&amp;</span>positions);
 
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::LShift],
-      mapped.pressed()
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>C64Keys::Q,
+        <span class="kw-2">&amp;</span>C64Keys::Digit2,
+        <span class="kw-2">&amp;</span>C64Keys::Comma,
+        <span class="kw-2">&amp;</span>C64Keys::LShift
+      ],
+      mapped.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -786,8 +814,13 @@
     <span class="kw">let </span>mapped = C64SymbolAdapter::map(<span class="kw-2">&amp;</span>symbols);
 
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[C64Keys::Q, C64Keys::Digit2, C64Keys::Comma, C64Keys::Return],
-      mapped.pressed()
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>C64Keys::Q,
+        <span class="kw-2">&amp;</span>C64Keys::Digit2,
+        <span class="kw-2">&amp;</span>C64Keys::Comma,
+        <span class="kw-2">&amp;</span>C64Keys::Return
+      ],
+      mapped.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -802,13 +835,13 @@
     <span class="kw">let </span>mapped = C64SymbolAdapter::map(<span class="kw-2">&amp;</span>symbols);
 
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        C64Keys::Digit1,
-        C64Keys::Comma,
-        C64Keys::Period,
-        C64Keys::LShift
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>C64Keys::Digit1,
+        <span class="kw-2">&amp;</span>C64Keys::Comma,
+        <span class="kw-2">&amp;</span>C64Keys::Period,
+        <span class="kw-2">&amp;</span>C64Keys::LShift
       ],
-      mapped.pressed()
+      mapped.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 
@@ -824,7 +857,10 @@
     <span class="kw">let </span>mapped = C64SymbolAdapter::map(<span class="kw-2">&amp;</span>symbols);
 
     <span class="comment">// Do a &quot;best effort&quot; mapping, dropping the shifted keys
-    </span><span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="macro">vec!</span>[C64Keys::Digit1, C64Keys::Return], mapped.pressed());
+    </span><span class="macro">assert_eq!</span>(
+      <span class="macro">vec!</span>[<span class="kw-2">&amp;</span>C64Keys::Digit1, <span class="kw-2">&amp;</span>C64Keys::Return],
+      mapped.pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+    );
   }
 
   <span class="attr">#[test]
@@ -833,32 +869,32 @@
 
     state.press(KeySymbol::DownArrow);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[C64Keys::CursorUpDown],
-      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed()
+      <span class="macro">vec!</span>[<span class="kw-2">&amp;</span>C64Keys::CursorUpDown],
+      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
 
     state.release(KeySymbol::DownArrow);
     state.press(KeySymbol::UpArrow);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[C64Keys::CursorUpDown, C64Keys::LShift],
-      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed()
+      <span class="macro">vec!</span>[<span class="kw-2">&amp;</span>C64Keys::CursorUpDown, <span class="kw-2">&amp;</span>C64Keys::LShift],
+      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
 
     state.press(KeySymbol::LeftArrow);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[
-        C64Keys::CursorUpDown,
-        C64Keys::CursorLeftRight,
-        C64Keys::LShift
+      <span class="macro">vec!</span>[
+        <span class="kw-2">&amp;</span>C64Keys::CursorUpDown,
+        <span class="kw-2">&amp;</span>C64Keys::CursorLeftRight,
+        <span class="kw-2">&amp;</span>C64Keys::LShift
       ],
-      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed()
+      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
 
     <span class="comment">// map the right arrow, but give up on the rest
     </span>state.press(KeySymbol::RightArrow);
     <span class="macro">assert_eq!</span>(
-      <span class="kw-2">&amp;</span><span class="macro">vec!</span>[C64Keys::CursorLeftRight],
-      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed()
+      <span class="macro">vec!</span>[<span class="kw-2">&amp;</span>C64Keys::CursorLeftRight],
+      C64SymbolAdapter::map(<span class="kw-2">&amp;</span>state).pressed().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
     );
   }
 }
