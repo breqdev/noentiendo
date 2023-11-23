@@ -338,13 +338,13 @@ mod tests {
 
     let symbols = SymbolAdapter::map(&positions);
     assert_eq!(
-      &vec![
-        KeySymbol::Char('b'),
-        KeySymbol::Char('m'),
-        KeySymbol::Char('c'),
+      vec![
+        &KeySymbol::Char('b'),
+        &KeySymbol::Char('m'),
+        &KeySymbol::Char('c'),
       ],
-      symbols.pressed()
-    );
+      symbols.pressed().collect::<Vec<_>>()
+    )
   }
 
   #[test]
@@ -357,12 +357,12 @@ mod tests {
 
     let symbols = SymbolAdapter::map(&positions);
     assert_eq!(
-      &vec![
-        KeySymbol::Char('B'),
-        KeySymbol::Char('M'),
-        KeySymbol::Char('C'),
+      vec![
+        &KeySymbol::Char('B'),
+        &KeySymbol::Char('M'),
+        &KeySymbol::Char('C'),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -375,24 +375,24 @@ mod tests {
 
     let symbols = SymbolAdapter::map(&positions);
     assert_eq!(
-      &vec![
-        KeySymbol::Char('1'),
-        KeySymbol::Char('2'),
-        KeySymbol::Char('3'),
+      vec![
+        &KeySymbol::Char('1'),
+        &KeySymbol::Char('2'),
+        &KeySymbol::Char('3'),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::<Vec<_>>()
     );
 
     positions.press(KeyPosition::LShift);
 
     let symbols = SymbolAdapter::map(&positions);
     assert_eq!(
-      &vec![
-        KeySymbol::Char('!'),
-        KeySymbol::Char('@'),
-        KeySymbol::Char('#'),
+      vec![
+        &KeySymbol::Char('!'),
+        &KeySymbol::Char('@'),
+        &KeySymbol::Char('#'),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -405,12 +405,12 @@ mod tests {
 
     let symbols = SymbolAdapter::map(&positions);
     assert_eq!(
-      &vec![
-        KeySymbol::Return,
-        KeySymbol::Backspace,
-        KeySymbol::Char(' '),
+      vec![
+        &KeySymbol::Return,
+        &KeySymbol::Backspace,
+        &KeySymbol::Char(' '),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -441,21 +441,21 @@ mod tests {
     let symbols = SymbolAdapter::map(&positions);
 
     assert_eq!(
-      &vec![
-        KeySymbol::Char('q'),
-        KeySymbol::Char('a'),
-        KeySymbol::Char('b'),
-        KeySymbol::Char('6'),
-        KeySymbol::Char('7'),
-        KeySymbol::Char('8'),
-        KeySymbol::Char('-'),
-        KeySymbol::Char('\\'),
-        KeySymbol::Char(';'),
-        KeySymbol::Char(','),
-        KeySymbol::Return,
-        KeySymbol::LAlt,
+      vec![
+        &KeySymbol::Char('q'),
+        &KeySymbol::Char('a'),
+        &KeySymbol::Char('b'),
+        &KeySymbol::Char('6'),
+        &KeySymbol::Char('7'),
+        &KeySymbol::Char('8'),
+        &KeySymbol::Char('-'),
+        &KeySymbol::Char('\\'),
+        &KeySymbol::Char(';'),
+        &KeySymbol::Char(','),
+        &KeySymbol::Return,
+        &KeySymbol::LAlt,
       ],
-      symbols.pressed()
+      symbols.pressed().collect::<Vec<_>>()
     );
 
     positions.press(KeyPosition::LShift);
@@ -463,21 +463,21 @@ mod tests {
     let symbols = SymbolAdapter::map(&positions);
 
     assert_eq!(
-      &vec![
-        KeySymbol::Char('Q'),
-        KeySymbol::Char('A'),
-        KeySymbol::Char('B'),
-        KeySymbol::Char('^'),
-        KeySymbol::Char('&'),
-        KeySymbol::Char('*'),
-        KeySymbol::Char('_'),
-        KeySymbol::Char('|'),
-        KeySymbol::Char(':'),
-        KeySymbol::Char('<'),
-        KeySymbol::Return,
-        KeySymbol::LAlt,
+      vec![
+        &KeySymbol::Char('Q'),
+        &KeySymbol::Char('A'),
+        &KeySymbol::Char('B'),
+        &KeySymbol::Char('^'),
+        &KeySymbol::Char('&'),
+        &KeySymbol::Char('*'),
+        &KeySymbol::Char('_'),
+        &KeySymbol::Char('|'),
+        &KeySymbol::Char(':'),
+        &KeySymbol::Char('<'),
+        &KeySymbol::Return,
+        &KeySymbol::LAlt,
       ],
-      symbols.pressed()
+      symbols.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -501,12 +501,12 @@ mod tests {
     let symbols = SymbolAdapter::map(&positions);
 
     assert_eq!(
-      &vec![
-        KeySymbol::Char('b'),
-        KeySymbol::Char('m'),
-        KeySymbol::Char('c'),
+      vec![
+        &KeySymbol::Char('b'),
+        &KeySymbol::Char('m'),
+        &KeySymbol::Char('c'),
       ],
-      symbols.pressed()
+      symbols.pressed().collect::<Vec<_>>()
     );
   }
 
@@ -519,6 +519,9 @@ mod tests {
 
     let symbols = SymbolAdapter::map(&positions);
 
-    assert_eq!(&vec![KeySymbol::Interrupt], symbols.pressed());
+    assert_eq!(
+      vec![&KeySymbol::Interrupt],
+      symbols.pressed().collect::<Vec<_>>()
+    );
   }
 }
