@@ -1,4 +1,4 @@
-use crate::cpu::Mos6502;
+use crate::cpu::{Mos6502, Mos6502Variant};
 use crate::keyboard::commodore::C64VirtualAdapter;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
@@ -281,24 +281,24 @@ impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20Sys
     };
 
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(low_ram))
-      .map(0x0400, Box::new(NullMemory::new()))
-      .map(0x1000, Box::new(main_ram))
-      .map(0x1E00, Box::new(vram))
-      .map(0x2000, Box::new(NullMemory::new()))
+      .map(0x0000, low_ram)
+      .map(0x0400, NullMemory::new())
+      .map(0x1000, main_ram)
+      .map(0x1E00, vram)
+      .map(0x2000, NullMemory::new())
       // .map(0x2000, Box::new(expansion_ram))
-      .map(0x8000, Box::new(characters))
-      .map(0x9000, Box::new(chip_io))
-      .map(0x9010, Box::new(NullMemory::new()))
-      .map(0x9110, Box::new(via1))
-      .map(0x9120, Box::new(via2))
-      .map(0x9130, Box::new(NullMemory::new()))
-      .map(0x9600, Box::new(colors))
-      .map(0xA000, Box::new(cartridge))
-      .map(0xC000, Box::new(basic_rom))
-      .map(0xE000, Box::new(kernel_rom));
+      .map(0x8000, characters)
+      .map(0x9000, chip_io)
+      .map(0x9010, NullMemory::new())
+      .map(0x9110, via1)
+      .map(0x9120, via2)
+      .map(0x9130, NullMemory::new())
+      .map(0x9600, colors)
+      .map(0xA000, cartridge)
+      .map(0xC000, basic_rom)
+      .map(0xE000, kernel_rom);
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(Vic20System { cpu, vic: vic_chip })
   }

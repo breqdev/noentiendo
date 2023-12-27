@@ -66,6 +66,8 @@ struct Args {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
+  use libnoentiendo::{cpu::Mos6502Variant, systems::klaus::KlausSystemConfig};
+
   let args = Args::parse();
 
   let mut platform: Box<dyn SyncPlatform> = match args.platform {
@@ -86,7 +88,14 @@ fn main() {
   let system = match args.system {
     SystemArg::Basic => BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Easy => Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
-    SystemArg::Klaus => KlausSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
+    SystemArg::Klaus => KlausSystemBuilder::build(
+      romfile.unwrap(),
+      KlausSystemConfig {
+        pc_report: None,
+        variant: Mos6502Variant::NMOS,
+      },
+      platform.provider(),
+    ),
     SystemArg::Pet => PetSystemBuilder::build(
       PetSystemRoms::from_disk(),
       PetSystemConfig { mapping },

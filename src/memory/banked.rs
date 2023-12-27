@@ -20,8 +20,8 @@ impl BankedMemory {
   }
 
   /// Add a new memory implementation to the banked memory.
-  pub fn bank(mut self, memory: Box<dyn Memory>) -> Self {
-    self.banks.push(memory);
+  pub fn bank(mut self, memory: impl Memory + 'static) -> Self {
+    self.banks.push(Box::new(memory));
 
     self
   }

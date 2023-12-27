@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  cpu::Mos6502,
+  cpu::{Mos6502, Mos6502Variant},
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
@@ -229,28 +229,28 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
     // Region 2: 0x1000 - 0x7FFF
     let selector2 = Rc::new(Cell::new((0, 0)));
     let region2 = BankedMemory::new(selector2.clone())
-      .bank(Box::new(BlockMemory::ram(0x7000)))
-      .bank(Box::new(NullMemory::new()));
+      .bank(BlockMemory::ram(0x7000))
+      .bank(NullMemory::new());
 
     // Region 3: 0x8000 - 0x9FFF
     let selector3 = Rc::new(Cell::new((0, 0)));
     let region3 = BankedMemory::new(selector3.clone())
-      .bank(Box::new(BlockMemory::ram(0x2000)))
-      .bank(Box::new(NullMemory::new())); // TODO: Cartridge Rom Low
+      .bank(BlockMemory::ram(0x2000))
+      .bank(NullMemory::new()); // TODO: Cartridge Rom Low
 
     // Region 4: 0xA000 - 0xBFFF
     let selector4 = Rc::new(Cell::new((0, 0)));
     let region4 = BankedMemory::new(selector4.clone())
-      .bank(Box::new(BlockMemory::from_file(0x2000, roms.basic)))
-      .bank(Box::new(BlockMemory::ram(0x2000)))
-      .bank(Box::new(NullMemory::new())) // TODO: Cartridge Rom High
-      .bank(Box::new(NullMemory::new()));
+      .bank(BlockMemory::from_file(0x2000, roms.basic))
+      .bank(BlockMemory::ram(0x2000))
+      .bank(NullMemory::new()) // TODO: Cartridge Rom High
+      .bank(NullMemory::new());
 
     // Region 5: 0xC000 - 0xCFFF
     let selector5 = Rc::new(Cell::new((0, 0)));
     let region5 = BankedMemory::new(selector5.clone())
-      .bank(Box::new(BlockMemory::ram(0x1000)))
-      .bank(Box::new(NullMemory::new()));
+      .bank(BlockMemory::ram(0x1000))
+      .bank(NullMemory::new());
 
     // Region 6: 0xD000 - 0xDFFF
     let selector6 = Rc::new(Cell::new((0, 0)));
@@ -273,41 +273,41 @@ impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuild
     let cia_2 = Cia::new(Box::new(NullPort::new()), Box::new(NullPort::new()));
 
     let region6 = BankedMemory::new(selector6.clone())
-      .bank(Box::new(
+      .bank(
         BranchMemory::new()
-          .map(0x000, Box::new(vic_io))
-          .map(0x400, Box::new(NullMemory::new())) // TODO: SID
-          .map(0x800, Box::new(BlockMemory::ram(0x0400)))
-          .map(0xC00, Box::new(cia_1))
-          .map(0xD00, Box::new(cia_2))
-          .map(0xE00, Box::new(NullMemory::new())) // TODO: Expansion card
-          .map(0xF00, Box::new(NullMemory::new())), // TODO: Expansion card
-      ))
-      .bank(Box::new(BlockMemory::ram(0x1000)))
-      .bank(Box::new(BlockMemory::from_file(0x1000, roms.character)));
+          .map(0x000, vic_io)
+          .map(0x400, NullMemory::new()) // TODO: SID
+          .map(0x800, BlockMemory::ram(0x0400))
+          .map(0xC00, cia_1)
+          .map(0xD00, cia_2)
+          .map(0xE00, NullMemory::new()) // TODO: Expansion card
+          .map(0xF00, NullMemory::new()), // TODO: Expansion card
+      )
+      .bank(BlockMemory::ram(0x1000))
+      .bank(BlockMemory::from_file(0x1000, roms.character));
 
     // Region 7: 0xE000 - 0xFFFF
     let selector7 = Rc::new(Cell::new((0, 0)));
     let region7 = BankedMemory::new(selector7.clone())
-      .bank(Box::new(BlockMemory::from_file(0x2000, roms.kernal)))
-      .bank(Box::new(BlockMemory::ram(0x2000)))
-      .bank(Box::new(NullMemory::new())); // TODO: Cartidge Rom High
+      .bank(BlockMemory::from_file(0x2000, roms.kernal))
+      .bank(BlockMemory::ram(0x2000))
+      .bank(NullMemory::new()); // TODO: Cartidge Rom High
 
     let bank_switching = C64BankSwitching::new([
       selector2, selector3, selector4, selector5, selector6, selector7,
     ]);
 
     let memory = BranchMemory::new()
-      .map(0x0000, Box::new(Mos6510Port::new(Box::new(bank_switching))))
-      .map(0x0002, Box::new(region1))
-      .map(0x1000, Box::new(region2))
-      .map(0x8000, Box::new(region3))
-      .map(0xA000, Box::new(region4))
-      .map(0xC000, Box::new(region5))
-      .map(0xD000, Box::new(region6))
-      .map(0xE000, Box::new(region7));
+      .map(0x0000, Mos6510Port::new(Box::new(bank_switching)))
+      .map(0x0002, region1)
+      .map(0x1000, region2)
+      .map(0x8000, region3)
+      .map(0xA000, region4)
+      .map(0xC000, region5)
+      .map(0xD000, region6)
+      .map(0xE000, region7);
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(C64System { cpu, vic: vic_ii })
   }

@@ -8,12 +8,21 @@ use registers::{flags, Registers};
 
 const CLOCKS_PER_POLL: u32 = 100;
 
+#[derive(Copy, Clone, PartialEq)]
+pub enum Mos6502Variant {
+  /// 6502
+  NMOS,
+  /// 65C02
+  CMOS,
+}
+
 /// The MOS 6502 CPU and its associated memory.
 pub struct Mos6502 {
   pub registers: Registers,
   pub memory: Box<dyn Memory>,
   cycle_count: u64,
   cycles_since_poll: u32,
+  variant: Mos6502Variant,
 }
 
 /// Read and write from the system's memory.
@@ -110,6 +119,10 @@ impl InterruptHandler for Mos6502 {
       self.push(self.registers.sr.get() & !flags::BREAK);
     }
 
+    if let Mos6502Variant::CMOS = self.variant {
+      self.registers.sr.clear(flags::DECIMAL);
+    }
+
     self.registers.sr.set(flags::INTERRUPT);
 
     let dest = match maskable {
@@ -122,12 +135,13 @@ impl InterruptHandler for Mos6502 {
 }
 
 impl Mos6502 {
-  pub fn new(memory: Box<dyn Memory>) -> Mos6502 {
+  pub fn new(memory: impl Memory + 'static, variant: Mos6502Variant) -> Mos6502 {
     Mos6502 {
       registers: Registers::new(),
-      memory,
+      memory: Box::new(memory),
       cycle_count: 0,
       cycles_since_poll: 0,
+      variant,
     }
   }
 

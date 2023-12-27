@@ -7,9 +7,9 @@ pub struct LoggingMemory {
 }
 
 impl LoggingMemory {
-  pub fn new(backing: Box<dyn Memory>, message: &str, offset: u16) -> LoggingMemory {
+  pub fn new(backing: impl Memory + 'static, message: &str, offset: u16) -> LoggingMemory {
     LoggingMemory {
-      backing,
+      backing: Box::new(backing),
       message: message.to_owned(),
       offset,
     }
