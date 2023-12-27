@@ -127,7 +127,7 @@ impl AiieSoftSwitches {
       _ => todo!("unimplemented softswitch"),
     };
 
-    self.selectors.clone().set(&self);
+    self.selectors.clone().set(self);
   }
 
   /// Read one of the "RD" locations.
@@ -209,7 +209,7 @@ impl Memory for AiieSoftSwitches {
           _ => unreachable!(),
         };
 
-        self.selectors.clone().set(&self);
+        self.selectors.clone().set(self);
 
         0
       }
