@@ -31,6 +31,9 @@ pub mod roms;
 /// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `build` implementation on [`systems::pet::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
 pub mod systems;
 
+/// Traces log the state of the system as it runs (e.g., to a file). This is useful for debugging.
+pub mod trace;
+
 mod time;
 
 #[cfg(target_arch = "wasm32")]

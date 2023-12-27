@@ -51,11 +51,16 @@ struct Args {
 
   #[clap(short, long, value_parser, default_value = "symbolic")]
   key_mapping: KeyMappingArg,
+
+  #[clap(short, long, value_parser, default_value = "false")]
+  trace: bool,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-  use libnoentiendo::{cpu::mos6502::Mos6502Variant, systems::klaus::KlausSystemConfig};
+  use libnoentiendo::{
+    cpu::mos6502::Mos6502Variant, systems::klaus::KlausSystemConfig, trace::file::FileTraceHandler,
+  };
 
   let args = Args::parse();
 
@@ -74,7 +79,7 @@ fn main() {
     KeyMappingArg::Physical => KeyMappingStrategy::Physical,
   };
 
-  let system = match args.system {
+  let mut system = match args.system {
     SystemArg::Basic => BasicSystem::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Easy => Easy6502System::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Klaus => KlausSystem::build(
@@ -104,6 +109,10 @@ fn main() {
       platform.provider(),
     ),
   };
+
+  if args.trace {
+    system.attach_trace_handler(Box::new(FileTraceHandler::new("./cpu.trace".to_owned())));
+  }
 
   platform.run(system);
 }
