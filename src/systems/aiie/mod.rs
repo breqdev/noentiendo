@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-  cpu::{MemoryIO, Mos6502},
+  cpu::{MemoryIO, Mos6502, Mos6502Variant},
   memory::{BankedMemory, BlockMemory, BranchMemory, LoggingMemory, NullMemory},
   platform::{Color, PlatformProvider, WindowConfig},
   systems::System,
@@ -51,116 +51,86 @@ impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemB
     let memory = BranchMemory::new()
       .map(
         0x0000,
-        Box::new(
-          BankedMemory::new(selectors.zp_stack.clone())
-            .bank(Box::new(BlockMemory::ram(0x0200))) // Main memory
-            .bank(Box::new(BlockMemory::ram(0x0200))), // Aux memory
-        ),
+        BankedMemory::new(selectors.zp_stack.clone())
+          .bank(BlockMemory::ram(0x0200)) // Main memory
+          .bank(BlockMemory::ram(0x0200)), // Aux memory
       )
       .map(
         0x0200,
-        Box::new(
-          BankedMemory::new(selectors.low_segment.clone())
-            .bank(Box::new(BlockMemory::ram(0x0200))) // Main memory
-            .bank(Box::new(BlockMemory::ram(0x0200))), // Aux memory
-        ),
+        BankedMemory::new(selectors.low_segment.clone())
+          .bank(BlockMemory::ram(0x0200)) // Main memory
+          .bank(BlockMemory::ram(0x0200)), // Aux memory
       )
       .map(
         0x0400,
-        Box::new(
-          BankedMemory::new(selectors.text_page_1.clone())
-            .bank(Box::new(BlockMemory::ram(0x0400))) // Text Page 1
-            .bank(Box::new(BlockMemory::ram(0x0400))), // Text Page 1X
-        ),
+        BankedMemory::new(selectors.text_page_1.clone())
+          .bank(BlockMemory::ram(0x0400)) // Text Page 1
+          .bank(BlockMemory::ram(0x0400)), // Text Page 1X
       )
       .map(
         0x0800,
-        Box::new(
-          BankedMemory::new(selectors.text_page_2.clone())
-            .bank(Box::new(BlockMemory::ram(0x1800))) // Text Page 2
-            .bank(Box::new(BlockMemory::ram(0x1800))), // Text Page 2X
-        ),
+        BankedMemory::new(selectors.text_page_2.clone())
+          .bank(BlockMemory::ram(0x1800)) // Text Page 2
+          .bank(BlockMemory::ram(0x1800)), // Text Page 2X
       )
       .map(
         0x2000,
-        Box::new(
-          BankedMemory::new(selectors.hires_page_1.clone())
-            .bank(Box::new(BlockMemory::ram(0x2000))) // HiRes Page 1
-            .bank(Box::new(BlockMemory::ram(0x2000))), // HiRes Page 1X
-        ),
+        BankedMemory::new(selectors.hires_page_1.clone())
+          .bank(BlockMemory::ram(0x2000)) // HiRes Page 1
+          .bank(BlockMemory::ram(0x2000)), // HiRes Page 1X
       )
       .map(
         0x4000,
-        Box::new(
-          BankedMemory::new(selectors.hires_page_2.clone())
-            .bank(Box::new(BlockMemory::ram(0x8000))) // HiRes Page 1
-            .bank(Box::new(BlockMemory::ram(0x8000))), // HiRes Page 1X
-        ),
+        BankedMemory::new(selectors.hires_page_2.clone())
+          .bank(BlockMemory::ram(0x8000)) // HiRes Page 1
+          .bank(BlockMemory::ram(0x8000)), // HiRes Page 1X
       )
-      .map(
-        0xC000,
-        Box::new(io),
-        // Box::new(LoggingMemory::new(Box::new(io), "I/O", 0xC000)),
-      )
+      .map(0xC000, io)
       .map(
         0xC100,
-        Box::new(
-          BankedMemory::new(selectors.ext_slot_rom.clone())
-            .bank(Box::new(LoggingMemory::new(
-              Box::new(NullMemory::new()),
-              "Peripheral Card",
-              0xC100,
-            )))
-            .bank(Box::new(BlockMemory::from_file(0x0F00, roms.firmware))),
-        ),
+        BankedMemory::new(selectors.ext_slot_rom.clone())
+          .bank(LoggingMemory::new(
+            NullMemory::new(),
+            "Peripheral Card",
+            0xC100,
+          ))
+          .bank(BlockMemory::from_file(0x0F00, roms.firmware)),
       );
 
     let upper_rom = BranchMemory::new()
-      .map(
-        0x0000,
-        Box::new(BlockMemory::from_file(0x2800, roms.applesoft)),
-      )
-      .map(
-        0x2800,
-        Box::new(BlockMemory::from_file(0x0800, roms.monitor)),
-      );
+      .map(0x0000, BlockMemory::from_file(0x2800, roms.applesoft))
+      .map(0x2800, BlockMemory::from_file(0x0800, roms.monitor));
 
     let upper_main_ram = BranchMemory::new()
       .map(
         0x0000,
-        Box::new(
-          BankedMemory::new(selectors.ram_bank_select.clone())
-            .bank(Box::new(BlockMemory::ram(0x1000)))
-            .bank(Box::new(BlockMemory::ram(0x1000))),
-        ),
+        BankedMemory::new(selectors.ram_bank_select.clone())
+          .bank(BlockMemory::ram(0x1000))
+          .bank(BlockMemory::ram(0x1000)),
       )
-      .map(0x1000, Box::new(BlockMemory::ram(0x2000)));
+      .map(0x1000, BlockMemory::ram(0x2000));
 
     let upper_aux_ram = BranchMemory::new()
       .map(
         0x0000,
-        Box::new(
-          BankedMemory::new(selectors.ram_bank_select)
-            .bank(Box::new(BlockMemory::ram(0x1000)))
-            .bank(Box::new(BlockMemory::ram(0x1000))),
-        ),
+        BankedMemory::new(selectors.ram_bank_select)
+          .bank(BlockMemory::ram(0x1000))
+          .bank(BlockMemory::ram(0x1000)),
       )
-      .map(0x1000, Box::new(BlockMemory::ram(0x2000)));
+      .map(0x1000, BlockMemory::ram(0x2000));
 
     let memory = memory.map(
       0xD000,
-      Box::new(
-        BankedMemory::new(selectors.rom_ram_select)
-          .bank(Box::new(upper_rom))
-          .bank(Box::new(
-            BankedMemory::new(selectors.upper_ram)
-              .bank(Box::new(upper_main_ram))
-              .bank(Box::new(upper_aux_ram)),
-          )),
-      ),
+      BankedMemory::new(selectors.rom_ram_select)
+        .bank(upper_rom)
+        .bank(
+          BankedMemory::new(selectors.upper_ram)
+            .bank(upper_main_ram)
+            .bank(upper_aux_ram),
+        ),
     );
 
-    let cpu = Mos6502::new(Box::new(memory));
+    let cpu = Mos6502::new(memory, Mos6502Variant::NMOS);
 
     Box::new(AiieSystem {
       cpu,
