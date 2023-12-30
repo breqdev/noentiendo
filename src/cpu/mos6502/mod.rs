@@ -1,12 +1,14 @@
 mod execute;
 mod fetch;
 mod registers;
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory};
 use execute::Execute;
 use fetch::Fetch;
 use registers::{flags, Registers};
 
-const CLOCKS_PER_POLL: u32 = 100;
+use super::Cpu;
+
+const CLOCKS_PER_POLL: u64 = 100;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Mos6502Variant {
@@ -21,7 +23,7 @@ pub struct Mos6502 {
   pub registers: Registers,
   pub memory: Box<dyn Memory>,
   cycle_count: u64,
-  cycles_since_poll: u32,
+  cycles_since_poll: u64,
   variant: Mos6502Variant,
 }
 
@@ -144,8 +146,10 @@ impl Mos6502 {
       variant,
     }
   }
+}
 
-  pub fn reset(&mut self) {
+impl Cpu for Mos6502 {
+  fn reset(&mut self) {
     self.memory.reset();
     self.registers.reset();
     let pc_address = self.read_word(0xFFFC);
@@ -153,24 +157,22 @@ impl Mos6502 {
   }
 
   /// Return a SystemInfo struct containing the current system status.
-  pub fn get_info(&self) -> SystemInfo {
-    SystemInfo {
-      cycle_count: self.cycle_count,
-    }
+  fn get_cycle_count(&self) -> u64 {
+    self.cycle_count
   }
 
   /// Execute a single instruction.
-  pub fn tick(&mut self) -> u8 {
+  fn tick(&mut self) -> u8 {
     let opcode = self.fetch();
     match self.execute(opcode) {
       Ok(cycles) => {
         self.cycle_count += cycles as u64;
-        self.cycles_since_poll += cycles as u32;
+        self.cycles_since_poll += cycles as u64;
 
         if self.cycles_since_poll >= CLOCKS_PER_POLL {
-          let info = self.get_info();
+          let total_cycle_count = self.get_cycle_count();
 
-          match self.memory.poll(self.cycles_since_poll, &info) {
+          match self.memory.poll(self.cycles_since_poll, total_cycle_count) {
             ActiveInterrupt::None => (),
             ActiveInterrupt::NMI => self.interrupt(false, false),
             ActiveInterrupt::IRQ => self.interrupt(true, false),

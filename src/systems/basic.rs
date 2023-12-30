@@ -1,7 +1,10 @@
 use instant::Duration;
 
-use crate::cpu::mos6502::{Mos6502, Mos6502Variant};
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::cpu::{
+  mos6502::{Mos6502, Mos6502Variant},
+  Cpu,
+};
+use crate::memory::{ActiveInterrupt, Memory};
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
@@ -60,7 +63,7 @@ impl Memory for MappedStdIO {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

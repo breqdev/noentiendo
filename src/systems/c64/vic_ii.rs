@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory};
 use crate::platform::{Color, WindowConfig};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -450,8 +450,8 @@ impl Memory for VicIIChipIO {
     self.chip.borrow_mut().reset();
   }
 
-  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
-    self.chip.borrow_mut().raster_counter = ((info.cycle_count / 83) % 312) as u16;
+  fn poll(&mut self, _cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt {
+    self.chip.borrow_mut().raster_counter = ((total_cycle_count / 83) % 312) as u16;
 
     ActiveInterrupt::None
   }

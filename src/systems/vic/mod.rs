@@ -1,11 +1,14 @@
-use crate::cpu::mos6502::{Mos6502, Mos6502Variant};
+use crate::cpu::{
+  mos6502::{Mos6502, Mos6502Variant},
+  Cpu,
+};
 use crate::keyboard::commodore::C64VirtualAdapter;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},
   KeyAdapter, KeyMappingStrategy, SymbolAdapter,
 };
 use crate::memory::mos652x::Via;
-use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
+use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port};
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::System;
@@ -137,7 +140,7 @@ impl Port for VicVia1PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
@@ -175,7 +178,7 @@ impl Port for VicVia2PortB {
     self.keyboard_col.set(value);
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
@@ -234,7 +237,7 @@ impl Port for VicVia2PortA {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 

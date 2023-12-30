@@ -1,8 +1,11 @@
 use instant::Duration;
 
-use crate::cpu::mos6502::{MemoryIO, Mos6502, Mos6502Variant};
+use crate::cpu::{
+  mos6502::{MemoryIO, Mos6502, Mos6502Variant},
+  Cpu,
+};
 use crate::keyboard::KeyPosition;
-use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
 use crate::systems::{System, SystemBuilder};
@@ -52,7 +55,7 @@ impl Memory for EasyIO {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

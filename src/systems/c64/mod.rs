@@ -6,13 +6,13 @@ use std::{
 
 use crate::{
   cpu::mos6502::{Mos6502, Mos6502Variant},
+  cpu::Cpu,
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
   },
   memory::{
     mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
-    SystemInfo,
   },
   platform::{PlatformProvider, WindowConfig},
   systems::System,
@@ -59,7 +59,7 @@ impl Port for C64Cia1PortA {
     self.keyboard_row.set(value);
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
@@ -119,7 +119,7 @@ impl Port for C64Cia1PortB {
     panic!("Tried to write to keyboard row");
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
@@ -188,7 +188,7 @@ impl Port for C64BankSwitching {
     self.selectors[5].set(if !self.hiram { 1 } else { 0 });
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 

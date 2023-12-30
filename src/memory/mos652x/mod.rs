@@ -6,7 +6,7 @@ pub use cia::Cia;
 pub use pia::Pia;
 pub use via::Via;
 
-use crate::memory::{Port, SystemInfo};
+use crate::memory::Port;
 
 /// A port and its associated registers on the MOS 6522 VIA or MOS 6526 CIA.
 pub struct PortRegisters {
@@ -45,8 +45,8 @@ impl PortRegisters {
   }
 
   /// Poll the underlying port for interrupts.
-  pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
-    self.port.poll(cycles, info)
+  pub fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> bool {
+    self.port.poll(cycles_since_poll, total_cycle_count)
   }
 
   /// Reset the port to its initial state.
@@ -127,7 +127,7 @@ impl Timer {
   }
 
   /// Poll the timer (decrement the counter, fire the interrupt if necessary).
-  pub fn poll(&mut self, cycles: u32, _info: &SystemInfo) -> bool {
+  pub fn poll(&mut self, cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     if self.counter <= 0 {
       if self.continuous {
         self.counter += self.latch as i32;
@@ -138,7 +138,7 @@ impl Timer {
     }
 
     if self.running {
-      self.counter -= cycles as i32;
+      self.counter -= cycles_since_poll as i32;
 
       if self.counter <= 0 {
         // The counter underflowed

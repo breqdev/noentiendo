@@ -1,7 +1,10 @@
-use crate::cpu::mos6502::{MemoryIO, Mos6502, Mos6502Variant};
+use crate::cpu::{
+  mos6502::{MemoryIO, Mos6502, Mos6502Variant},
+  Cpu,
+};
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
-use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};
+use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::systems::{System, SystemBuilder};
 use instant::Instant;
@@ -60,16 +63,16 @@ impl Port for PetPia1PortA {
     self.keyboard_row.set(value & 0b1111);
   }
 
-  fn poll(&mut self, _cycles: u32, info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, total_cycle_count: u64) -> bool {
     // let min_elapsed = ((info.cycles_per_second as f64 / 60.0) * (2.0 / 3.0)) as u64;
     let min_elapsed = 0; // TODO: fix
 
     match self.last_draw_instant {
       Some(last_draw) => {
         if (last_draw.elapsed() > Duration::from_millis(17))
-          && (info.cycle_count > self.last_draw_cycle + min_elapsed)
+          && (total_cycle_count > self.last_draw_cycle + min_elapsed)
         {
-          self.last_draw_cycle = info.cycle_count;
+          self.last_draw_cycle = total_cycle_count;
           self.last_draw_instant = Some(Instant::now());
           true
           // false
@@ -136,7 +139,7 @@ impl Port for PetPia1PortB {
 
   fn write(&mut self, _value: u8) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
