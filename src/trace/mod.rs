@@ -13,5 +13,7 @@ pub trait TraceHandler {
   fn handle(&mut self, trace: &CpuTrace);
 
   /// Flush any existing resource buffers.
-  fn flush(&mut self) -> Result<(), &str>{ Ok(())}
+  fn flush(&mut self) -> Result<(), &str> {
+    Ok(())
+  }
 }

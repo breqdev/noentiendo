@@ -14,4 +14,7 @@ pub trait Cpu {
 
   /// Execute a single instruction. Return the number of cycles elapsed.
   fn tick(&mut self) -> u8;
+
+  /// Clean up any resources used by this CPU.
+  fn cleanup(&mut self) -> Result<(), &str>;
 }

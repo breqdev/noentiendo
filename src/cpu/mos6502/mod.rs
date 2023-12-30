@@ -2,7 +2,7 @@ mod execute;
 mod fetch;
 mod registers;
 use crate::memory::{ActiveInterrupt, Memory};
-use crate::trace::TraceHandler;
+use crate::trace::{CpuTrace, TraceHandler};
 use execute::Execute;
 use fetch::Fetch;
 use registers::{flags, Registers};
@@ -171,6 +171,14 @@ impl Cpu for Mos6502 {
   /// Execute a single instruction.
   fn tick(&mut self) -> u8 {
     let opcode = self.fetch();
+
+    if let Some(tracer) = &mut self.trace {
+      tracer.handle(&CpuTrace {
+        address: self.registers.pc.address(),
+        opcode,
+      });
+    }
+
     match self.execute(opcode) {
       Ok(cycles) => {
         self.cycle_count += cycles as u64;
@@ -197,6 +205,14 @@ impl Cpu for Mos6502 {
           self.registers.pc.address()
         );
       }
+    }
+  }
+
+  fn cleanup(&mut self) -> Result<(), &str> {
+    if let Some(tracer) = &mut self.trace {
+      tracer.flush()
+    } else {
+      Ok(())
     }
   }
 }

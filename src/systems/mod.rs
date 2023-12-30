@@ -43,6 +43,6 @@ pub trait System {
 
   /// Clean up any resources used by this system.
   fn cleanup(&mut self) -> Result<(), &str> {
-    Ok(())
+    self.get_cpu_mut().cleanup()
   }
 }
