@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use crate::{
-  cpu::{MemoryIO, Mos6502, Mos6502Variant},
+  cpu::{
+    mos6502::{MemoryIO, Mos6502, Mos6502Variant},
+    Cpu,
+  },
   memory::{BankedMemory, BlockMemory, BranchMemory, LoggingMemory, NullMemory},
   platform::{Color, PlatformProvider, WindowConfig},
   systems::System,
@@ -20,7 +23,7 @@ use instant::Duration;
 
 use self::switches::{AiieBankSelectors, AiieSoftSwitches};
 
-use super::SystemBuilder;
+use super::BuildableSystem;
 
 const WIDTH: u32 = 40;
 const HEIGHT: u32 = 24;
@@ -30,10 +33,8 @@ const CHAR_WIDTH: u32 = 7;
 /// Configuration for a Apple IIe system.
 pub struct AiieSystemConfig {}
 
-/// A factory for creating a Commodore 64 system.
-pub struct AiieSystemBuilder;
-
-impl SystemBuilder<AiieSystem, AiieSystemRoms, AiieSystemConfig> for AiieSystemBuilder {
+/// A factory for creating an Apple IIe system.
+impl BuildableSystem<AiieSystemRoms, AiieSystemConfig> for AiieSystem {
   fn build(
     roms: AiieSystemRoms,
     _config: AiieSystemConfig,
@@ -146,6 +147,10 @@ pub struct AiieSystem {
 }
 
 impl System for AiieSystem {
+  fn get_cpu_mut(&mut self) -> Box<&mut dyn crate::cpu::Cpu> {
+    Box::new(&mut self.cpu)
+  }
+
   fn tick(&mut self) -> Duration {
     if self.cpu.registers.pc.address() < 0xF800 {
       // println!("{:#04x}", self.cpu.registers.pc.address());

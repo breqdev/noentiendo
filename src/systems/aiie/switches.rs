@@ -2,7 +2,7 @@ use std::{cell::Cell, io::Write, rc::Rc, sync::Arc};
 
 use crate::{
   keyboard::{KeyAdapter, SymbolAdapter},
-  memory::{ActiveInterrupt, Memory, SystemInfo},
+  memory::{ActiveInterrupt, Memory},
   platform::PlatformProvider,
   systems::aiie::keyboard::AppleIISymbolAdapter,
 };
@@ -254,7 +254,7 @@ impl Memory for AiieSoftSwitches {
     self.bank_ram_select = false;
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
