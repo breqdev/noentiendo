@@ -9,8 +9,6 @@ jobs:
   desktop-build:
     name: Desktop Build and Style Check
     runs-on: ubuntu-latest
-    env:
-      RUSTDOCFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -45,6 +43,8 @@ jobs:
   web-build:
     name: WASM Build, Docs Build, and Web Deploy
     runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
