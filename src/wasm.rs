@@ -141,7 +141,7 @@ impl Noentiendo {
 
     let interval_id = {
       let system = system.clone();
-      let handler: Box<dyn FnMut() -> ()> = Box::new(move || {
+      let handler: Box<dyn FnMut()> = Box::new(move || {
         if platform_ready.get() {
           let platform = platform.clone();
           let system = system.clone();

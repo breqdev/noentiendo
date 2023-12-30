@@ -35,4 +35,9 @@ pub trait System {
 
   /// Render the current state of the system to the given framebuffer.
   fn render(&mut self, framebuffer: &mut [u8], window: WindowConfig);
+
+  /// Clean up any resources used by this system.
+  fn cleanup(&mut self) -> Result<(), &str> {
+    Ok(())
+  }
 }
