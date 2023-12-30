@@ -9,6 +9,8 @@ jobs:
   desktop-build:
     name: Desktop Build and Style Check
     runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: "-D warnings"
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
