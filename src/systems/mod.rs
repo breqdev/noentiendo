@@ -25,7 +25,7 @@ pub trait BuildableSystem<RomRegistry, SystemConfig> {
 /// A representation of an emulated system.
 pub trait System {
   /// Return a mutable reference to the CPU used in this system.
-  fn get_cpu(&self) -> Box<&dyn Cpu>;
+  fn get_cpu_mut(&mut self) -> Box<&mut dyn Cpu>;
 
   /// Advance the system by one tick.
   fn tick(&mut self) -> Duration;

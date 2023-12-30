@@ -210,8 +210,8 @@ pub struct PetSystem {
 }
 
 impl System for PetSystem {
-  fn get_cpu(&self) -> Box<&dyn Cpu> {
-    Box::new(&self.cpu)
+  fn get_cpu_mut(&mut self) -> Box<&mut dyn Cpu> {
+    Box::new(&mut self.cpu)
   }
 
   fn tick(&mut self) -> Duration {
