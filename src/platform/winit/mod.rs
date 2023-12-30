@@ -183,7 +183,12 @@ impl SyncPlatform for WinitPlatform {
               key_state.lock().unwrap().release(key);
             }
           },
-          WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+          WindowEvent::CloseRequested => {
+            if let Err(msg) = system.cleanup() {
+              println!("Error during cleanup: {}", msg);
+            }
+            *control_flow = ControlFlow::Exit;
+          }
           _ => (),
         },
         _ => (),

@@ -1,4 +1,4 @@
-use super::{ActiveInterrupt, Memory, SystemInfo};
+use super::{ActiveInterrupt, Memory};
 
 pub struct LoggingMemory {
   backing: Box<dyn Memory>,
@@ -43,8 +43,8 @@ impl Memory for LoggingMemory {
     println!("[Memory Reset]: {}", self.message);
   }
 
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt {
     // println!("[Memory Poll]: {}", self.message);
-    self.backing.poll(cycles, info)
+    self.backing.poll(cycles_since_poll, total_cycle_count)
   }
 }

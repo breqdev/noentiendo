@@ -1,4 +1,4 @@
-use crate::cpu::{MemoryIO, Mos6502};
+use crate::cpu::mos6502::{MemoryIO, Mos6502};
 
 use super::Mos6502Variant;
 

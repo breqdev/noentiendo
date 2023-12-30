@@ -1,6 +1,6 @@
 use crate::memory::{
   mos652x::{InterruptRegister, PortRegisters, ShiftRegister, Timer, TimerOutput},
-  ActiveInterrupt, Memory, Port, SystemInfo,
+  ActiveInterrupt, Memory, Port,
 };
 
 #[allow(dead_code)]
@@ -183,16 +183,22 @@ impl Memory for Via {
     self.b.reset();
   }
 
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
-    if self.t1.poll(cycles, info) && self.interrupts.is_enabled(interrupt_bits::T1_ENABLE) {
+  fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt {
+    if self.t1.poll(cycles_since_poll, total_cycle_count)
+      && self.interrupts.is_enabled(interrupt_bits::T1_ENABLE)
+    {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.t2.poll(cycles, info) && self.interrupts.is_enabled(interrupt_bits::T2_ENABLE) {
+    if self.t2.poll(cycles_since_poll, total_cycle_count)
+      && self.interrupts.is_enabled(interrupt_bits::T2_ENABLE)
+    {
       return ActiveInterrupt::IRQ;
     }
 
-    if self.a.poll(cycles, info) || self.b.poll(cycles, info) {
+    if self.a.poll(cycles_since_poll, total_cycle_count)
+      || self.b.poll(cycles_since_poll, total_cycle_count)
+    {
       return ActiveInterrupt::IRQ;
     }
 
@@ -244,14 +250,14 @@ mod tests {
     via.write(0x05, 0x00);
 
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, 0));
 
     // polling again shouldn't do anything
     for _ in 0..0x20 {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
   }
 
@@ -266,16 +272,16 @@ mod tests {
     via.write(0x08, 0x34);
 
     // polling now shouldn't do anything
-    assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
 
     // timer begins when the high byte is written
     via.write(0x09, 0x12);
 
     for _ in 0..0x1233 {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, 0));
   }
 
   #[test]
@@ -293,16 +299,16 @@ mod tests {
     via.write(0x05, 0x00);
 
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, 0));
 
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, 0));
   }
 
   #[test]
@@ -353,10 +359,10 @@ mod tests {
 
     // timer 1 should interrupt first
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
 
-    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, 0));
   }
 
   #[test]
@@ -379,7 +385,7 @@ mod tests {
 
     // timer 2 shouldn't trigger an interrupt
     for _ in 0..0x08 {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
 
     // ...but the flag register should be set
@@ -387,9 +393,9 @@ mod tests {
 
     // timer 1 should then trigger an interrupt
     for _ in 0..0x07 {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
-    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, 0));
 
     // ...and set the corresponding flag, plus the master bit
     assert_eq!(
@@ -414,8 +420,8 @@ mod tests {
 
     // if we let timer 1 run again, it should set the flag again
     for _ in 0..0x0F {
-      assert_eq!(ActiveInterrupt::None, via.poll(1, &SystemInfo::default()));
+      assert_eq!(ActiveInterrupt::None, via.poll(1, 0));
     }
-    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, &SystemInfo::default()));
+    assert_eq!(ActiveInterrupt::IRQ, via.poll(1, 0));
   }
 }

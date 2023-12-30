@@ -1,6 +1,9 @@
 use instant::Duration;
 
-use crate::cpu::{Mos6502, Mos6502Variant};
+use crate::cpu::{
+  mos6502::{Mos6502, Mos6502Variant},
+  Cpu,
+};
 use crate::memory::BlockMemory;
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
@@ -9,7 +12,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use super::SystemBuilder;
+use super::BuildableSystem;
 
 pub struct KlausSystemConfig {
   pub pc_report: Option<Rc<Cell<u16>>>,
@@ -17,9 +20,7 @@ pub struct KlausSystemConfig {
 }
 
 /// A factory for creating a system that runs Klaus Dormann's 6502 CPU test suite.
-pub struct KlausSystemBuilder;
-
-impl SystemBuilder<KlausSystem, RomFile, KlausSystemConfig> for KlausSystemBuilder {
+impl BuildableSystem<RomFile, KlausSystemConfig> for KlausSystem {
   fn build(
     rom: RomFile,
     config: KlausSystemConfig,
@@ -44,6 +45,10 @@ pub struct KlausSystem {
 }
 
 impl System for KlausSystem {
+  fn get_cpu_mut(&mut self) -> Box<&mut dyn Cpu> {
+    Box::new(&mut self.cpu)
+  }
+
   fn tick(&mut self) -> Duration {
     self.cpu.tick();
     if let Some(pc) = &self.pc {
@@ -74,7 +79,7 @@ mod tests {
     let platform = TextPlatform::new();
     let pc = Rc::new(Cell::new(0));
 
-    let mut system = KlausSystemBuilder::build(
+    let mut system = KlausSystem::build(
       roms,
       KlausSystemConfig {
         pc_report: Some(pc.clone()),
@@ -96,7 +101,7 @@ mod tests {
     let platform = TextPlatform::new();
     let pc = Rc::new(Cell::new(0));
 
-    let mut system = KlausSystemBuilder::build(
+    let mut system = KlausSystem::build(
       roms,
       KlausSystemConfig {
         pc_report: Some(pc.clone()),

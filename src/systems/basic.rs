@@ -1,11 +1,14 @@
 use instant::Duration;
 
-use crate::cpu::{Mos6502, Mos6502Variant};
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::cpu::{
+  mos6502::{Mos6502, Mos6502Variant},
+  Cpu,
+};
+use crate::memory::{ActiveInterrupt, Memory};
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::systems::{System, SystemBuilder};
+use crate::systems::{BuildableSystem, System};
 use std::io::Write;
 use std::sync::Arc;
 
@@ -60,15 +63,12 @@ impl Memory for MappedStdIO {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
 
-/// A factory for creating a BasicSystem.
-pub struct BasicSystemBuilder;
-
-impl SystemBuilder<BasicSystem, RomFile, ()> for BasicSystemBuilder {
+impl BuildableSystem<RomFile, ()> for BasicSystem {
   fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new(platform);
@@ -91,6 +91,10 @@ pub struct BasicSystem {
 }
 
 impl System for BasicSystem {
+  fn get_cpu_mut(&mut self) -> Box<&mut dyn Cpu> {
+    Box::new(&mut self.cpu)
+  }
+
   fn tick(&mut self) -> Duration {
     Duration::from_secs_f64(1.0 / 20_000.0) * self.cpu.tick().into()
   }

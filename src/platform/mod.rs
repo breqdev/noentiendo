@@ -23,18 +23,23 @@ pub use self::winit::{WinitPlatform, WinitPlatformProvider};
 /// It handles starting and ticking the system, and provides a PlatformProvider
 /// to the system for screen/keyboard/etc. access.
 pub trait Platform {
+  /// Return a reference to a provider for systems to interact with this platform.
   fn provider(&self) -> Arc<dyn PlatformProvider>;
 }
 
 /// A platform which can be run synchronously.
 pub trait SyncPlatform: Platform {
+  /// Run the given system within this platform.
   fn run(&mut self, system: Box<dyn System>);
 }
 
 /// A platform which can be run asynchronously.
 #[async_trait(?Send)]
 pub trait AsyncPlatform: Platform {
+  /// Set up this platform for use.
   async fn setup(&mut self);
+
+  /// Execute one "step" of this platform. A step is implementation-defined.
   async fn tick(&mut self, system: &mut Box<dyn System>);
 }
 

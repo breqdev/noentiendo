@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory};
 
 /// Maps several Memory objects into a single contiguous address space.
 /// Each mapped object is assigned a starting address, and reads and writes
@@ -66,11 +66,11 @@ impl Memory for BranchMemory {
     }
   }
 
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt {
     let mut highest = ActiveInterrupt::None;
 
     for (_, mapped) in &mut self.mapping {
-      let interrupt = mapped.poll(cycles, info);
+      let interrupt = mapped.poll(cycles_since_poll, total_cycle_count);
 
       match interrupt {
         ActiveInterrupt::None => (),

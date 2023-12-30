@@ -1,4 +1,4 @@
-use super::{ActiveInterrupt, Memory, Port, SystemInfo};
+use super::{ActiveInterrupt, Memory, Port};
 
 /// Represents the port built into a MOS 6510 processor, mapped to memory addresses 0x0000 (for the DDR) and 0x0001 (for the port itself).
 pub struct Mos6510Port {
@@ -50,8 +50,8 @@ impl Memory for Mos6510Port {
     self.port.reset();
   }
 
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
-    match self.port.poll(cycles, info) {
+  fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt {
+    match self.port.poll(cycles_since_poll, total_cycle_count) {
       true => ActiveInterrupt::IRQ,
       false => ActiveInterrupt::None,
     }

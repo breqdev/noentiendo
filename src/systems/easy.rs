@@ -1,11 +1,14 @@
 use instant::Duration;
 
-use crate::cpu::{MemoryIO, Mos6502, Mos6502Variant};
+use crate::cpu::{
+  mos6502::{MemoryIO, Mos6502, Mos6502Variant},
+  Cpu,
+};
 use crate::keyboard::KeyPosition;
-use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::systems::{System, SystemBuilder};
+use crate::systems::{BuildableSystem, System};
 use std::sync::Arc;
 
 const WIDTH: u32 = 32;
@@ -52,15 +55,13 @@ impl Memory for EasyIO {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }
 
 /// A factory for the Easy6502 system.
-pub struct Easy6502SystemBuilder;
-
-impl SystemBuilder<Easy6502System, RomFile, ()> for Easy6502SystemBuilder {
+impl BuildableSystem<RomFile, ()> for Easy6502System {
   fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     platform.request_window(WindowConfig::new(WIDTH, WIDTH, SCALE as f64));
 
@@ -92,6 +93,10 @@ pub struct Easy6502System {
 }
 
 impl System for Easy6502System {
+  fn get_cpu_mut(&mut self) -> Box<&mut dyn Cpu> {
+    Box::new(&mut self.cpu)
+  }
+
   fn tick(&mut self) -> Duration {
     Duration::from_secs_f64(1.0 / 20_000.0) * self.cpu.tick().into()
   }
