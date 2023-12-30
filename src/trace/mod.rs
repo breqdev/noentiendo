@@ -11,4 +11,7 @@ pub struct CpuTrace {
 pub trait TraceHandler {
   /// Handle a trace event.
   fn handle(&mut self, trace: &CpuTrace);
+
+  /// Flush any existing resource buffers.
+  fn flush(&mut self) -> Result<(), &str>{ Ok(())}
 }
