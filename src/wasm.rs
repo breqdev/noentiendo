@@ -18,10 +18,10 @@ use crate::{
   keyboard::KeyMappingStrategy,
   platform::{AsyncPlatform, CanvasPlatform, Platform},
   systems::{
-    c64::{C64SystemBuilder, C64SystemConfig, C64SystemRoms},
-    pet::{PetSystemBuilder, PetSystemConfig, PetSystemRoms},
-    vic::{Vic20SystemBuilder, Vic20SystemConfig, Vic20SystemRoms},
-    System, SystemBuilder,
+    c64::{C64System, C64SystemConfig, C64SystemRoms},
+    pet::{PetSystem, PetSystemConfig, PetSystemRoms},
+    vic::{Vic20System, Vic20SystemConfig, Vic20SystemRoms},
+    BuildableSystem, System,
   },
 };
 
@@ -79,21 +79,21 @@ impl NoentiendoBuilder {
     let system = self.system.as_ref().expect("System not set");
 
     let mut system = match system.as_str() {
-      "pet" => PetSystemBuilder::build(
+      "pet" => PetSystem::build(
         pet_roms,
         PetSystemConfig {
           mapping: KeyMappingStrategy::Symbolic,
         },
         platform.provider(),
       ),
-      "vic" => Vic20SystemBuilder::build(
+      "vic" => Vic20System::build(
         vic_roms,
         Vic20SystemConfig {
           mapping: KeyMappingStrategy::Symbolic,
         },
         platform.provider(),
       ),
-      "c64" => C64SystemBuilder::build(
+      "c64" => C64System::build(
         c64_roms,
         C64SystemConfig {
           mapping: KeyMappingStrategy::Symbolic,
