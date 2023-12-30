@@ -1,4 +1,4 @@
-use crate::cpu::{Mos6502, Mos6502Variant};
+use crate::cpu::mos6502::{Mos6502, Mos6502Variant};
 use crate::keyboard::commodore::C64VirtualAdapter;
 use crate::keyboard::{
   commodore::{C64KeyboardAdapter, C64SymbolAdapter},

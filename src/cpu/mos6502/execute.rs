@@ -1,6 +1,8 @@
-use crate::cpu::fetch::Fetch;
-use crate::cpu::registers::{flags, Alu};
-use crate::cpu::{InterruptHandler, MemoryIO, Mos6502, Stack};
+use crate::cpu::mos6502::{
+  fetch::Fetch,
+  registers::{flags, Alu},
+  InterruptHandler, MemoryIO, Mos6502, Stack,
+};
 
 use super::Mos6502Variant;
 

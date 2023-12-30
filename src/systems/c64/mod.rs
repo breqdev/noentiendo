@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  cpu::{Mos6502, Mos6502Variant},
+  cpu::mos6502::{Mos6502, Mos6502Variant},
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,

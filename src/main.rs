@@ -55,7 +55,7 @@ struct Args {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-  use libnoentiendo::{cpu::Mos6502Variant, systems::klaus::KlausSystemConfig};
+  use libnoentiendo::{cpu::mos6502::Mos6502Variant, systems::klaus::KlausSystemConfig};
 
   let args = Args::parse();
 

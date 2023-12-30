@@ -1,6 +1,6 @@
 use instant::Duration;
 
-use crate::cpu::{MemoryIO, Mos6502, Mos6502Variant};
+use crate::cpu::mos6502::{MemoryIO, Mos6502, Mos6502Variant};
 use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory, SystemInfo};
 use crate::platform::{Color, PlatformProvider, WindowConfig};

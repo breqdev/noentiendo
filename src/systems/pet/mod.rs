@@ -1,4 +1,4 @@
-use crate::cpu::{MemoryIO, Mos6502, Mos6502Variant};
+use crate::cpu::mos6502::{MemoryIO, Mos6502, Mos6502Variant};
 use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port, SystemInfo};

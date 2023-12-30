@@ -1,6 +1,6 @@
 use instant::Duration;
 
-use crate::cpu::{Mos6502, Mos6502Variant};
+use crate::cpu::mos6502::{Mos6502, Mos6502Variant};
 use crate::memory::BlockMemory;
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
