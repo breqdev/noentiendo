@@ -41,9 +41,15 @@
 <a href="#41" id="41">41</a>
 <a href="#42" id="42">42</a>
 <a href="#43" id="43">43</a>
+<a href="#44" id="44">44</a>
+<a href="#45" id="45">45</a>
+<a href="#46" id="46">46</a>
+<a href="#47" id="47">47</a>
+<a href="#48" id="48">48</a>
 </pre></div><pre class="rust"><code><span class="kw">use crate</span>::{
   cpu::Cpu,
   platform::{PlatformProvider, WindowConfig},
+  trace::TraceHandler,
 };
 <span class="kw">use </span>instant::Duration;
 <span class="kw">use </span>std::sync::Arc;
@@ -70,6 +76,10 @@
   <span class="doccomment">/// Return a mutable reference to the CPU used in this system.
   </span><span class="kw">fn </span>get_cpu_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Box&lt;<span class="kw-2">&amp;mut </span><span class="kw">dyn </span>Cpu&gt;;
 
+  <span class="kw">fn </span>attach_trace_handler(<span class="kw-2">&amp;mut </span><span class="self">self</span>, handler: Box&lt;<span class="kw">dyn </span>TraceHandler&gt;) {
+    <span class="self">self</span>.get_cpu_mut().attach_trace_handler(handler);
+  }
+
   <span class="doccomment">/// Advance the system by one tick.
   </span><span class="kw">fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; Duration;
 
@@ -81,7 +91,7 @@
 
   <span class="doccomment">/// Clean up any resources used by this system.
   </span><span class="kw">fn </span>cleanup(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span>str&gt; {
-    <span class="prelude-val">Ok</span>(())
+    <span class="self">self</span>.get_cpu_mut().cleanup()
   }
 }
 </code></pre></div></section></main></body></html>

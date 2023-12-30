@@ -38,6 +38,9 @@
 <a href="#38" id="38">38</a>
 <a href="#39" id="39">39</a>
 <a href="#40" id="40">40</a>
+<a href="#41" id="41">41</a>
+<a href="#42" id="42">42</a>
+<a href="#43" id="43">43</a>
 </pre></div><pre class="rust"><code><span class="attr">#![doc = <span class="macro">include_str!</span>(<span class="string">&quot;../README.md&quot;</span>)]
 #![allow(clippy::new_without_default)]
 
@@ -70,6 +73,9 @@
 
 <span class="doccomment">/// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `build` implementation on [`systems::pet::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc&lt;dyn PlatformProvider&gt;`.
 </span><span class="kw">pub mod </span>systems;
+
+<span class="doccomment">/// Traces log the state of the system as it runs (e.g., to a file). This is useful for debugging.
+</span><span class="kw">pub mod </span>trace;
 
 <span class="kw">mod </span>time;
 

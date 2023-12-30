@@ -107,6 +107,15 @@
 <a href="#107" id="107">107</a>
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
 </pre></div><pre class="rust"><code><span class="attr">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">use </span>libnoentiendo::{
   keyboard::KeyMappingStrategy,
@@ -160,11 +169,16 @@
 
   <span class="attr">#[clap(short, long, value_parser, default_value = <span class="string">&quot;symbolic&quot;</span>)]
   </span>key_mapping: KeyMappingArg,
+
+  <span class="attr">#[clap(short, long, value_parser, default_value = <span class="string">&quot;false&quot;</span>)]
+  </span>trace: bool,
 }
 
 <span class="attr">#[cfg(not(target_arch = <span class="string">&quot;wasm32&quot;</span>))]
 </span><span class="kw">fn </span>main() {
-  <span class="kw">use </span>libnoentiendo::{cpu::mos6502::Mos6502Variant, systems::klaus::KlausSystemConfig};
+  <span class="kw">use </span>libnoentiendo::{
+    cpu::mos6502::Mos6502Variant, systems::klaus::KlausSystemConfig, trace::file::FileTraceHandler,
+  };
 
   <span class="kw">let </span>args = Args::parse();
 
@@ -183,7 +197,7 @@
     KeyMappingArg::Physical =&gt; KeyMappingStrategy::Physical,
   };
 
-  <span class="kw">let </span>system = <span class="kw">match </span>args.system {
+  <span class="kw">let </span><span class="kw-2">mut </span>system = <span class="kw">match </span>args.system {
     SystemArg::Basic =&gt; BasicSystem::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Easy =&gt; Easy6502System::build(romfile.unwrap(), (), platform.provider()),
     SystemArg::Klaus =&gt; KlausSystem::build(
@@ -213,6 +227,10 @@
       platform.provider(),
     ),
   };
+
+  <span class="kw">if </span>args.trace {
+    system.attach_trace_handler(Box::new(FileTraceHandler::new(<span class="string">&quot;./cpu.trace&quot;</span>.to_owned())));
+  }
 
   platform.run(system);
 }

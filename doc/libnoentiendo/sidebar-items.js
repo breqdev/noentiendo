@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["cpu","keyboard","memory","platform","roms","systems"]};
+window.SIDEBAR_ITEMS = {"mod":["cpu","keyboard","memory","platform","roms","systems","trace"]};

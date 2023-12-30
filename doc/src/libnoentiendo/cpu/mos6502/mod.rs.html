@@ -193,10 +193,34 @@
 <a href="#193" id="193">193</a>
 <a href="#194" id="194">194</a>
 <a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>execute;
 <span class="kw">mod </span>fetch;
 <span class="kw">mod </span>registers;
 <span class="kw">use </span><span class="kw">crate</span>::memory::{ActiveInterrupt, Memory};
+<span class="kw">use </span><span class="kw">crate</span>::trace::{CpuTrace, TraceHandler};
 <span class="kw">use </span>execute::Execute;
 <span class="kw">use </span>fetch::Fetch;
 <span class="kw">use </span>registers::{flags, Registers};
@@ -220,6 +244,7 @@
   cycle_count: u64,
   cycles_since_poll: u64,
   variant: Mos6502Variant,
+  trace: <span class="prelude-ty">Option</span>&lt;Box&lt;<span class="kw">dyn </span>TraceHandler&gt;&gt;,
 }
 
 <span class="doccomment">/// Read and write from the system&#39;s memory.
@@ -339,6 +364,7 @@
       cycle_count: <span class="number">0</span>,
       cycles_since_poll: <span class="number">0</span>,
       variant,
+      trace: <span class="prelude-val">None</span>,
     }
   }
 }
@@ -356,9 +382,21 @@
     <span class="self">self</span>.cycle_count
   }
 
+  <span class="kw">fn </span>attach_trace_handler(<span class="kw-2">&amp;mut </span><span class="self">self</span>, trace: Box&lt;<span class="kw">dyn </span>TraceHandler&gt;) {
+    <span class="self">self</span>.trace = <span class="prelude-val">Some</span>(trace);
+  }
+
   <span class="doccomment">/// Execute a single instruction.
   </span><span class="kw">fn </span>tick(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; u8 {
     <span class="kw">let </span>opcode = <span class="self">self</span>.fetch();
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(tracer) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.trace {
+      tracer.handle(<span class="kw-2">&amp;</span>CpuTrace {
+        address: <span class="self">self</span>.registers.pc.address(),
+        opcode,
+      });
+    }
+
     <span class="kw">match </span><span class="self">self</span>.execute(opcode) {
       <span class="prelude-val">Ok</span>(cycles) =&gt; {
         <span class="self">self</span>.cycle_count += cycles <span class="kw">as </span>u64;
@@ -385,6 +423,14 @@
           <span class="self">self</span>.registers.pc.address()
         );
       }
+    }
+  }
+
+  <span class="kw">fn </span>cleanup(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span>str&gt; {
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(tracer) = <span class="kw-2">&amp;mut </span><span class="self">self</span>.trace {
+      tracer.flush()
+    } <span class="kw">else </span>{
+      <span class="prelude-val">Ok</span>(())
     }
   }
 }
