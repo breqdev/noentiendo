@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["basic","c64","easy","klaus","pet","vic"],"trait":["System","SystemBuilder"]};
+window.SIDEBAR_ITEMS = {"mod":["basic","c64","easy","klaus","pet","vic"],"trait":["BuildableSystem","System"]};

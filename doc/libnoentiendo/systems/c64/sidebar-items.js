@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["C64BankSwitching","C64System","C64SystemBuilder","C64SystemConfig","C64SystemRoms"]};
+window.SIDEBAR_ITEMS = {"struct":["C64BankSwitching","C64System","C64SystemConfig","C64SystemRoms"]};

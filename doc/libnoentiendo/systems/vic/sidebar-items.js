@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Vic20System","Vic20SystemBuilder","Vic20SystemConfig","Vic20SystemRoms","VicVia1PortA","VicVia2PortA","VicVia2PortB"]};
+window.SIDEBAR_ITEMS = {"struct":["Vic20System","Vic20SystemConfig","Vic20SystemRoms","VicVia1PortA","VicVia2PortA","VicVia2PortB"]};

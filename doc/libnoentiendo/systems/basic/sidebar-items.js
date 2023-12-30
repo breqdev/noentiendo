@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["BasicSystem","BasicSystemBuilder"]};
+window.SIDEBAR_ITEMS = {"struct":["BasicSystem"]};

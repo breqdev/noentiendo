@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PetKeys"],"struct":["PetPia1PortA","PetPia1PortB","PetSystem","PetSystemBuilder","PetSystemConfig","PetSystemRoms"]};
+window.SIDEBAR_ITEMS = {"enum":["PetKeys"],"struct":["PetPia1PortA","PetPia1PortB","PetSystem","PetSystemConfig","PetSystemRoms"]};

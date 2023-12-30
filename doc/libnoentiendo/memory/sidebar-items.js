@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ActiveInterrupt"],"mod":["mos652x"],"struct":["BankedMemory","BlockMemory","BranchMemory","LoggingMemory","Mos6510Port","NullMemory","NullPort","SystemInfo"],"trait":["Memory","Port"]};
+window.SIDEBAR_ITEMS = {"enum":["ActiveInterrupt"],"mod":["mos652x"],"struct":["BankedMemory","BlockMemory","BranchMemory","LoggingMemory","Mos6510Port","NullMemory","NullPort"],"trait":["Memory","Port"]};

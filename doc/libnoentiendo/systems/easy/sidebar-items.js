@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Easy6502System","Easy6502SystemBuilder"]};
+window.SIDEBAR_ITEMS = {"struct":["Easy6502System"]};
