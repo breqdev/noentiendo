@@ -311,6 +311,10 @@ pub struct Vic20System {
 }
 
 impl System for Vic20System {
+  fn get_cpu(&self) -> Box<&dyn Cpu> {
+    Box::new(&self.cpu)
+  }
+
   fn tick(&mut self) -> instant::Duration {
     Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
   }

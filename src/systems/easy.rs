@@ -93,6 +93,10 @@ pub struct Easy6502System {
 }
 
 impl System for Easy6502System {
+  fn get_cpu(&self) -> Box<&dyn Cpu> {
+    Box::new(&self.cpu)
+  }
+
   fn tick(&mut self) -> Duration {
     Duration::from_secs_f64(1.0 / 20_000.0) * self.cpu.tick().into()
   }

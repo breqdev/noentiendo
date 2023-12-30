@@ -45,6 +45,10 @@ pub struct KlausSystem {
 }
 
 impl System for KlausSystem {
+  fn get_cpu(&self) -> Box<&dyn Cpu> {
+    Box::new(&self.cpu)
+  }
+
   fn tick(&mut self) -> Duration {
     self.cpu.tick();
     if let Some(pc) = &self.pc {
