@@ -1,7 +1,7 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::new_without_default)]
 
-/// The [`cpu::Mos6502`] represents a 6502 processor and associated memory.
+/// A [`cpu::Cpu`] represents a processor and associated memory. Specific implementations include the [`cpu::mos6502::Mos6502`], which represents the MOS 6502 or its variants (e.g. 65C02).
 pub mod cpu;
 
 /// A [`memory::Memory`] implementation can be read from and written to, but it can also be polled for interrupts. This is used for the PIA, VIA, and other chips that interface over memory but also trigger interrupts. The [`memory`] module provides implementations for various types of memory and other memory-mapped devices. Mappings are handled using [`memory::BranchMemory`].
@@ -28,10 +28,10 @@ pub mod platform;
 /// ROM file loading and unloading is different on different platforms: desktop platforms typically load ROMs from a file, while WebAssembly platforms need to load ROMs from a `Uint8Array`. ROM file definition and loading is handled in the [`roms`] module, with specific [`roms::DiskLoadable`] and `roms::JsValueLoadable` traits for these two cases. Loaded ROMs are represented with a [`roms::RomFile`] object, which can be passed to [`memory::BlockMemory::from_file`].
 pub mod roms;
 
-/// Systems are created by a [`systems::SystemBuilder`]. A system is created with some roms, configuration, and platform. For instance, the `build` implementation on [`systems::pet::PetSystemBuilder`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
+/// A system is created with some roms, configuration, and platform. System instantiation is handled with the [`systems::BuildableSystem`] trait, which is generic over these parameters. For instance, the `build` implementation on [`systems::pet::PetSystem`] takes in [`systems::pet::PetSystemRoms`], [`systems::pet::PetSystemConfig`], and an `Arc<dyn PlatformProvider>`.
 pub mod systems;
 
-/// Traces log the state of the system as it runs (e.g., to a file). This is useful for debugging.
+/// Tools to trace the log the state of the system as it runs (e.g., to a file). This is useful for debugging.
 pub mod trace;
 
 mod time;
