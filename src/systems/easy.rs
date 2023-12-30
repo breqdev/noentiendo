@@ -8,7 +8,7 @@ use crate::keyboard::KeyPosition;
 use crate::memory::{ActiveInterrupt, BlockMemory, BranchMemory, Memory};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::systems::{System, SystemBuilder};
+use crate::systems::{BuildableSystem, System};
 use std::sync::Arc;
 
 const WIDTH: u32 = 32;
@@ -61,9 +61,7 @@ impl Memory for EasyIO {
 }
 
 /// A factory for the Easy6502 system.
-pub struct Easy6502SystemBuilder;
-
-impl SystemBuilder<Easy6502System, RomFile, ()> for Easy6502SystemBuilder {
+impl BuildableSystem<RomFile, ()> for Easy6502System {
   fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     platform.request_window(WindowConfig::new(WIDTH, WIDTH, SCALE as f64));
 

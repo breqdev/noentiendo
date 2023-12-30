@@ -34,7 +34,7 @@ use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use js_sys::Uint8Array;
 
-use super::SystemBuilder;
+use super::BuildableSystem;
 
 /// The set of ROM files required to run a VIC-20 system.
 pub struct Vic20SystemRoms {
@@ -249,10 +249,7 @@ pub struct Vic20SystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// A factory for creating a VIC-20 system.
-pub struct Vic20SystemBuilder;
-
-impl SystemBuilder<Vic20System, Vic20SystemRoms, Vic20SystemConfig> for Vic20SystemBuilder {
+impl BuildableSystem<Vic20SystemRoms, Vic20SystemConfig> for Vic20System {
   fn build(
     roms: Vic20SystemRoms,
     config: Vic20SystemConfig,

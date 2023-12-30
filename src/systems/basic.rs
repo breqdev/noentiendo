@@ -8,7 +8,7 @@ use crate::memory::{ActiveInterrupt, Memory};
 use crate::memory::{BlockMemory, BranchMemory};
 use crate::platform::{PlatformProvider, WindowConfig};
 use crate::roms::RomFile;
-use crate::systems::{System, SystemBuilder};
+use crate::systems::{BuildableSystem, System};
 use std::io::Write;
 use std::sync::Arc;
 
@@ -68,10 +68,7 @@ impl Memory for MappedStdIO {
   }
 }
 
-/// A factory for creating a BasicSystem.
-pub struct BasicSystemBuilder;
-
-impl SystemBuilder<BasicSystem, RomFile, ()> for BasicSystemBuilder {
+impl BuildableSystem<RomFile, ()> for BasicSystem {
   fn build(rom: RomFile, _config: (), platform: Arc<dyn PlatformProvider>) -> Box<dyn System> {
     let ram = BlockMemory::ram(0x4000);
     let io = MappedStdIO::new(platform);

@@ -30,7 +30,7 @@ use self::{
   vic_ii::{VicIIChip, VicIIChipIO},
 };
 
-use super::SystemBuilder;
+use super::BuildableSystem;
 
 /// Port A on the first CIA chip on the C64 deals with setting the keyboard row being scanned.
 struct C64Cia1PortA {
@@ -204,10 +204,7 @@ pub struct C64SystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// A factory for creating a Commodore 64 system.
-pub struct C64SystemBuilder;
-
-impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuilder {
+impl BuildableSystem<C64SystemRoms, C64SystemConfig> for C64System {
   fn build(
     roms: C64SystemRoms,
     config: C64SystemConfig,

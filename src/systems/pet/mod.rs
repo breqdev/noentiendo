@@ -6,7 +6,7 @@ use crate::keyboard::{KeyAdapter, KeyMappingStrategy, SymbolAdapter};
 use crate::memory::mos652x::{Pia, Via};
 use crate::memory::{BlockMemory, BranchMemory, NullMemory, NullPort, Port};
 use crate::platform::{Color, PlatformProvider, WindowConfig};
-use crate::systems::{System, SystemBuilder};
+use crate::systems::{BuildableSystem, System};
 use instant::Instant;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -151,10 +151,7 @@ pub struct PetSystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// A factory for the Commodore PET.
-pub struct PetSystemBuilder;
-
-impl SystemBuilder<PetSystem, PetSystemRoms, PetSystemConfig> for PetSystemBuilder {
+impl BuildableSystem<PetSystemRoms, PetSystemConfig> for PetSystem {
   fn build(
     roms: PetSystemRoms,
     config: PetSystemConfig,

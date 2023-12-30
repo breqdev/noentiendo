@@ -9,8 +9,8 @@ pub mod klaus;
 pub mod pet;
 pub mod vic;
 
-pub trait SystemBuilder<SystemType, RomRegistry, SystemConfig> {
-  /// Create a new system from the given roms, configuration, and with I/O provided by the given
+pub trait BuildableSystem<RomRegistry, SystemConfig> {
+  /// Instantiate this system from the given roms, configuration, and with I/O provided by the given
   /// platform provider.
   fn build(
     roms: RomRegistry,
