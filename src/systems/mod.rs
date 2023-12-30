@@ -1,6 +1,7 @@
 use crate::{
   cpu::Cpu,
   platform::{PlatformProvider, WindowConfig},
+  trace::TraceHandler,
 };
 use instant::Duration;
 use std::sync::Arc;
@@ -27,6 +28,10 @@ pub trait System {
   /// Return a mutable reference to the CPU used in this system.
   fn get_cpu_mut(&mut self) -> Box<&mut dyn Cpu>;
 
+  fn attach_trace_handler(&mut self, handler: Box<dyn TraceHandler>) {
+    self.get_cpu_mut().attach_trace_handler(handler);
+  }
+
   /// Advance the system by one tick.
   fn tick(&mut self) -> Duration;
 
@@ -38,6 +43,6 @@ pub trait System {
 
   /// Clean up any resources used by this system.
   fn cleanup(&mut self) -> Result<(), &str> {
-    Ok(())
+    self.get_cpu_mut().cleanup()
   }
 }
