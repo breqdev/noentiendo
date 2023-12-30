@@ -5,14 +5,14 @@ use std::{
 };
 
 use crate::{
-  cpu::{Mos6502, Mos6502Variant},
+  cpu::mos6502::{Mos6502, Mos6502Variant},
+  cpu::Cpu,
   keyboard::{
     commodore::{C64KeyboardAdapter, C64SymbolAdapter, C64VirtualAdapter},
     KeyAdapter, KeyMappingStrategy, SymbolAdapter,
   },
   memory::{
     mos652x::Cia, BankedMemory, BlockMemory, BranchMemory, Mos6510Port, NullMemory, NullPort, Port,
-    SystemInfo,
   },
   platform::{PlatformProvider, WindowConfig},
   systems::System,
@@ -30,7 +30,7 @@ use self::{
   vic_ii::{VicIIChip, VicIIChipIO},
 };
 
-use super::SystemBuilder;
+use super::BuildableSystem;
 
 /// Port A on the first CIA chip on the C64 deals with setting the keyboard row being scanned.
 struct C64Cia1PortA {
@@ -59,7 +59,7 @@ impl Port for C64Cia1PortA {
     self.keyboard_row.set(value);
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
@@ -119,7 +119,7 @@ impl Port for C64Cia1PortB {
     panic!("Tried to write to keyboard row");
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
@@ -188,7 +188,7 @@ impl Port for C64BankSwitching {
     self.selectors[5].set(if !self.hiram { 1 } else { 0 });
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> bool {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
     false
   }
 
@@ -204,10 +204,7 @@ pub struct C64SystemConfig {
   pub mapping: KeyMappingStrategy,
 }
 
-/// A factory for creating a Commodore 64 system.
-pub struct C64SystemBuilder;
-
-impl SystemBuilder<C64System, C64SystemRoms, C64SystemConfig> for C64SystemBuilder {
+impl BuildableSystem<C64SystemRoms, C64SystemConfig> for C64System {
   fn build(
     roms: C64SystemRoms,
     config: C64SystemConfig,
@@ -316,6 +313,10 @@ pub struct C64System {
 }
 
 impl System for C64System {
+  fn get_cpu_mut(&mut self) -> Box<&mut dyn Cpu> {
+    Box::new(&mut self.cpu)
+  }
+
   fn tick(&mut self) -> Duration {
     Duration::from_secs_f64(1.0 / 1_000_000.0) * self.cpu.tick() as u32
   }

@@ -1,6 +1,6 @@
 use std::{cell::Cell, rc::Rc};
 
-use super::{ActiveInterrupt, Memory, SystemInfo};
+use super::{ActiveInterrupt, Memory};
 
 /// Represents the memory banking features found in the Commodore 64 and other
 /// devices. Multiple memory implementations are all mapped to the same
@@ -48,11 +48,11 @@ impl Memory for BankedMemory {
     }
   }
 
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt {
     let mut highest = ActiveInterrupt::None;
 
     for mapped in &mut self.banks {
-      let interrupt = mapped.poll(cycles, info);
+      let interrupt = mapped.poll(cycles_since_poll, total_cycle_count);
 
       match interrupt {
         ActiveInterrupt::None => (),

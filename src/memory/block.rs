@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory};
 use crate::roms::RomFile;
 
 /// Represents a simple block of contiguous memory, with no additional hardware.
@@ -85,7 +85,7 @@ impl Memory for BlockMemory {
     }
   }
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

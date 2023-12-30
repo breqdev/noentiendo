@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory};
 
 /// Memory that does nothing when read or written to.
 #[derive(Default)]
@@ -36,7 +36,7 @@ impl Memory for NullMemory {
 
   fn reset(&mut self) {}
 
-  fn poll(&mut self, _cycles: u32, _info: &SystemInfo) -> ActiveInterrupt {
+  fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> ActiveInterrupt {
     ActiveInterrupt::None
   }
 }

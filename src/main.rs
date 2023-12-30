@@ -4,10 +4,10 @@ use libnoentiendo::{
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
   roms::DiskLoadable,
   systems::{
-    basic::BasicSystemBuilder, c64::C64SystemBuilder, c64::C64SystemConfig, c64::C64SystemRoms,
-    easy::Easy6502SystemBuilder, klaus::KlausSystemBuilder, pet::PetSystemBuilder,
-    pet::PetSystemConfig, pet::PetSystemRoms, vic::Vic20SystemBuilder, vic::Vic20SystemConfig,
-    vic::Vic20SystemRoms, SystemBuilder,
+    basic::BasicSystem, c64::C64System, c64::C64SystemConfig, c64::C64SystemRoms,
+    easy::Easy6502System, klaus::KlausSystem, pet::PetSystem, pet::PetSystemConfig,
+    pet::PetSystemRoms, vic::Vic20System, vic::Vic20SystemConfig, vic::Vic20SystemRoms,
+    BuildableSystem,
   },
 };
 
@@ -55,7 +55,7 @@ struct Args {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-  use libnoentiendo::{cpu::Mos6502Variant, systems::klaus::KlausSystemConfig};
+  use libnoentiendo::{cpu::mos6502::Mos6502Variant, systems::klaus::KlausSystemConfig};
 
   let args = Args::parse();
 
@@ -75,9 +75,9 @@ fn main() {
   };
 
   let system = match args.system {
-    SystemArg::Basic => BasicSystemBuilder::build(romfile.unwrap(), (), platform.provider()),
-    SystemArg::Easy => Easy6502SystemBuilder::build(romfile.unwrap(), (), platform.provider()),
-    SystemArg::Klaus => KlausSystemBuilder::build(
+    SystemArg::Basic => BasicSystem::build(romfile.unwrap(), (), platform.provider()),
+    SystemArg::Easy => Easy6502System::build(romfile.unwrap(), (), platform.provider()),
+    SystemArg::Klaus => KlausSystem::build(
       romfile.unwrap(),
       KlausSystemConfig {
         pc_report: None,
@@ -85,12 +85,12 @@ fn main() {
       },
       platform.provider(),
     ),
-    SystemArg::Pet => PetSystemBuilder::build(
+    SystemArg::Pet => PetSystem::build(
       PetSystemRoms::from_disk(),
       PetSystemConfig { mapping },
       platform.provider(),
     ),
-    SystemArg::Vic => Vic20SystemBuilder::build(
+    SystemArg::Vic => Vic20System::build(
       Vic20SystemRoms::from_disk(match romfile {
         Some(_) => Some(args.rom_path.as_str()),
         None => None,
@@ -98,7 +98,7 @@ fn main() {
       Vic20SystemConfig { mapping },
       platform.provider(),
     ),
-    SystemArg::C64 => C64SystemBuilder::build(
+    SystemArg::C64 => C64System::build(
       C64SystemRoms::from_disk(),
       C64SystemConfig { mapping },
       platform.provider(),

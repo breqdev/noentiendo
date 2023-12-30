@@ -27,13 +27,6 @@ pub enum ActiveInterrupt {
   IRQ,
 }
 
-/// Information about the system that Memory implementations can use to
-/// determine if an interrupt should be triggered.
-#[derive(Debug, Default)]
-pub struct SystemInfo {
-  pub cycle_count: u64,
-}
-
 /// Represents a contiguous block of memory which can be read, written,
 /// reset, and polled to see if an interrupt has been triggered.
 pub trait Memory {
@@ -52,5 +45,5 @@ pub trait Memory {
   /// Poll this memory to see if an interrupt has been triggered.
   /// Implementations may trigger an NMI or IRQ for any
   /// implementation-dependent reason.
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt;
+  fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt;
 }

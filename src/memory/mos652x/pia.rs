@@ -1,4 +1,4 @@
-use crate::memory::{ActiveInterrupt, Memory, Port, SystemInfo};
+use crate::memory::{ActiveInterrupt, Memory, Port};
 
 // MOS 6520
 
@@ -55,8 +55,8 @@ impl PiaPortRegisters {
   }
 
   /// Poll the underlying port for interrupts.
-  pub fn poll(&mut self, cycles: u32, info: &SystemInfo) -> bool {
-    self.port.poll(cycles, info)
+  pub fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> bool {
+    self.port.poll(cycles_since_poll, total_cycle_count)
   }
 
   /// Reset the DDR, control register, and underlying port.
@@ -122,9 +122,9 @@ impl Memory for Pia {
     self.b.reset();
   }
 
-  fn poll(&mut self, cycles: u32, info: &SystemInfo) -> ActiveInterrupt {
-    let a = self.a.poll(cycles, info);
-    let b = self.b.poll(cycles, info);
+  fn poll(&mut self, cycles_since_poll: u64, total_cycle_count: u64) -> ActiveInterrupt {
+    let a = self.a.poll(cycles_since_poll, total_cycle_count);
+    let b = self.b.poll(cycles_since_poll, total_cycle_count);
 
     if a || b {
       ActiveInterrupt::IRQ
