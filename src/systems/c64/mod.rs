@@ -135,12 +135,12 @@ pub struct C64BankSwitching {
   charen: bool,
 
   /// Selectors to choose what is mapped in each memory region.
-  selectors: [Rc<Cell<usize>>; 6],
+  selectors: [Rc<Cell<(usize, usize)>>; 6],
 }
 
 impl C64BankSwitching {
-  pub fn new(mut selectors: [Rc<Cell<usize>>; 6]) -> Self {
-    selectors.iter_mut().for_each(|s| s.set(0));
+  pub fn new(mut selectors: [Rc<Cell<(usize, usize)>>; 6]) -> Self {
+    selectors.iter_mut().for_each(|s| s.set((0, 0)));
     Self {
       hiram: true,
       loram: true,
@@ -164,28 +164,32 @@ impl Port for C64BankSwitching {
     // TODO: EXROM, GAME signals
 
     // Region 2: RAM or inaccessible
-    self.selectors[0].set(0);
+    self.selectors[0].set((0, 0));
 
     // Region 3: RAM or Cartridge ROM Low
-    self.selectors[1].set(0);
+    self.selectors[1].set((0, 0));
 
     // Region 4: BASIC ROM, RAM, Cartridge ROM High, or inaccessible
-    self.selectors[2].set(if self.hiram && self.loram { 0 } else { 1 });
+    self.selectors[2].set(if self.hiram && self.loram {
+      (0, 0)
+    } else {
+      (1, 1)
+    });
 
     // Region 5: RAM or inaccessible
-    self.selectors[3].set(0);
+    self.selectors[3].set((0, 0));
 
     // Region 6: I/O, RAM, or character rom
     self.selectors[4].set(if !self.hiram && !self.loram {
-      1
+      (1, 1)
     } else if !self.charen {
-      2
+      (2, 2)
     } else {
-      0
+      (0, 0)
     });
 
     // Region 7: Kernal ROM or RAM
-    self.selectors[5].set(if !self.hiram { 1 } else { 0 });
+    self.selectors[5].set(if !self.hiram { (1, 1) } else { (0, 0) });
   }
 
   fn poll(&mut self, _cycles_since_poll: u64, _total_cycle_count: u64) -> bool {
@@ -220,19 +224,19 @@ impl BuildableSystem<C64SystemRoms, C64SystemConfig> for C64System {
     let region1 = BlockMemory::ram(0x1000);
 
     // Region 2: 0x1000 - 0x7FFF
-    let selector2 = Rc::new(Cell::new(0));
+    let selector2 = Rc::new(Cell::new((0, 0)));
     let region2 = BankedMemory::new(selector2.clone())
       .bank(BlockMemory::ram(0x7000))
       .bank(NullMemory::new());
 
     // Region 3: 0x8000 - 0x9FFF
-    let selector3 = Rc::new(Cell::new(0));
+    let selector3 = Rc::new(Cell::new((0, 0)));
     let region3 = BankedMemory::new(selector3.clone())
       .bank(BlockMemory::ram(0x2000))
       .bank(NullMemory::new()); // TODO: Cartridge Rom Low
 
     // Region 4: 0xA000 - 0xBFFF
-    let selector4 = Rc::new(Cell::new(0));
+    let selector4 = Rc::new(Cell::new((0, 0)));
     let region4 = BankedMemory::new(selector4.clone())
       .bank(BlockMemory::from_file(0x2000, roms.basic))
       .bank(BlockMemory::ram(0x2000))
@@ -240,13 +244,13 @@ impl BuildableSystem<C64SystemRoms, C64SystemConfig> for C64System {
       .bank(NullMemory::new());
 
     // Region 5: 0xC000 - 0xCFFF
-    let selector5 = Rc::new(Cell::new(0));
+    let selector5 = Rc::new(Cell::new((0, 0)));
     let region5 = BankedMemory::new(selector5.clone())
       .bank(BlockMemory::ram(0x1000))
       .bank(NullMemory::new());
 
     // Region 6: 0xD000 - 0xDFFF
-    let selector6 = Rc::new(Cell::new(0));
+    let selector6 = Rc::new(Cell::new((0, 0)));
 
     let character_rom = BlockMemory::from_file(0x1000, roms.character.clone());
     let vic_ii = Rc::new(RefCell::new(VicIIChip::new(Box::new(character_rom))));
@@ -280,7 +284,7 @@ impl BuildableSystem<C64SystemRoms, C64SystemConfig> for C64System {
       .bank(BlockMemory::from_file(0x1000, roms.character));
 
     // Region 7: 0xE000 - 0xFFFF
-    let selector7 = Rc::new(Cell::new(0));
+    let selector7 = Rc::new(Cell::new((0, 0)));
     let region7 = BankedMemory::new(selector7.clone())
       .bank(BlockMemory::from_file(0x2000, roms.kernal))
       .bank(BlockMemory::ram(0x2000))

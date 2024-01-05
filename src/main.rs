@@ -4,9 +4,13 @@ use libnoentiendo::{
   platform::{SyncPlatform, TextPlatform, WinitPlatform},
   roms::DiskLoadable,
   systems::{
-    basic::BasicSystem, c64::C64System, c64::C64SystemConfig, c64::C64SystemRoms,
-    easy::Easy6502System, klaus::KlausSystem, pet::PetSystem, pet::PetSystemConfig,
-    pet::PetSystemRoms, vic::Vic20System, vic::Vic20SystemConfig, vic::Vic20SystemRoms,
+    aiie::{AiieSystem, AiieSystemConfig, AiieSystemRoms},
+    basic::BasicSystem,
+    c64::{C64System, C64SystemConfig, C64SystemRoms},
+    easy::Easy6502System,
+    klaus::KlausSystem,
+    pet::{PetSystem, PetSystemConfig, PetSystemRoms},
+    vic::{Vic20System, Vic20SystemConfig, Vic20SystemRoms},
     BuildableSystem,
   },
 };
@@ -22,6 +26,7 @@ enum SystemArg {
   Pet,
   Vic,
   C64,
+  Aiie,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
@@ -106,6 +111,11 @@ fn main() {
     SystemArg::C64 => C64System::build(
       C64SystemRoms::from_disk(),
       C64SystemConfig { mapping },
+      platform.provider(),
+    ),
+    SystemArg::Aiie => AiieSystem::build(
+      AiieSystemRoms::from_disk(),
+      AiieSystemConfig {},
       platform.provider(),
     ),
   };
